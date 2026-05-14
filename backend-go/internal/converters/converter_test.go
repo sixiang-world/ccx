@@ -176,9 +176,7 @@ func TestOpenAIChatConverter_WithMessageType(t *testing.T) {
 	if messages[0]["role"] != "user" {
 		t.Errorf("角色应该是 user")
 	}
-	if messages[0]["content"] != "Hello from message type!" {
-		t.Errorf("内容不匹配，实际为 '%v'", messages[0]["content"])
-	}
+	assertOpenAIChatTextContent(t, "Hello from message type!", messages[0]["content"])
 }
 
 func TestOpenAIChatConverter_WithImageMessageContent(t *testing.T) {

@@ -42,7 +42,7 @@ func TestResponsesHandler_DeepSeekChatAndMessagesThinkingMatrix(t *testing.T) {
 				if got := assistant["reasoning_content"]; got != "previous reasoning" {
 					t.Fatalf("reasoning_content = %v, want previous reasoning; body=%s", got, string(body))
 				}
-				if got := assistant["content"]; got != "previous text" {
+				if got := chatTextContent(assistant["content"]); got != "previous text" {
 					t.Fatalf("content = %v, want previous text in same assistant message; body=%s", got, string(body))
 				}
 			},
@@ -116,6 +116,25 @@ func TestResponsesHandler_DeepSeekChatAndMessagesThinkingMatrix(t *testing.T) {
 			tt.wantUpstream(t, captured)
 			tt.wantDownstream(t, w.Body.Bytes())
 		})
+	}
+}
+
+func chatTextContent(content interface{}) string {
+	switch v := content.(type) {
+	case string:
+		return v
+	case []interface{}:
+		if len(v) == 0 {
+			return ""
+		}
+		part, ok := v[0].(map[string]interface{})
+		if !ok {
+			return ""
+		}
+		text, _ := part["text"].(string)
+		return text
+	default:
+		return ""
 	}
 }
 

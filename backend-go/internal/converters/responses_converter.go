@@ -350,7 +350,11 @@ func ResponsesToOpenAIChatMessages(sess *session.Session, newInput interface{}, 
 
 	messages = appendResponsesItemsToOpenAIMessages(messages, newItems)
 
-	return normalizeOpenAIToolCallMessageOrder(messages), nil
+	return normalizeOpenAIToolCallMessages(messages), nil
+}
+
+func normalizeOpenAIToolCallMessages(messages []map[string]interface{}) []map[string]interface{} {
+	return downgradeOrphanOpenAIToolMessages(normalizeOpenAIToolCallMessageOrder(messages))
 }
 
 func normalizeOpenAIToolCallMessageOrder(messages []map[string]interface{}) []map[string]interface{} {
@@ -394,6 +398,67 @@ func normalizeOpenAIToolCallMessageOrder(messages []map[string]interface{}) []ma
 	}
 
 	return normalized
+}
+
+func downgradeOrphanOpenAIToolMessages(messages []map[string]interface{}) []map[string]interface{} {
+	normalized := make([]map[string]interface{}, 0, len(messages))
+	var pendingIDs map[string]struct{}
+
+	for _, msg := range messages {
+		if role, _ := msg["role"].(string); role == "tool" {
+			id := openAIToolMessageID(msg)
+			if id != "" {
+				if _, ok := pendingIDs[id]; ok {
+					normalized = append(normalized, msg)
+					delete(pendingIDs, id)
+					continue
+				}
+			}
+
+			// DeepSeek 等上游会拒绝孤立 tool 消息；降级为普通历史文本保留上下文。
+			normalized = append(normalized, orphanOpenAIToolMessageAsUser(msg))
+			pendingIDs = nil
+			continue
+		}
+
+		normalized = append(normalized, msg)
+		if ids := openAIToolCallIDs(msg); len(ids) > 0 {
+			pendingIDs = ids
+		} else {
+			pendingIDs = nil
+		}
+	}
+
+	return normalized
+}
+
+func orphanOpenAIToolMessageAsUser(msg map[string]interface{}) map[string]interface{} {
+	callID, _ := msg["tool_call_id"].(string)
+	content := stringifyOpenAIToolMessageContent(msg["content"])
+	if callID != "" {
+		content = fmt.Sprintf("Function call output (%s): %s", callID, content)
+	} else {
+		content = fmt.Sprintf("Function call output: %s", content)
+	}
+	return map[string]interface{}{
+		"role":    "user",
+		"content": content,
+	}
+}
+
+func stringifyOpenAIToolMessageContent(content interface{}) string {
+	switch v := content.(type) {
+	case string:
+		return v
+	case nil:
+		return ""
+	default:
+		data, err := JSONMarshal(v)
+		if err != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return string(data)
+	}
 }
 
 func openAIToolCallIDs(msg map[string]interface{}) map[string]struct{} {

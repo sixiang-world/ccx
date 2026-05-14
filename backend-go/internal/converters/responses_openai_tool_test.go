@@ -64,7 +64,14 @@ func TestResponsesToOpenAIChatMessages_ToolCall(t *testing.T) {
 // TestResponsesToOpenAIChatMessages_ToolResult 测试 Responses tool_result 转 OpenAI tool message
 func TestResponsesToOpenAIChatMessages_ToolResult(t *testing.T) {
 	sess := &session.Session{
-		Messages: []types.ResponsesItem{},
+		Messages: []types.ResponsesItem{
+			{
+				Type:      "function_call",
+				CallID:    "toolu_abc123",
+				Name:      "web_search",
+				Arguments: `{"query":"golang tutorials"}`,
+			},
+		},
 	}
 
 	// 模拟 Responses tool_result
@@ -80,18 +87,25 @@ func TestResponsesToOpenAIChatMessages_ToolResult(t *testing.T) {
 
 	messages, err := ResponsesToOpenAIChatMessages(sess, newInput, "")
 	assert.NoError(t, err)
-	assert.Len(t, messages, 1)
+	assert.Len(t, messages, 2)
 
 	// 验证 tool message
-	assert.Equal(t, "tool", messages[0]["role"])
-	assert.Equal(t, "toolu_abc123", messages[0]["tool_call_id"])
-	assert.Equal(t, "Found 10 tutorials", messages[0]["content"])
+	assert.Equal(t, "tool", messages[1]["role"])
+	assert.Equal(t, "toolu_abc123", messages[1]["tool_call_id"])
+	assert.Equal(t, "Found 10 tutorials", messages[1]["content"])
 }
 
 // TestResponsesToOpenAIChatMessages_ToolResult_ObjectContent 测试对象类型的 tool_result
 func TestResponsesToOpenAIChatMessages_ToolResult_ObjectContent(t *testing.T) {
 	sess := &session.Session{
-		Messages: []types.ResponsesItem{},
+		Messages: []types.ResponsesItem{
+			{
+				Type:      "function_call",
+				CallID:    "toolu_xyz789",
+				Name:      "web_search",
+				Arguments: `{"query":"golang tutorials"}`,
+			},
+		},
 	}
 
 	// 模拟对象类型的 tool_result
@@ -110,14 +124,14 @@ func TestResponsesToOpenAIChatMessages_ToolResult_ObjectContent(t *testing.T) {
 
 	messages, err := ResponsesToOpenAIChatMessages(sess, newInput, "")
 	assert.NoError(t, err)
-	assert.Len(t, messages, 1)
+	assert.Len(t, messages, 2)
 
 	// 验证 tool message
-	assert.Equal(t, "tool", messages[0]["role"])
-	assert.Equal(t, "toolu_xyz789", messages[0]["tool_call_id"])
+	assert.Equal(t, "tool", messages[1]["role"])
+	assert.Equal(t, "toolu_xyz789", messages[1]["tool_call_id"])
 
 	// content 应该是 JSON 字符串
-	content, ok := messages[0]["content"].(string)
+	content, ok := messages[1]["content"].(string)
 	assert.True(t, ok)
 	assert.Contains(t, content, "Tutorial 1")
 	assert.Contains(t, content, "Tutorial 2")
@@ -251,7 +265,16 @@ func TestResponsesToOpenAIChatMessages_FunctionCallMissingNameReturnsNilMessage(
 }
 
 func TestResponsesToOpenAIChatMessages_FunctionCallOutputObjectContentSerializesJSON(t *testing.T) {
-	sess := &session.Session{Messages: []types.ResponsesItem{}}
+	sess := &session.Session{
+		Messages: []types.ResponsesItem{
+			{
+				Type:      "function_call",
+				CallID:    "call_1",
+				Name:      "get_weather",
+				Arguments: `{"location":"Tokyo"}`,
+			},
+		},
+	}
 
 	messages, err := ResponsesToOpenAIChatMessages(sess, []interface{}{
 		map[string]interface{}{
@@ -264,9 +287,9 @@ func TestResponsesToOpenAIChatMessages_FunctionCallOutputObjectContentSerializes
 		},
 	}, "")
 	assert.NoError(t, err)
-	assert.Len(t, messages, 1)
-	assert.Equal(t, "tool", messages[0]["role"])
-	content, ok := messages[0]["content"].(string)
+	assert.Len(t, messages, 2)
+	assert.Equal(t, "tool", messages[1]["role"])
+	content, ok := messages[1]["content"].(string)
 	assert.True(t, ok)
 	assert.Contains(t, content, "temperature")
 	assert.Contains(t, content, "sunny")
@@ -296,7 +319,7 @@ func TestResponsesToOpenAIChatMessages_MergesReasoningIntoFollowingAssistantMess
 	assert.Len(t, messages, 1)
 	assert.Equal(t, "assistant", messages[0]["role"])
 	assert.Equal(t, "previous reasoning", messages[0]["reasoning_content"])
-	assert.Equal(t, "previous text", messages[0]["content"])
+	assertOpenAIChatTextContent(t, "previous text", messages[0]["content"])
 }
 
 func TestResponsesToOpenAIChatMessages_MultipleFunctionCallsMergeIntoOneMessage(t *testing.T) {
@@ -434,7 +457,7 @@ func TestResponsesToOpenAIChatMessages_ReordersUserMessagesAfterPendingToolOutpu
 	assert.Equal(t, "user", messages[3]["role"])
 	assert.Equal(t, "call_1", messages[1]["tool_call_id"])
 	assert.Equal(t, "call_2", messages[2]["tool_call_id"])
-	assert.Equal(t, "Approved command prefix saved", messages[3]["content"])
+	assertOpenAIChatTextContent(t, "Approved command prefix saved", messages[3]["content"])
 }
 
 // TestResponsesToOpenAIChatMessages_DeepSeekMultiTurnToolCalls 模拟 DeepSeek 多轮 tool_calls 场景
@@ -533,7 +556,38 @@ func TestResponsesToOpenAIChatMessages_DeepSeekMultiTurnToolCalls(t *testing.T) 
 
 	// [3] user
 	assert.Equal(t, "user", messages[3]["role"])
-	assert.Equal(t, "run tests now", messages[3]["content"])
+	assertOpenAIChatTextContent(t, "run tests now", messages[3]["content"])
+}
+
+func TestResponsesToOpenAIChatMessages_DowngradesOrphanToolOutput(t *testing.T) {
+	sess := &session.Session{
+		Messages: []types.ResponsesItem{
+			{
+				Type:   "reasoning",
+				Status: "completed",
+				Summary: []interface{}{map[string]interface{}{
+					"type": "summary_text",
+					"text": "I need the previous tool result.",
+				}},
+			},
+		},
+	}
+
+	messages, err := ResponsesToOpenAIChatMessages(sess, []interface{}{
+		map[string]interface{}{
+			"type":    "function_call_output",
+			"call_id": "missing_call",
+			"output":  "tool output without a matching call",
+		},
+	}, "")
+
+	assert.NoError(t, err)
+	assert.Len(t, messages, 2)
+	assert.Equal(t, "assistant", messages[0]["role"])
+	assert.NotContains(t, messages[0], "tool_calls")
+	assert.Equal(t, "user", messages[1]["role"])
+	assert.Equal(t, "Function call output (missing_call): tool output without a matching call", messages[1]["content"])
+	assert.NotContains(t, messages[1], "tool_call_id")
 }
 
 func TestResponsesToOpenAIChatMessages_InferMessageTypeForRoleContentInput(t *testing.T) {
@@ -689,4 +743,31 @@ func TestResponsesToolsToOpenAI_EmptyParametersDefault(t *testing.T) {
 	assert.Equal(t, "object", params["type"])
 	assert.NotNil(t, params["properties"])
 	assert.NotNil(t, params["required"])
+}
+
+func assertOpenAIChatTextContent(t *testing.T, expected string, content interface{}) {
+	t.Helper()
+
+	switch v := content.(type) {
+	case string:
+		assert.Equal(t, expected, v)
+	case []map[string]interface{}:
+		if !assert.Len(t, v, 1) {
+			return
+		}
+		assert.Equal(t, "text", v[0]["type"])
+		assert.Equal(t, expected, v[0]["text"])
+	case []interface{}:
+		if !assert.Len(t, v, 1) {
+			return
+		}
+		part, ok := v[0].(map[string]interface{})
+		if !assert.True(t, ok) {
+			return
+		}
+		assert.Equal(t, "text", part["type"])
+		assert.Equal(t, expected, part["text"])
+	default:
+		assert.Failf(t, "unsupported content type", "got %T", content)
+	}
 }

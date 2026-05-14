@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### 修复
+
+- **修复 Responses→OpenAI Chat 历史中孤立 `tool` 消息导致 DeepSeek 拒绝请求** - 当历史消息中存在没有前置匹配 `tool_calls` 的 `function_call_output` / `tool_result` 时，转换层会将该孤立 tool 输出降级为普通 user 文本保留上下文，避免上游返回 `Messages with role 'tool' must be a response to a preceding message with 'tool_calls'`；同时补充 converter 与 DeepSeek thinking matrix 测试，兼容 OpenAI Chat content parts 断言。
+
 ## [v2.6.93] - 2026-05-14
 
 ### 修复
