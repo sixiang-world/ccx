@@ -1413,7 +1413,8 @@ const reasoningEffortOptions = [
 
 const reasoningParamStyleOptions = [
   { title: 'reasoning.effort', value: 'reasoning' },
-  { title: 'reasoning_effort', value: 'reasoning_effort' }
+  { title: 'reasoning_effort', value: 'reasoning_effort' },
+  { title: 'thinking (JD/GLM)', value: 'thinking' }
 ]
 
 const textVerbosityOptions = [
@@ -1632,7 +1633,7 @@ const form = reactive({
   apiKeys: [] as string[],
   modelMapping: {} as Record<string, string>,
   reasoningMapping: {} as Record<string, 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'>,
-  reasoningParamStyle: 'reasoning' as 'reasoning' | 'reasoning_effort',
+  reasoningParamStyle: 'reasoning' as 'reasoning' | 'reasoning_effort' | 'thinking',
   textVerbosity: '' as 'low' | 'medium' | 'high' | '',
   fastMode: false,
   customHeaders: {} as Record<string, string>,

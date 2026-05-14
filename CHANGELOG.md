@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### 新增
+
+- **新增 `thinking` 思考参数风格** - 渠道 `reasoningParamStyle` 新增 `thinking` 选项，配置后将 reasoning effort 转换为 `{"thinking": {"type": "enabled"}}` 格式，支持京东 CodingPlan / GLM-5 等需要该格式开启思考模式的上游（Closes #54）
+
 ### 修复
 
 - **修复 Chat 渠道 Gemini 上游 function calling 缺少 thought_signature 导致 400 错误** - Gemini 3 模型要求多轮 function calling 时 assistant message 的 tool_calls 必须包含 `thought_signature`，Chat handler 现在会自动为缺失该字段的 tool_calls 注入 dummy 值（`skip_thought_signature_validator`）跳过验证，已有真实 signature 则保留原值

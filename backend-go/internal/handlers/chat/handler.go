@@ -266,6 +266,12 @@ func buildChatCompletionRequestBody(
 		if effort := config.ResolveReasoningEffort(model, upstream); effort != "" {
 			if upstream.ReasoningParamStyle == "reasoning_effort" {
 				reqMap["reasoning_effort"] = effort
+			} else if upstream.ReasoningParamStyle == "thinking" {
+				delete(reqMap, "reasoning")
+				delete(reqMap, "reasoning_effort")
+				if effort != "none" {
+					reqMap["thinking"] = map[string]interface{}{"type": "enabled"}
+				}
 			} else {
 				reqMap["reasoning"] = map[string]interface{}{"effort": effort}
 			}

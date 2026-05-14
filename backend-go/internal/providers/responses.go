@@ -102,7 +102,15 @@ func (p *ResponsesProvider) buildProviderRequestBody(c *gin.Context, requestPath
 		if model, ok := reqMap["model"].(string); ok {
 			reqMap["model"] = config.RedirectModel(model, upstream)
 			if effort := config.ResolveReasoningEffort(model, upstream); effort != "" {
-				reqMap["reasoning"] = map[string]interface{}{"effort": effort}
+				if upstream.ReasoningParamStyle == "thinking" {
+					delete(reqMap, "reasoning")
+					delete(reqMap, "reasoning_effort")
+					if effort != "none" {
+						reqMap["thinking"] = map[string]interface{}{"type": "enabled"}
+					}
+				} else {
+					reqMap["reasoning"] = map[string]interface{}{"effort": effort}
+				}
 			}
 		}
 		if upstream.TextVerbosity != "" {
@@ -238,7 +246,13 @@ func (p *ResponsesProvider) buildResponsesRequestFromClaude(c *gin.Context, body
 		"stream": claudeReq.Stream,
 	}
 	if effort := config.ResolveReasoningEffort(claudeReq.Model, upstream); effort != "" {
-		responsesReq["reasoning"] = map[string]interface{}{"effort": effort}
+		if upstream.ReasoningParamStyle == "thinking" {
+			if effort != "none" {
+				responsesReq["thinking"] = map[string]interface{}{"type": "enabled"}
+			}
+		} else {
+			responsesReq["reasoning"] = map[string]interface{}{"effort": effort}
+		}
 	}
 	if instructions := extractResponsesInstructions(claudeReq.System); instructions != "" {
 		responsesReq["instructions"] = instructions
