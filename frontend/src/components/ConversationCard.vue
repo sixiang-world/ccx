@@ -1,12 +1,12 @@
 <template>
   <v-card
     :class="['conversation-card', { 'override-active': hasOverride }]"
-    variant="outlined"
-    @click="!expanded && $emit('toggleExpand')"
+    elevation="0"
+    @click="$emit('toggleExpand')"
   >
-    <v-card-text class="pa-3">
+    <v-card-text class="pa-4">
       <!-- Row 1: Status + Kind + User + Stats -->
-      <div class="d-flex align-center ga-2 mb-1">
+      <div class="d-flex align-center ga-2 mb-3">
         <v-icon :color="statusColor" size="10">mdi-circle</v-icon>
         <v-chip :color="kindColor" size="x-small" variant="flat">{{ conversation.kind }}</v-chip>
         <span class="text-caption font-weight-mono text-medium-emphasis">
@@ -22,8 +22,8 @@
       </div>
 
       <!-- Row 2: Model + Channel chips (collapsed) -->
-      <div v-if="!expanded" class="d-flex align-center ga-1 flex-wrap">
-        <span class="text-body-2 mr-2">{{ conversation.lastModel }}</span>
+      <div v-if="!expanded" class="d-flex align-center ga-2 flex-wrap">
+        <span class="text-body-2 font-weight-medium mr-2">{{ conversation.title || conversation.lastModel }}</span>
         <v-chip
           v-for="(ch, i) in visibleChannels"
           :key="ch.index"
@@ -66,7 +66,7 @@
 
       <!-- Expanded: Full channel sequence -->
       <div v-if="expanded" class="mt-3">
-        <div class="text-caption text-medium-emphasis mb-1">{{ conversation.lastModel }}</div>
+        <div class="text-caption text-medium-emphasis mb-1">{{ conversation.title || conversation.lastModel }}</div>
         <div class="channel-sequence">
           <div
             v-for="(ch, i) in channelSequence"
@@ -140,7 +140,7 @@ const emit = defineEmits<{
   removeOverride: [convId: string]
 }>()
 
-const MAX_VISIBLE = 3
+const MAX_VISIBLE = 5
 
 const hasOverride = computed(() => !!props.override)
 
@@ -209,13 +209,8 @@ function buildSequence(channels: ChannelInfo[]): ChannelSequenceEntry[] {
 }
 
 function handleQuickOverride(ch: ChannelInfo) {
-  if (ch.index === conversation.currentChannel && !hasOverride.value) return
-  const current = [...channelSequence.value]
-  const idx = current.findIndex(c => c.index === ch.index)
-  if (idx <= 0) return
-  const [item] = current.splice(idx, 1)
-  current.unshift(item)
-  emit('setOverride', props.conversation.id, buildSequence(current))
+  const rest = channelSequence.value.filter(c => c.index !== ch.index)
+  emit('setOverride', props.conversation.id, buildSequence([ch, ...rest]))
 }
 
 function handleMoveToTop(ch: ChannelInfo, currentIdx: number) {
@@ -240,14 +235,35 @@ const conversation = props.conversation
 <style scoped>
 .conversation-card {
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: all 0.1s ease;
+  border: 2px solid rgb(var(--v-theme-on-surface));
+  box-shadow: 4px 4px 0 0 rgb(var(--v-theme-on-surface));
+  background: rgb(var(--v-theme-surface));
+  overflow: hidden;
 }
 .conversation-card:hover {
-  border-color: rgb(var(--v-theme-primary));
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 0 rgb(var(--v-theme-on-surface));
+  border-color: rgb(var(--v-theme-on-surface));
+}
+.conversation-card:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 0 rgb(var(--v-theme-on-surface));
 }
 .conversation-card.override-active {
   border-color: rgb(var(--v-theme-warning));
-  border-width: 2px;
+  box-shadow: 4px 4px 0 0 rgb(var(--v-theme-warning));
+}
+.v-theme--dark .conversation-card {
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 4px 4px 0 0 rgba(255, 255, 255, 0.8);
+}
+.v-theme--dark .conversation-card:hover {
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 5px 5px 0 0 rgba(255, 255, 255, 0.8);
+}
+.v-theme--dark .conversation-card:active {
+  box-shadow: 2px 2px 0 0 rgba(255, 255, 255, 0.8);
 }
 .font-weight-mono {
   font-family: monospace;

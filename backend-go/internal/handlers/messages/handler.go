@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/BenedictKing/ccx/internal/config"
@@ -63,6 +64,12 @@ func Handler(envCfg *config.EnvConfig, cfgManager *config.ConfigManager, channel
 		// 提取统一会话标识用于 Trace 亲和性（保持 metadata.user_id 默认规范化后的既有路由语义）
 		affinityBody := common.NormalizeMetadataUserID(bodyBytes)
 		userID := utils.ExtractUnifiedSessionID(c, affinityBody)
+
+		// 提取用户最后一条消息用于对话标题 fallback
+		if !isClaudeCodeTitleRequest(bodyBytes) {
+			c.Set("lastUserMessage", extractLastUserMessage(claudeReq.Messages))
+			c.Set("userMessageCount", countUserMessages(claudeReq.Messages))
+		}
 
 		// 记录原始请求信息（仅在入口处记录一次）
 		common.LogOriginalRequest(c, bodyBytes, envCfg, "Messages")
@@ -156,6 +163,7 @@ func handleMultiChannel(
 				channelScheduler.GetChannelLogStore(scheduler.ChannelKindMessages),
 			)
 
+			responseText, _ := c.Get("responseText")
 			return common.MultiChannelAttemptResult{
 				Handled:           handled,
 				Attempted:         true,
@@ -164,9 +172,15 @@ func handleMultiChannel(
 				FailoverError:     failoverErr,
 				Usage:             usage,
 				LastError:         lastErr,
+				ResponseText:      responseTextString(responseText),
 			}
 		},
-		nil,
+		func(selection *scheduler.SelectionResult, result common.MultiChannelAttemptResult) {
+			if isClaudeCodeTitleRequest(bodyBytes) && result.ResponseText != "" {
+				title := extractTitleFromResponseText(result.ResponseText)
+				channelScheduler.UpdateConversationTitle(scheduler.ChannelKindMessages, userID, title)
+			}
+		},
 		func(ctx *gin.Context, failoverErr *common.FailoverError, lastError error) {
 			common.HandleAllChannelsFailed(ctx, cfgManager.GetFuzzyModeEnabled(), failoverErr, lastError, "Messages")
 		},
@@ -369,6 +383,96 @@ func handleNormalResponse(
 	}
 
 	return claudeResp.Usage, nil
+}
+
+func isClaudeCodeTitleRequest(bodyBytes []byte) bool {
+	var req struct {
+		OutputConfig struct {
+			Format struct {
+				Schema struct {
+					Required []string `json:"required"`
+				} `json:"schema"`
+			} `json:"format"`
+		} `json:"output_config"`
+		System []struct {
+			Text string `json:"text"`
+		} `json:"system"`
+	}
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		return false
+	}
+
+	requiresTitle := false
+	for _, field := range req.OutputConfig.Format.Schema.Required {
+		if field == "title" {
+			requiresTitle = true
+			break
+		}
+	}
+	if !requiresTitle {
+		return false
+	}
+
+	for _, block := range req.System {
+		if strings.Contains(block.Text, "Generate a concise") && strings.Contains(block.Text, "title") {
+			return true
+		}
+	}
+	return false
+}
+
+func extractTitleFromResponseText(responseText string) string {
+	responseText = strings.TrimSpace(responseText)
+	if responseText == "" {
+		return ""
+	}
+
+	var payload struct {
+		Title string `json:"title"`
+	}
+	if err := json.Unmarshal([]byte(responseText), &payload); err == nil {
+		return strings.TrimSpace(payload.Title)
+	}
+
+	return strings.Trim(strings.TrimSpace(responseText), `"`)
+}
+
+func responseTextString(value interface{}) string {
+	text, _ := value.(string)
+	return text
+}
+
+func countUserMessages(messages []types.ClaudeMessage) int {
+	count := 0
+	for _, msg := range messages {
+		if msg.Role == "user" {
+			count++
+		}
+	}
+	return count
+}
+
+func extractLastUserMessage(messages []types.ClaudeMessage) string {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role != "user" {
+			continue
+		}
+		switch content := messages[i].Content.(type) {
+		case string:
+			return content
+		case []interface{}:
+			for _, block := range content {
+				if m, ok := block.(map[string]interface{}); ok {
+					if m["type"] == "text" {
+						if text, ok := m["text"].(string); ok {
+							return text
+						}
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // CountTokensHandler 处理 /v1/messages/count_tokens 请求

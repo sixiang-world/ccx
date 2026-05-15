@@ -1493,6 +1493,7 @@ export interface ConversationInfo {
   id: string
   kind: 'messages' | 'responses' | 'chat' | 'gemini' | 'images'
   userId: string
+  title?: string
   createdAt: string
   lastActiveAt: string
   requestCount: number

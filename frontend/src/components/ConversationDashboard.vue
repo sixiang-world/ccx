@@ -6,9 +6,9 @@
         <v-chip value="" variant="tonal" size="small" filter>All</v-chip>
         <v-chip value="messages" variant="tonal" size="small" color="purple" filter>Messages</v-chip>
         <v-chip value="chat" variant="tonal" size="small" color="blue" filter>Chat</v-chip>
+        <v-chip value="images" variant="tonal" size="small" color="pink" filter>Images</v-chip>
         <v-chip value="responses" variant="tonal" size="small" color="teal" filter>Responses</v-chip>
         <v-chip value="gemini" variant="tonal" size="small" color="orange" filter>Gemini</v-chip>
-        <v-chip value="images" variant="tonal" size="small" color="pink" filter>Images</v-chip>
       </v-chip-group>
       <v-spacer />
       <span class="text-caption text-medium-emphasis">
@@ -106,11 +106,13 @@ async function fetchConversations() {
 }
 
 function toggleExpand(id: string) {
-  if (expandedCards.value.has(id)) {
-    expandedCards.value.delete(id)
+  const next = new Set(expandedCards.value)
+  if (next.has(id)) {
+    next.delete(id)
   } else {
-    expandedCards.value.add(id)
+    next.add(id)
   }
+  expandedCards.value = next
 }
 
 async function handleSetOverride(convId: string, sequence: ChannelSequenceEntry[]) {

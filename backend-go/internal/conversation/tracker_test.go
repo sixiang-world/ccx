@@ -9,7 +9,7 @@ func TestConversationTracker_Track(t *testing.T) {
 	ct := NewConversationTracker(1*time.Hour, 2*time.Hour)
 	defer ct.Stop()
 
-	ct.Track("chat", "user123", "claude-sonnet-4-20250514", 0, "primary", "")
+	ct.Track("chat", "user123", "claude-sonnet-4-20250514", 0, "primary", "", "", 0)
 
 	convs := ct.GetActiveConversations("")
 	if len(convs) != 1 {
@@ -31,12 +31,31 @@ func TestConversationTracker_Track(t *testing.T) {
 	}
 }
 
+func TestConversationTracker_UpdateTitle(t *testing.T) {
+	ct := NewConversationTracker(1*time.Hour, 2*time.Hour)
+	defer ct.Stop()
+
+	ct.Track("messages", "session-123", "claude-opus-4-7", 0, "primary", "", "", 0)
+	ct.UpdateTitle("messages", "session-123", "Build docs preview")
+
+	convs := ct.GetActiveConversations("")
+	if len(convs) != 1 {
+		t.Fatalf("expected 1 conversation, got %d", len(convs))
+	}
+	if convs[0].Title != "Build docs preview" {
+		t.Errorf("expected title=Build docs preview, got %s", convs[0].Title)
+	}
+	if convs[0].RequestCount != 1 {
+		t.Errorf("expected requestCount=1, got %d", convs[0].RequestCount)
+	}
+}
+
 func TestConversationTracker_TrackMultipleRequests(t *testing.T) {
 	ct := NewConversationTracker(1*time.Hour, 2*time.Hour)
 	defer ct.Stop()
 
-	ct.Track("chat", "user123", "claude-sonnet-4-20250514", 0, "primary", "")
-	ct.Track("chat", "user123", "claude-opus-4-20250514", 1, "backup", "")
+	ct.Track("chat", "user123", "claude-sonnet-4-20250514", 0, "primary", "", "", 0)
+	ct.Track("chat", "user123", "claude-opus-4-20250514", 1, "backup", "", "", 0)
 
 	convs := ct.GetActiveConversations("")
 	if len(convs) != 1 {
@@ -59,8 +78,8 @@ func TestConversationTracker_DifferentUsers(t *testing.T) {
 	ct := NewConversationTracker(1*time.Hour, 2*time.Hour)
 	defer ct.Stop()
 
-	ct.Track("chat", "user1", "model-a", 0, "ch1", "")
-	ct.Track("chat", "user2", "model-b", 1, "ch2", "")
+	ct.Track("chat", "user1", "model-a", 0, "ch1", "", "", 0)
+	ct.Track("chat", "user2", "model-b", 1, "ch2", "", "", 0)
 
 	convs := ct.GetActiveConversations("")
 	if len(convs) != 2 {
@@ -72,8 +91,8 @@ func TestConversationTracker_KindFilter(t *testing.T) {
 	ct := NewConversationTracker(1*time.Hour, 2*time.Hour)
 	defer ct.Stop()
 
-	ct.Track("chat", "user1", "model-a", 0, "ch1", "")
-	ct.Track("messages", "user2", "model-b", 1, "ch2", "")
+	ct.Track("chat", "user1", "model-a", 0, "ch1", "", "", 0)
+	ct.Track("messages", "user2", "model-b", 1, "ch2", "", "", 0)
 
 	chatConvs := ct.GetActiveConversations("chat")
 	if len(chatConvs) != 1 {
@@ -90,8 +109,8 @@ func TestConversationTracker_SessionID(t *testing.T) {
 	ct := NewConversationTracker(1*time.Hour, 2*time.Hour)
 	defer ct.Stop()
 
-	ct.Track("responses", "user1", "model-a", 0, "ch1", "sess_abc123")
-	ct.Track("responses", "user1", "model-a", 0, "ch1", "sess_abc123")
+	ct.Track("responses", "user1", "model-a", 0, "ch1", "sess_abc123", "", 0)
+	ct.Track("responses", "user1", "model-a", 0, "ch1", "sess_abc123", "", 0)
 
 	convs := ct.GetActiveConversations("")
 	if len(convs) != 1 {
@@ -109,7 +128,7 @@ func TestConversationTracker_EmptyUserID(t *testing.T) {
 	ct := NewConversationTracker(1*time.Hour, 2*time.Hour)
 	defer ct.Stop()
 
-	ct.Track("chat", "", "model-a", 0, "ch1", "")
+	ct.Track("chat", "", "model-a", 0, "ch1", "", "", 0)
 
 	convs := ct.GetActiveConversations("")
 	if len(convs) != 0 {

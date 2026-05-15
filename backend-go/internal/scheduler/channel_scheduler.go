@@ -448,30 +448,7 @@ func (s *ChannelScheduler) SelectChannel(
 		activeChannels = filtered
 	}
 
-	// 0. 检查促销期渠道（最高优先级，绕过健康检查）
-	promotedChannel := s.findPromotedChannel(activeChannels, kind)
-	if promotedChannel != nil && !failedChannels[promotedChannel.Index] {
-		// 促销渠道存在且未失败，直接使用（不检查健康状态，让用户设置的促销渠道有机会尝试）
-		upstream := s.getUpstreamByIndex(promotedChannel.Index, kind)
-		if upstream != nil && len(upstream.APIKeys) > 0 {
-			failureRate := s.channelFailureRate(upstream, kind)
-			prefix := kindSchedulerLogPrefix(kind)
-			log.Printf("[%s-Promotion] 促销期优先选择渠道: [%d] %s (失败率: %.1f%%, 绕过健康检查)", prefix, promotedChannel.Index, upstream.Name, failureRate*100)
-			return &SelectionResult{
-				Upstream:     upstream,
-				ChannelIndex: promotedChannel.Index,
-				Reason:       "promotion_priority",
-			}, nil
-		} else if upstream != nil {
-			prefix := kindSchedulerLogPrefix(kind)
-			log.Printf("[%s-Promotion] 警告: 促销渠道 [%d] %s 无可用密钥，跳过", prefix, promotedChannel.Index, upstream.Name)
-		}
-	} else if promotedChannel != nil {
-		prefix := kindSchedulerLogPrefix(kind)
-		log.Printf("[%s-Promotion] 警告: 促销渠道 [%d] %s 已在本次请求中失败，跳过", prefix, promotedChannel.Index, promotedChannel.Name)
-	}
-
-	// 0.5 检查手动序列覆盖
+	// 0. 检查手动序列覆盖
 	if userID != "" && s.overrideManager != nil {
 		if sequence, ok := s.overrideManager.GetOverrideForUser(string(kind), userID); ok {
 			prefix := kindSchedulerLogPrefix(kind)
@@ -495,6 +472,29 @@ func (s *ChannelScheduler) SelectChannel(
 			}
 			log.Printf("[%s-Override] 覆盖序列中无可用渠道，回退到默认调度 (user: %s)", prefix, maskUserID(userID))
 		}
+	}
+
+	// 1. 检查促销期渠道（手动覆盖之后，绕过健康检查）
+	promotedChannel := s.findPromotedChannel(activeChannels, kind)
+	if promotedChannel != nil && !failedChannels[promotedChannel.Index] {
+		// 促销渠道存在且未失败，直接使用（不检查健康状态，让用户设置的促销渠道有机会尝试）
+		upstream := s.getUpstreamByIndex(promotedChannel.Index, kind)
+		if upstream != nil && len(upstream.APIKeys) > 0 {
+			failureRate := s.channelFailureRate(upstream, kind)
+			prefix := kindSchedulerLogPrefix(kind)
+			log.Printf("[%s-Promotion] 促销期优先选择渠道: [%d] %s (失败率: %.1f%%, 绕过健康检查)", prefix, promotedChannel.Index, upstream.Name, failureRate*100)
+			return &SelectionResult{
+				Upstream:     upstream,
+				ChannelIndex: promotedChannel.Index,
+				Reason:       "promotion_priority",
+			}, nil
+		} else if upstream != nil {
+			prefix := kindSchedulerLogPrefix(kind)
+			log.Printf("[%s-Promotion] 警告: 促销渠道 [%d] %s 无可用密钥，跳过", prefix, promotedChannel.Index, upstream.Name)
+		}
+	} else if promotedChannel != nil {
+		prefix := kindSchedulerLogPrefix(kind)
+		log.Printf("[%s-Promotion] 警告: 促销渠道 [%d] %s 已在本次请求中失败，跳过", prefix, promotedChannel.Index, promotedChannel.Name)
 	}
 
 	// 1. 检查 Trace 亲和性（促销渠道失败时或无促销渠道时）
@@ -837,9 +837,15 @@ func (s *ChannelScheduler) UpdateTraceAffinity(userID string, kind ChannelKind) 
 }
 
 // TrackConversation 追踪对话（请求成功后调用）
-func (s *ChannelScheduler) TrackConversation(kind ChannelKind, userID, model string, channelIndex int, channelName, sessionID string) {
+func (s *ChannelScheduler) TrackConversation(kind ChannelKind, userID, model string, channelIndex int, channelName, sessionID, lastUserMessage string, userMessageCount int) {
 	if s.conversationTracker != nil && userID != "" {
-		s.conversationTracker.Track(string(kind), userID, model, channelIndex, channelName, sessionID)
+		s.conversationTracker.Track(string(kind), userID, model, channelIndex, channelName, sessionID, lastUserMessage, userMessageCount)
+	}
+}
+
+func (s *ChannelScheduler) UpdateConversationTitle(kind ChannelKind, userID, title string) {
+	if s.conversationTracker != nil && userID != "" && title != "" {
+		s.conversationTracker.UpdateTitle(string(kind), userID, title)
 	}
 }
 

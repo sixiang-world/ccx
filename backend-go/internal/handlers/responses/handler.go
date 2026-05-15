@@ -63,6 +63,9 @@ func Handler(
 		affinityBody := common.NormalizeMetadataUserID(bodyBytes)
 		userID := utils.ExtractUnifiedSessionID(c, affinityBody)
 
+		// 统计 user 消息数用于驾驶舱对话轮数
+		c.Set("userMessageCount", countResponsesUserMessages(responsesReq.Input))
+
 		// 记录原始请求信息（仅在入口处记录一次）
 		common.LogOriginalRequest(c, bodyBytes, envCfg, "Responses")
 
@@ -1540,6 +1543,27 @@ func patchResponsesCompletedEventUsage(event string, requestBody []byte, outputT
 // parseInputToItems 解析 input 为 ResponsesItem 数组
 func parseInputToItems(input interface{}) ([]types.ResponsesItem, error) {
 	return types.ParseResponsesInput(input)
+}
+
+func countResponsesUserMessages(input interface{}) int {
+	switch v := input.(type) {
+	case string:
+		if v != "" {
+			return 1
+		}
+		return 0
+	case []interface{}:
+		count := 0
+		for _, item := range v {
+			if m, ok := item.(map[string]interface{}); ok {
+				if m["role"] == "user" {
+					count++
+				}
+			}
+		}
+		return count
+	}
+	return 0
 }
 
 // hasResponsesFunctionCall 检查 Responses 事件中是否包含工具调用

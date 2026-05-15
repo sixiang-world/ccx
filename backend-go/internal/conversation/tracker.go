@@ -14,6 +14,7 @@ type Conversation struct {
 	Kind           string    `json:"kind"`
 	UserID         string    `json:"userId"`
 	RawUserID      string    `json:"-"`
+	Title          string    `json:"title,omitempty"`
 	CreatedAt      time.Time `json:"createdAt"`
 	LastActiveAt   time.Time `json:"lastActiveAt"`
 	RequestCount   int       `json:"requestCount"`
@@ -48,7 +49,7 @@ func NewConversationTracker(idleTTL, expireTTL time.Duration) *ConversationTrack
 	return ct
 }
 
-func (ct *ConversationTracker) Track(kind, userID, model string, channelIndex int, channelName, sessionID string) {
+func (ct *ConversationTracker) Track(kind, userID, model string, channelIndex int, channelName, sessionID, lastUserMessage string, userMessageCount int) {
 	if userID == "" {
 		return
 	}
@@ -80,7 +81,11 @@ func (ct *ConversationTracker) Track(kind, userID, model string, channelIndex in
 	}
 
 	conv.LastActiveAt = now
-	conv.RequestCount++
+	if userMessageCount > 0 {
+		conv.RequestCount = userMessageCount
+	} else {
+		conv.RequestCount++
+	}
 	conv.CurrentChannel = channelIndex
 	conv.ChannelName = channelName
 	conv.LastModel = model
@@ -88,6 +93,34 @@ func (ct *ConversationTracker) Track(kind, userID, model string, channelIndex in
 
 	if !containsString(conv.Models, model) {
 		conv.Models = append(conv.Models, model)
+	}
+
+	if conv.Title == "" && lastUserMessage != "" {
+		msg := strings.ReplaceAll(lastUserMessage, "\n", " ")
+		msg = strings.ReplaceAll(msg, "\r", "")
+		msg = strings.TrimSpace(msg)
+		if msg != "" {
+			runes := []rune(msg)
+			if len(runes) > 50 {
+				conv.Title = string(runes[:50]) + "..."
+			} else {
+				conv.Title = msg
+			}
+		}
+	}
+}
+
+func (ct *ConversationTracker) UpdateTitle(kind, userID, title string) {
+	if userID == "" || title == "" {
+		return
+	}
+
+	ct.mu.Lock()
+	defer ct.mu.Unlock()
+
+	convID := ct.resolveConversationID(kind, userID, "")
+	if conv, exists := ct.conversations[convID]; exists {
+		conv.Title = title
 	}
 }
 

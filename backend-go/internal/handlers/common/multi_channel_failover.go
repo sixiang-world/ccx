@@ -19,6 +19,7 @@ type MultiChannelAttemptResult struct {
 	FailoverError     *FailoverError
 	Usage             *types.Usage
 	LastError         error
+	ResponseText      string
 }
 
 // TrySelectedChannelFunc 尝试一次选中的渠道，返回该渠道的尝试结果。
@@ -97,7 +98,11 @@ func HandleMultiChannelFailover(
 				if upstream != nil {
 					channelName = upstream.Name
 				}
-				channelScheduler.TrackConversation(kind, userID, model, channelIndex, channelName, "")
+				lastUserMsg, _ := c.Get("lastUserMessage")
+				lastUserMsgStr, _ := lastUserMsg.(string)
+				userMsgCount, _ := c.Get("userMessageCount")
+				userMsgCountInt, _ := userMsgCount.(int)
+				channelScheduler.TrackConversation(kind, userID, model, channelIndex, channelName, "", lastUserMsgStr, userMsgCountInt)
 			}
 			return
 		}
