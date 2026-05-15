@@ -56,10 +56,10 @@
         class="mb-2 mt-2"
       >
         <div class="d-flex align-center">
-          <span class="text-caption">Custom sequence active — {{ remainingTime }}</span>
+          <span class="text-caption">{{ t('cockpit.overrideActive', { time: remainingTime }) }}</span>
           <v-spacer />
           <v-btn size="x-small" variant="text" @click.stop="$emit('removeOverride', conversation.id)">
-            Restore default
+            {{ t('cockpit.restoreDefault') }}
           </v-btn>
         </div>
       </v-alert>
@@ -117,6 +117,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ConversationInfo, SequenceOverrideInfo, ChannelSequenceEntry } from '@/services/api'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 interface ChannelInfo {
   index: number

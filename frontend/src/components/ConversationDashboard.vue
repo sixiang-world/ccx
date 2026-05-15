@@ -26,7 +26,7 @@
     <v-card v-else-if="!filteredConversations.length" variant="outlined" class="text-center pa-12">
       <v-icon size="48" color="grey">mdi-chat-outline</v-icon>
       <div class="text-body-1 mt-4 text-medium-emphasis">
-        No active flights. Conversations will appear on radar when requests pass through the gateway.
+        {{ t('cockpit.empty') }}
       </div>
     </v-card>
 
@@ -51,7 +51,10 @@
 import { ref, computed } from 'vue'
 import { api, type ConversationInfo, type SequenceOverrideInfo, type ChannelSequenceEntry } from '@/services/api'
 import { useGlobalTick } from '@/composables/useGlobalTick'
+import { useI18n } from '@/i18n'
 import ConversationCard from './ConversationCard.vue'
+
+const { t } = useI18n()
 
 const loading = ref(true)
 const conversations = ref<ConversationInfo[]>([])
@@ -74,21 +77,18 @@ function getChannelsForKind(kind: string): { index: number; name: string; status
 
 async function fetchAllChannels() {
   const kinds = ['messages', 'chat', 'responses', 'gemini', 'images'] as const
-  const fetchers: Record<string, () => Promise<any>> = {
-    messages: () => api.getChannels(),
-    chat: () => api.getChatChannels(),
-    responses: () => api.getResponsesChannels(),
-    gemini: () => api.getGeminiChannels(),
-    images: () => api.getImagesChannels(),
-  }
   for (const kind of kinds) {
     try {
-      const resp = await fetchers[kind]()
-      channelsByKind.value[kind] = (resp.channels || []).map((ch: any) => ({
-        index: ch.index ?? 0,
-        name: ch.name || `Channel ${ch.index}`,
-        status: ch.status || 'active'
-      }))
+      const dashboard = await api.getChannelDashboard(kind)
+      channelsByKind.value[kind] = (dashboard.channels || [])
+        .filter((ch: any) => ch.status !== 'disabled')
+        .map((ch: any) => ({
+          index: ch.index ?? 0,
+          name: ch.name || `Channel ${ch.index}`,
+          status: ch.status || 'active',
+          priority: ch.priority ?? ch.index ?? 0,
+        }))
+        .sort((a: any, b: any) => (a.priority - b.priority) || (a.index - b.index))
     } catch { /* ignore */ }
   }
 }

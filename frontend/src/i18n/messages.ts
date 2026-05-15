@@ -18,6 +18,9 @@ export type MessageKey =
   | 'app.tabs.gemini'
   | 'app.tabs.images'
   | 'app.tabs.conversations'
+  | 'cockpit.overrideActive'
+  | 'cockpit.restoreDefault'
+  | 'cockpit.empty'
   | 'app.header.logout'
   | 'app.stats.trafficTitle'
   | 'app.stats.totalChannels'
@@ -421,6 +424,9 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'app.tabs.gemini': 'Gemini',
     'app.tabs.images': 'Images',
     'app.tabs.conversations': 'Cockpit',
+    'cockpit.overrideActive': 'Custom channel order is active. Auto-reset in {time}',
+    'cockpit.restoreDefault': 'Restore default order',
+    'cockpit.empty': 'No active flights. Conversations will appear on radar when requests pass through the gateway.',
     'app.header.logout': 'Logout',
     'app.stats.trafficTitle': '{tab} traffic',
     'app.stats.totalChannels': 'Total channels',
@@ -823,6 +829,9 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'app.tabs.gemini': 'Gemini',
     'app.tabs.images': 'Images',
     'app.tabs.conversations': 'Cockpit',
+    'cockpit.overrideActive': 'Urutan channel kustom aktif. Otomatis kembali dalam {time}',
+    'cockpit.restoreDefault': 'Pulihkan urutan default',
+    'cockpit.empty': 'Belum ada sesi aktif. Percakapan akan muncul di radar saat request melewati gateway.',
     'app.header.logout': 'Keluar',
     'app.stats.trafficTitle': 'Traffic {tab}',
     'app.stats.totalChannels': 'Total channel',
@@ -1225,6 +1234,9 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'app.tabs.gemini': 'Gemini',
     'app.tabs.images': 'Images',
     'app.tabs.conversations': '驾驶舱',
+    'cockpit.overrideActive': '正在使用自定义渠道顺序，{time} 后自动恢复默认调度',
+    'cockpit.restoreDefault': '恢复默认顺序',
+    'cockpit.empty': '暂无活跃会话。请求经过网关后，会话会出现在驾驶舱雷达上。',
     'app.header.logout': '注销',
     'app.stats.trafficTitle': '{tab} 流量统计',
     'app.stats.totalChannels': '总渠道数',
