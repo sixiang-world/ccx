@@ -317,6 +317,10 @@ func buildProviderRequest(
 		if err != nil {
 			return nil, err
 		}
+		// Gemini 兼容端点配置为 openai serviceType 时，也需要注入 thought_signature
+		if strings.Contains(baseURL, "generativelanguage.googleapis.com") && !upstream.StripThoughtSignature {
+			requestBody = injectGeminiThoughtSignatures(requestBody)
+		}
 		if skipVersionPrefix {
 			url = fmt.Sprintf("%s/chat/completions", strings.TrimRight(baseURL, "/"))
 		} else {
