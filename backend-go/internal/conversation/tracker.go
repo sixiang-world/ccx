@@ -280,6 +280,8 @@ func (ct *ConversationTracker) loadFromDisk() {
 			GeneratedTitle: item.GeneratedTitle,
 			FallbackTitle:  item.FallbackTitle,
 			SessionID:      item.SessionID,
+			CurrentChannel: item.CurrentChannel,
+			ChannelName:    item.ChannelName,
 			CreatedAt:      item.CreatedAt,
 			LastActiveAt:   item.LastActiveAt,
 			Status:         "idle",

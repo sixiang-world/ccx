@@ -18,6 +18,8 @@ type persistedConversation struct {
 	GeneratedTitle string    `json:"generatedTitle,omitempty"`
 	FallbackTitle  string    `json:"fallbackTitle,omitempty"`
 	SessionID      string    `json:"sessionId,omitempty"`
+	CurrentChannel int       `json:"currentChannel"`
+	ChannelName    string    `json:"channelName,omitempty"`
 	CreatedAt      time.Time `json:"createdAt"`
 	LastActiveAt   time.Time `json:"lastActiveAt"`
 }
@@ -72,6 +74,8 @@ func savePersistedState(path string, conversations map[string]*Conversation) err
 			GeneratedTitle: conv.GeneratedTitle,
 			FallbackTitle:  conv.FallbackTitle,
 			SessionID:      conv.SessionID,
+			CurrentChannel: conv.CurrentChannel,
+			ChannelName:    conv.ChannelName,
 			CreatedAt:      conv.CreatedAt,
 			LastActiveAt:   conv.LastActiveAt,
 		})
