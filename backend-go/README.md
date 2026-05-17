@@ -169,6 +169,26 @@ Images 当前没有对应的 capability-test / snapshot 路由。
 - `resume` 用于恢复渠道状态与相关运行时保护状态
 - 故障转移、熔断和恢复逻辑由调度器与指标模块共同维护
 
+### 调度优先级链路
+
+`internal/scheduler/channel_scheduler.go` 的 `SelectChannel` 按以下顺序决策，命中即返回：
+
+| 顺序 | 机制 | Reason | 作用域 | 持久化 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 驾驶舱手动覆盖（Override） | `manual_override` | per-user + per-kind | TTL，默认数小时 | 驾驶舱"切换 NEXT"设置的渠道序列，按序遍历，命中第一个健康且 `active` 的渠道；序列全部不可用时自动清除并回退 |
+| 1 | 促销期（Promotion） | `promotion_priority` | 全局 | 持久（带过期时间） | 处于促销时间窗口的渠道。**绕过健康检查**，给促销渠道一次尝试机会 |
+| 2 | Trace 亲和性 | `trace_affinity` | per-user + per-kind | 内存 | 同用户粘性。**但会被更高优先级渠道覆盖**：若存在 `priority` 更高的健康渠道，亲和性失效 |
+| 3 | 优先级排序 | `priority_order` | 全局 | 持久 | 按渠道 `priority` 字段从高到低遍历，选第一个健康、`active`、未熔断的渠道 |
+| 4 | 降级兜底 | `fallback_*` | 全局 | - | 所有健康渠道都失败时，选失败率最低的作为最后尝试 |
+
+各机制之间的关系要点：
+
+- **Override（驾驶舱）排在最前**，一旦命中就短路整个流程，不再走促销/亲和/优先级。这是"per-user 临时强制路由"的语义。
+- **置顶 / 拖拽排序**改的是渠道的 `priority` 字段，只影响第 3 步的默认调度路径。它不会撼动 Override 和 Promotion。
+- **Promotion 与 Override** 的区别：Promotion 是全局的、持久的、有时间窗口；Override 是 per-user 的、TTL 内有效、只影响发起设置的那个用户。
+- **Trace 亲和性**会被高优先级渠道覆盖，所以调高某个渠道的优先级或对其置顶可以"抢走"原本被亲和绑定到低优先级渠道的流量。
+- 每一步都会跳过 `failedChannels`（本次请求已在该渠道失败过的）以及非 `active` 状态的渠道。除 Promotion 外都要求渠道通过健康检查（未熔断）。
+
 ### 渠道级代理与自定义请求头
 
 - `proxyUrl`：为单个渠道配置 HTTP / HTTPS / SOCKS5 代理

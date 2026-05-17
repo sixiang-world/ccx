@@ -115,6 +115,7 @@ log.Printf("[Component-Action] 消息内容: %v", value)
 ### 调整调度逻辑
 - 修改 `internal/scheduler/`
 - 如涉及熔断、恢复或日志，联动检查 `internal/metrics/`
+- 调度优先级链路（Override → Promotion → Trace 亲和 → 优先级排序 → 降级）说明见 [README.md#调度优先级链路](README.md#调度优先级链路)
 
 ## 文档导航
 
