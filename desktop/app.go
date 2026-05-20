@@ -177,6 +177,23 @@ func (s *DesktopService) OpenWebUIInBrowser() error {
 	return browser.OpenURL(s.manager.WebURL())
 }
 
+func (s *DesktopService) GetAutostartStatus() (bool, error) {
+	if s.app == nil {
+		return false, fmt.Errorf("应用未初始化")
+	}
+	return s.app.Autostart.IsEnabled()
+}
+
+func (s *DesktopService) SetAutostart(enabled bool) error {
+	if s.app == nil {
+		return fmt.Errorf("应用未初始化")
+	}
+	if enabled {
+		return s.app.Autostart.Enable()
+	}
+	return s.app.Autostart.Disable()
+}
+
 func (s *DesktopService) Shutdown() {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()

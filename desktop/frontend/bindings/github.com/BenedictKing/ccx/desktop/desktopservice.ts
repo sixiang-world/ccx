@@ -26,6 +26,10 @@ export function GetAgentConfigStatus(platform: string): $CancellablePromise<conf
     });
 }
 
+export function GetAutostartStatus(): $CancellablePromise<boolean> {
+    return $Call.ByID(1022089850);
+}
+
 export function GetEnvFile(): $CancellablePromise<$models.EnvFileState> {
     return $Call.ByID(4130444060).then(($result: any) => {
         return $$createType1($result);
@@ -62,6 +66,10 @@ export function RestoreAgentConfig(platform: string): $CancellablePromise<void> 
 
 export function SaveEnvFile(content: string): $CancellablePromise<void> {
     return $Call.ByID(4266218857, content);
+}
+
+export function SetAutostart(enabled: boolean): $CancellablePromise<void> {
+    return $Call.ByID(3109129572, enabled);
 }
 
 export function ShowAgentTab(): $CancellablePromise<void> {

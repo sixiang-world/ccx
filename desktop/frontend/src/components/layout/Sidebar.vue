@@ -4,19 +4,17 @@ import { useStatus } from '@/composables/useStatus'
 import Logo from '@/components/layout/Logo.vue'
 import {
   Activity,
-  Cpu,
   Settings,
   Sliders,
   Globe,
-  Terminal,
-  Compass,
   Play,
-  Square
+  Square,
+  Power
 } from 'lucide-vue-next'
 
 const modelValue = defineModel<'status' | 'agent' | 'env' | 'web'>({ required: true })
 
-const { status, loading, startService, stopService } = useStatus()
+const { status, loading, autostartEnabled, startService, stopService, setAutostart } = useStatus()
 
 const menuItems = [
   { id: 'status', label: '网关监控', icon: Activity, desc: '实时状态及核心日志' },
@@ -133,6 +131,21 @@ const handleDaemonAction = async () => {
             <span class="text-slate-300 bg-slate-900/80 px-1.5 py-0.5 rounded border border-white/[0.02]">
               {{ status.pid }}
             </span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span>开机自启</span>
+            <button
+              @click="setAutostart(!autostartEnabled)"
+              :class="[
+                'flex items-center gap-1 px-1.5 py-0.5 rounded border transition-all duration-200 cursor-pointer',
+                autostartEnabled
+                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                  : 'bg-slate-900/80 text-slate-500 border-white/[0.02] hover:text-slate-400'
+              ]"
+            >
+              <Power class="w-2.5 h-2.5" />
+              <span>{{ autostartEnabled ? '已开启' : '已关闭' }}</span>
+            </button>
           </div>
         </div>
       </div>

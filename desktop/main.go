@@ -99,7 +99,7 @@ func main() {
 	tray := app.SystemTray.New()
 	tray.SetTooltip("CCX Desktop")
 	if icon, err := assets.ReadFile("frontend/dist/wails.png"); err == nil && len(icon) > 0 {
-		tray.SetIcon(icon)
+		tray.SetTemplateIcon(icon)
 	}
 
 	trayAction := func(label string, fn func() error) {
@@ -111,37 +111,88 @@ func main() {
 		}()
 	}
 
-	trayMenu := application.NewMenu()
-	trayMenu.Add("打开 CCX Web UI").OnClick(func(ctx *application.Context) {
-		trayAction("打开 CCX Web UI", desktopService.ShowWebUITab)
-	})
-	trayMenu.Add("显示状态页").OnClick(func(ctx *application.Context) {
-		showMainWindow(true)
-		app.Event.Emit("desktop:show-tab", "status")
-	})
-	trayMenu.Add("显示 Agent 配置").OnClick(func(ctx *application.Context) {
-		showMainWindow(true)
-		app.Event.Emit("desktop:show-tab", "agent")
-	})
-	trayMenu.Add("启动服务").OnClick(func(ctx *application.Context) {
-		trayAction("启动服务", desktopService.StartService)
-	})
-	trayMenu.Add("停止服务").OnClick(func(ctx *application.Context) {
-		trayAction("停止服务", desktopService.StopService)
-	})
-	trayMenu.Add("重启服务").OnClick(func(ctx *application.Context) {
-		trayAction("重启服务", desktopService.RestartService)
-	})
-	trayMenu.Add("在浏览器中打开").OnClick(func(ctx *application.Context) {
-		trayAction("在浏览器中打开", desktopService.OpenWebUIInBrowser)
-	})
-	trayMenu.Add("退出").OnClick(func(ctx *application.Context) {
-		app.Quit()
-	})
-	tray.SetMenu(trayMenu)
-	tray.OnClick(func() {
-		showMainWindow(true)
-	})
+	buildTrayMenu := func(running bool, autostartEnabled bool) *application.Menu {
+		menu := application.NewMenu()
+
+		menu.Add("打开 CCX Web UI").OnClick(func(ctx *application.Context) {
+			trayAction("打开 CCX Web UI", desktopService.ShowWebUITab)
+		})
+		menu.Add("显示状态页").OnClick(func(ctx *application.Context) {
+			showMainWindow(true)
+			app.Event.Emit("desktop:show-tab", "status")
+		})
+		menu.Add("显示 Agent 配置").OnClick(func(ctx *application.Context) {
+			showMainWindow(true)
+			app.Event.Emit("desktop:show-tab", "agent")
+		})
+
+		menu.AddSeparator()
+
+		startItem := menu.Add("启动服务")
+		startItem.OnClick(func(ctx *application.Context) {
+			trayAction("启动服务", desktopService.StartService)
+		})
+		startItem.SetHidden(running)
+
+		stopItem := menu.Add("停止服务")
+		stopItem.OnClick(func(ctx *application.Context) {
+			trayAction("停止服务", desktopService.StopService)
+		})
+		stopItem.SetHidden(!running)
+
+		restartItem := menu.Add("重启服务")
+		restartItem.OnClick(func(ctx *application.Context) {
+			trayAction("重启服务", desktopService.RestartService)
+		})
+		restartItem.SetHidden(!running)
+
+		menu.Add("在浏览器中打开").OnClick(func(ctx *application.Context) {
+			trayAction("在浏览器中打开", desktopService.OpenWebUIInBrowser)
+		})
+
+		menu.AddSeparator()
+
+		autostartItem := menu.AddCheckbox("开机自启", autostartEnabled)
+		autostartItem.OnClick(func(ctx *application.Context) {
+			newState := !autostartItem.Checked()
+			if err := desktopService.SetAutostart(newState); err != nil {
+				log.Printf("[Desktop-Tray] 切换开机自启失败: %v", err)
+				app.Event.Emit("desktop:tray-error", fmt.Sprintf("切换开机自启失败: %v", err))
+			}
+		})
+
+		menu.AddSeparator()
+
+		menu.Add("退出").OnClick(func(ctx *application.Context) {
+			app.Quit()
+		})
+
+		return menu
+	}
+
+	// 初始化托盘菜单
+	initialStatus := desktopService.GetStatus()
+	initialAutostart, _ := app.Autostart.IsEnabled()
+	tray.SetMenu(buildTrayMenu(initialStatus.Running, initialAutostart))
+
+	// 状态变化时动态刷新菜单
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		lastRunning := initialStatus.Running
+		lastAutostart := initialAutostart
+		for range ticker.C {
+			st := desktopService.GetStatus()
+			asEnabled, _ := app.Autostart.IsEnabled()
+			if st.Running != lastRunning || asEnabled != lastAutostart {
+				lastRunning = st.Running
+				lastAutostart = asEnabled
+				tray.SetMenu(buildTrayMenu(st.Running, asEnabled))
+			}
+		}
+	}()
+
+	tray.AttachWindow(mainWindow)
 
 	showMainWindow(false)
 
