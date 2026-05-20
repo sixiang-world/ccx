@@ -163,11 +163,19 @@ func injectDummyThoughtSignatureInMapContents(contents []map[string]interface{})
 }
 
 // convertMessages 转换消息
+// convertMessages 转换消息
+//
+// Gemini 的 functionResponse.name 必须等于前面 functionCall.name（函数名），
+// 否则上游无法匹配到对应的工具调用，会沉默返回空内容。Claude 协议里 tool_result
+// 只携带 tool_use_id 而不带函数名，因此这里先扫一遍历史，建立 tool_use_id → name
+// 的映射，转换时回查得到真函数名。
 func (p *GeminiProvider) convertMessages(claudeMessages []types.ClaudeMessage) []map[string]interface{} {
+	toolUseIDToName := buildToolUseIDNameMap(claudeMessages)
+
 	messages := []map[string]interface{}{}
 
 	for _, msg := range claudeMessages {
-		geminiMsg := p.convertMessage(msg)
+		geminiMsg := p.convertMessage(msg, toolUseIDToName)
 		if geminiMsg != nil {
 			messages = append(messages, geminiMsg)
 		}
@@ -176,8 +184,39 @@ func (p *GeminiProvider) convertMessages(claudeMessages []types.ClaudeMessage) [
 	return messages
 }
 
+// buildToolUseIDNameMap 扫描 Claude 历史，收集所有 tool_use 的 id→name 映射，
+// 供后续 tool_result 转换时回查函数名。
+func buildToolUseIDNameMap(claudeMessages []types.ClaudeMessage) map[string]string {
+	mapping := map[string]string{}
+	for _, msg := range claudeMessages {
+		contents, ok := msg.Content.([]interface{})
+		if !ok {
+			continue
+		}
+		for _, c := range contents {
+			block, ok := c.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if blockType, _ := block["type"].(string); blockType != "tool_use" {
+				continue
+			}
+			id, _ := block["id"].(string)
+			name, _ := block["name"].(string)
+			if id != "" && name != "" {
+				mapping[id] = name
+			}
+		}
+	}
+	return mapping
+}
+
 // convertMessage 转换单个消息
-func (p *GeminiProvider) convertMessage(msg types.ClaudeMessage) map[string]interface{} {
+// convertMessage 转换单个消息
+//
+// toolUseIDToName 来自 convertMessages 预扫描出的 tool_use_id → 函数名映射，
+// 用于把 tool_result 转换成 Gemini 的 functionResponse 时填入正确的函数名。
+func (p *GeminiProvider) convertMessage(msg types.ClaudeMessage, toolUseIDToName map[string]string) map[string]interface{} {
 	role := msg.Role
 	if role == "assistant" {
 		role = "model"
@@ -236,6 +275,14 @@ func (p *GeminiProvider) convertMessage(msg types.ClaudeMessage) map[string]inte
 			toolUseID, _ := content["tool_use_id"].(string)
 			resultContent := content["content"]
 
+			// Gemini 用 functionResponse.name 匹配前面 functionCall.name（函数名）。
+			// 优先从历史扫描得到的 id→name 映射回查；查不到时回退用 tool_use_id，
+			// 避免完全丢字段（极端边界：tool_result 出现在没有对应 tool_use 的语境）。
+			funcName := toolUseIDToName[toolUseID]
+			if funcName == "" {
+				funcName = toolUseID
+			}
+
 			var response interface{}
 			if resultContent == nil {
 				response = map[string]interface{}{"result": ""}
@@ -262,7 +309,7 @@ func (p *GeminiProvider) convertMessage(msg types.ClaudeMessage) map[string]inte
 
 			parts = append(parts, map[string]interface{}{
 				"functionResponse": map[string]interface{}{
-					"name":     toolUseID,
+					"name":     funcName,
 					"response": response,
 				},
 			})

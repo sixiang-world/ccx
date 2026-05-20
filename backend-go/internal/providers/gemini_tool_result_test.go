@@ -8,35 +8,57 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGeminiProvider_ConvertMessage_ToolResultArray(t *testing.T) {
-	provider := &GeminiProvider{}
-
-	// 测试场景：tool_result 的 content 是一个 Content Blocks 数组
-	msg := types.ClaudeMessage{
-		Role: "user",
+// makeToolUseAssistant 构造一条只带 tool_use 的 assistant 消息，
+// 配合后续 tool_result 模拟真实的多轮历史。
+func makeToolUseAssistant(toolUseID, name string, input map[string]interface{}) types.ClaudeMessage {
+	return types.ClaudeMessage{
+		Role: "assistant",
 		Content: []interface{}{
 			map[string]interface{}{
-				"type":        "tool_result",
-				"tool_use_id": "toolu_0",
-				"content": []interface{}{
-					map[string]interface{}{
-						"type": "text",
-						"text": "Tokyo is sunny.",
-					},
-					map[string]interface{}{
-						"type": "text",
-						"text": "Temperature is 22C.",
+				"type":  "tool_use",
+				"id":    toolUseID,
+				"name":  name,
+				"input": input,
+			},
+		},
+	}
+}
+
+// extractToolResultMsg 取出转换后第二条 user 消息（functionResponse 所在）。
+func extractToolResultMsg(t *testing.T, geminiMsgs []map[string]interface{}) map[string]interface{} {
+	t.Helper()
+	assert.Len(t, geminiMsgs, 2, "应同时产出 assistant(model) 和 user(functionResponse) 两条消息")
+	return geminiMsgs[1]
+}
+
+func TestGeminiProvider_ConvertMessages_ToolResultArray(t *testing.T) {
+	provider := &GeminiProvider{}
+
+	// 测试场景：tool_result 的 content 是一个 Content Blocks 数组。
+	// 关键断言：functionResponse.name 必须等于前面 functionCall.name（函数名 get_weather），
+	// 否则 Gemini 无法匹配，会沉默返回空内容。
+	msgs := []types.ClaudeMessage{
+		makeToolUseAssistant("toolu_0", "get_weather", map[string]interface{}{"location": "Tokyo"}),
+		{
+			Role: "user",
+			Content: []interface{}{
+				map[string]interface{}{
+					"type":        "tool_result",
+					"tool_use_id": "toolu_0",
+					"content": []interface{}{
+						map[string]interface{}{"type": "text", "text": "Tokyo is sunny."},
+						map[string]interface{}{"type": "text", "text": "Temperature is 22C."},
 					},
 				},
 			},
 		},
 	}
 
-	geminiMsg := provider.convertMessage(msg)
-	assert.NotNil(t, geminiMsg)
-	assert.Equal(t, "user", geminiMsg["role"])
+	geminiMsgs := provider.convertMessages(msgs)
+	toolResultMsg := extractToolResultMsg(t, geminiMsgs)
+	assert.Equal(t, "user", toolResultMsg["role"])
 
-	parts, ok := geminiMsg["parts"].([]interface{})
+	parts, ok := toolResultMsg["parts"].([]interface{})
 	assert.True(t, ok)
 	assert.Len(t, parts, 1)
 
@@ -45,32 +67,35 @@ func TestGeminiProvider_ConvertMessage_ToolResultArray(t *testing.T) {
 
 	funcResp, ok := part["functionResponse"].(map[string]interface{})
 	assert.True(t, ok)
-	assert.Equal(t, "toolu_0", funcResp["name"])
+	assert.Equal(t, "get_weather", funcResp["name"])
 
 	response, ok := funcResp["response"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, "Tokyo is sunny.\nTemperature is 22C.", response["result"])
 }
 
-func TestGeminiProvider_ConvertMessage_ToolResultString(t *testing.T) {
+func TestGeminiProvider_ConvertMessages_ToolResultString(t *testing.T) {
 	provider := &GeminiProvider{}
 
 	// 测试场景：tool_result 的 content 是一个简单字符串
-	msg := types.ClaudeMessage{
-		Role: "user",
-		Content: []interface{}{
-			map[string]interface{}{
-				"type":        "tool_result",
-				"tool_use_id": "toolu_1",
-				"content":     "Tokyo is sunny.",
+	msgs := []types.ClaudeMessage{
+		makeToolUseAssistant("toolu_1", "get_weather", map[string]interface{}{"location": "Tokyo"}),
+		{
+			Role: "user",
+			Content: []interface{}{
+				map[string]interface{}{
+					"type":        "tool_result",
+					"tool_use_id": "toolu_1",
+					"content":     "Tokyo is sunny.",
+				},
 			},
 		},
 	}
 
-	geminiMsg := provider.convertMessage(msg)
-	assert.NotNil(t, geminiMsg)
+	geminiMsgs := provider.convertMessages(msgs)
+	toolResultMsg := extractToolResultMsg(t, geminiMsgs)
 
-	parts, ok := geminiMsg["parts"].([]interface{})
+	parts, ok := toolResultMsg["parts"].([]interface{})
 	assert.True(t, ok)
 	assert.Len(t, parts, 1)
 
@@ -79,35 +104,38 @@ func TestGeminiProvider_ConvertMessage_ToolResultString(t *testing.T) {
 
 	funcResp, ok := part["functionResponse"].(map[string]interface{})
 	assert.True(t, ok)
-	assert.Equal(t, "toolu_1", funcResp["name"])
+	assert.Equal(t, "get_weather", funcResp["name"])
 
 	response, ok := funcResp["response"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, "Tokyo is sunny.", response["result"])
 }
 
-func TestGeminiProvider_ConvertMessage_ToolResultObject(t *testing.T) {
+func TestGeminiProvider_ConvertMessages_ToolResultObject(t *testing.T) {
 	provider := &GeminiProvider{}
 
 	// 测试场景：tool_result 的 content 是一个 JSON 对象
-	msg := types.ClaudeMessage{
-		Role: "user",
-		Content: []interface{}{
-			map[string]interface{}{
-				"type":        "tool_result",
-				"tool_use_id": "toolu_2",
-				"content": map[string]interface{}{
-					"temperature": 22,
-					"condition":   "sunny",
+	msgs := []types.ClaudeMessage{
+		makeToolUseAssistant("toolu_2", "get_weather", map[string]interface{}{"location": "Tokyo"}),
+		{
+			Role: "user",
+			Content: []interface{}{
+				map[string]interface{}{
+					"type":        "tool_result",
+					"tool_use_id": "toolu_2",
+					"content": map[string]interface{}{
+						"temperature": 22,
+						"condition":   "sunny",
+					},
 				},
 			},
 		},
 	}
 
-	geminiMsg := provider.convertMessage(msg)
-	assert.NotNil(t, geminiMsg)
+	geminiMsgs := provider.convertMessages(msgs)
+	toolResultMsg := extractToolResultMsg(t, geminiMsgs)
 
-	parts, ok := geminiMsg["parts"].([]interface{})
+	parts, ok := toolResultMsg["parts"].([]interface{})
 	assert.True(t, ok)
 	assert.Len(t, parts, 1)
 
@@ -116,12 +144,45 @@ func TestGeminiProvider_ConvertMessage_ToolResultObject(t *testing.T) {
 
 	funcResp, ok := part["functionResponse"].(map[string]interface{})
 	assert.True(t, ok)
-	assert.Equal(t, "toolu_2", funcResp["name"])
+	assert.Equal(t, "get_weather", funcResp["name"])
 
 	response, ok := funcResp["response"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, 22, response["temperature"])
 	assert.Equal(t, "sunny", response["condition"])
+}
+
+func TestGeminiProvider_ConvertMessages_ToolResultFallbackToID(t *testing.T) {
+	provider := &GeminiProvider{}
+
+	// 边界场景：tool_result 出现时历史中没有对应 tool_use（例如客户端裁剪了历史）。
+	// 此时回退使用 tool_use_id 作为 name，避免丢失字段。
+	msgs := []types.ClaudeMessage{
+		{
+			Role: "user",
+			Content: []interface{}{
+				map[string]interface{}{
+					"type":        "tool_result",
+					"tool_use_id": "toolu_orphan",
+					"content":     "orphaned result",
+				},
+			},
+		},
+	}
+
+	geminiMsgs := provider.convertMessages(msgs)
+	assert.Len(t, geminiMsgs, 1)
+
+	parts, ok := geminiMsgs[0]["parts"].([]interface{})
+	assert.True(t, ok)
+	assert.Len(t, parts, 1)
+
+	part, ok := parts[0].(map[string]interface{})
+	assert.True(t, ok)
+
+	funcResp, ok := part["functionResponse"].(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "toolu_orphan", funcResp["name"], "无映射时回退用 tool_use_id")
 }
 
 func TestGeminiProvider_ConvertMessage_SkipsEmptyTextBlock(t *testing.T) {
@@ -146,7 +207,7 @@ func TestGeminiProvider_ConvertMessage_SkipsEmptyTextBlock(t *testing.T) {
 		},
 	}
 
-	geminiMsg := provider.convertMessage(msg)
+	geminiMsg := provider.convertMessage(msg, nil)
 	assert.NotNil(t, geminiMsg)
 	assert.Equal(t, "model", geminiMsg["role"])
 
@@ -180,7 +241,7 @@ func TestGeminiProvider_ConvertMessage_KeepsNonEmptyTextBlock(t *testing.T) {
 		},
 	}
 
-	geminiMsg := provider.convertMessage(msg)
+	geminiMsg := provider.convertMessage(msg, nil)
 	assert.NotNil(t, geminiMsg)
 
 	parts, ok := geminiMsg["parts"].([]interface{})

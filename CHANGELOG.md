@@ -1,4 +1,11 @@
-## [Unreleased]
+## [v2.7.7] - 2026-05-20
+
+### 修复
+
+- **`messages` 走 Gemini 上游时 tool_result 函数名错位导致工具调用沉默丢失**：
+  - 修复 `backend-go/internal/providers/gemini.go` 的 `convertMessage` 在转换 Claude `tool_result` 为 Gemini `functionResponse` 时，把 `name` 字段直接填成 `tool_use_id` 的问题。Gemini 协议要求 `functionResponse.name` 必须等于前面对应 `functionCall.name`（函数名），否则上游无法匹配到对应的工具调用，会沉默返回空内容（典型表现：MCP / 多轮工具历史在 Gemini 上游被静默丢弃，下游模型回合显示空白）。
+  - 新增 `buildToolUseIDNameMap`，在 `convertMessages` 入口先扫一遍 Claude 历史，构建 `tool_use_id → name` 映射；`convertMessage` 接收该映射并在 tool_result 转换时回查正确函数名。查不到映射的孤立 tool_result 回退使用 `tool_use_id` 兜底，避免完全丢字段。
+  - 在 `backend-go/internal/providers/gemini_tool_result_test.go` 中将历史 fixture 升级为含 tool_use 的完整对话，并新增针对 id→name 映射回查的断言用例。
 
 ### 新增
 
