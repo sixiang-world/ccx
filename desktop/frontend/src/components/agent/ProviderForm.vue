@@ -6,14 +6,25 @@ import type { AgentProvider } from '@/types'
 const props = defineProps<{
   selectedProvider: AgentProvider
   providerKeys: Record<AgentProvider, string>
+  savedProviderKeys: Record<string, string>
   miMOBaseUrl: string
+  selectedMiMoPlan: string
 }>()
 
 const emit = defineEmits<{
   'update:selectedProvider': [value: AgentProvider]
   'update:providerKeys': [value: Record<AgentProvider, string>]
   'update:miMOBaseUrl': [value: string]
+  'update:selectedMiMoPlan': [value: string]
 }>()
+
+const mimoPlanOptions = [
+  { label: '按量计费（默认）', value: 'https://api.mimo.xiaomi.com/v1' },
+  { label: '订阅套餐 - 中国', value: 'https://token-plan-cn.xiaomimimo.com/v1' },
+  { label: '订阅套餐 - 新加坡', value: 'https://token-plan-sgp.xiaomimimo.com/v1' },
+  { label: '订阅套餐 - 欧洲', value: 'https://token-plan-ams.xiaomimimo.com/v1' },
+  { label: '自定义', value: '' },
+]
 
 const onProviderChange = (e: Event) => {
   emit('update:selectedProvider', (e.target as HTMLSelectElement).value as AgentProvider)
@@ -24,6 +35,22 @@ const onKeyChange = (value: string | number) => {
     ...props.providerKeys,
     [props.selectedProvider]: String(value),
   })
+}
+
+const onMiMoPlanChange = (e: Event) => {
+  const planValue = (e.target as HTMLSelectElement).value
+  emit('update:selectedMiMoPlan', planValue)
+  if (planValue !== '') {
+    emit('update:miMOBaseUrl', planValue)
+  }
+}
+
+const keyPlaceholder = (provider: AgentProvider) => {
+  if (props.savedProviderKeys[`claude:${provider}`]) {
+    return '已保存，留空则使用已保存的 key'
+  }
+  if (provider === 'mimo') return 'MiMo API Key（tp-xxx 或账号 key）'
+  return '仅写入 Claude Code 配置'
 }
 </script>
 
@@ -47,14 +74,31 @@ const onKeyChange = (value: string | number) => {
       <Input
         type="password"
         autocomplete="off"
-        placeholder="仅写入 Claude Code 配置"
+        :placeholder="keyPlaceholder(selectedProvider)"
         :model-value="providerKeys[selectedProvider]"
         @update:model-value="onKeyChange"
       />
     </div>
 
     <div v-if="selectedProvider === 'mimo'" class="space-y-1.5">
-      <Label class="text-xs text-muted-foreground">MiMo Base URL</Label>
+      <Label class="text-xs text-muted-foreground">MiMo 计费模式</Label>
+      <select
+        :value="selectedMiMoPlan"
+        class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        @change="onMiMoPlanChange"
+      >
+        <option
+          v-for="opt in mimoPlanOptions"
+          :key="opt.value || '__custom__'"
+          :value="opt.value"
+        >
+          {{ opt.label }}
+        </option>
+      </select>
+    </div>
+
+    <div v-if="selectedProvider === 'mimo' && selectedMiMoPlan === ''" class="space-y-1.5">
+      <Label class="text-xs text-muted-foreground">Base URL</Label>
       <Input
         type="url"
         placeholder="https://api.mimo.xiaomi.com/v1"

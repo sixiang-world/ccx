@@ -76,6 +76,12 @@ export function GetProxyAccessKey(): $CancellablePromise<string> {
     return $Call.ByID(355938326);
 }
 
+export function GetSavedProviderKeys(): $CancellablePromise<Record<string, string>> {
+    return $Call.ByID(2703245855).then(($result: any) => {
+        return $result as Record<string, string>;
+    });
+}
+
 export function GetStatus(): $CancellablePromise<backend$0.Status> {
     return $Call.ByID(2036427713).then(($result: any) => {
         return $$createType4($result);

@@ -4,6 +4,7 @@ import {
   GetAgentConfigStatus,
   ApplyAgentConfig,
   RestoreAgentConfig,
+  GetSavedProviderKeys,
 } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
 
 const agentLabels: Record<AgentPlatform, string> = {
@@ -42,7 +43,10 @@ const claudeProviderKeys = ref<Record<AgentProvider, string>>({
   mimo: '',
   openai: '',
 })
+const savedProviderKeys = ref<Record<string, string>>({})
+const codexOpenAIKey = ref('')
 const claudeMiMoBaseUrl = ref('https://api.mimo.xiaomi.com/v1')
+const selectedMiMoPlan = ref('https://api.mimo.xiaomi.com/v1')
 const selectedCodexProvider = ref<AgentProvider>('ccx')
 
 const isClaudeProvider = (value?: string): value is AgentProvider => {
@@ -86,19 +90,32 @@ const agentStatusClass = (item: AgentConfigStatus | null) => {
   return 'stopped'
 }
 
+const resolveMiMoPlan = (url: string): string => {
+  const known = [
+    'https://api.mimo.xiaomi.com/v1',
+    'https://token-plan-cn.xiaomimimo.com/v1',
+    'https://token-plan-sgp.xiaomimimo.com/v1',
+    'https://token-plan-ams.xiaomimimo.com/v1',
+  ]
+  return known.includes(url) ? url : ''
+}
+
 const loadAgentStatuses = async () => {
   configLoading.value = true
   try {
-    const [claude, codex] = await Promise.all([
+    const [claude, codex, keys] = await Promise.all([
       GetAgentConfigStatus('claude') as Promise<AgentConfigStatus>,
       GetAgentConfigStatus('codex') as Promise<AgentConfigStatus>,
+      GetSavedProviderKeys(),
     ])
     agentStatuses.value = { claude, codex }
+    savedProviderKeys.value = keys
     if (isClaudeProvider(claude.provider)) {
       selectedClaudeProvider.value = claude.provider
     }
     if (claude.provider === 'mimo' && claude.currentBaseUrl) {
       claudeMiMoBaseUrl.value = claude.currentBaseUrl
+      selectedMiMoPlan.value = resolveMiMoPlan(claude.currentBaseUrl)
     }
     if (codex.provider === 'openai') {
       selectedCodexProvider.value = 'openai'
@@ -115,11 +132,16 @@ const loadAgentStatuses = async () => {
 const canApplyAgent = (platform: AgentPlatform, serviceRunning: boolean) => {
   if (configLoading.value) return false
   if (platform === 'codex') {
-    if (selectedCodexProvider.value === 'openai') return true
+    if (selectedCodexProvider.value === 'openai') {
+      return codexOpenAIKey.value.trim() !== '' || !!savedProviderKeys.value['codex:openai']
+    }
     return serviceRunning
   }
   if (selectedClaudeProvider.value === 'ccx') return serviceRunning
-  return claudeProviderKeys.value[selectedClaudeProvider.value].trim() !== ''
+  const provider = selectedClaudeProvider.value
+  const inputKey = claudeProviderKeys.value[provider].trim()
+  const hasSaved = !!savedProviderKeys.value[`claude:${provider}`]
+  return inputKey !== '' || hasSaved
 }
 
 const applyAgent = async (platform: AgentPlatform) => {
@@ -129,7 +151,8 @@ const applyAgent = async (platform: AgentPlatform) => {
     if (platform === 'claude') {
       request.provider = selectedClaudeProvider.value
       if (selectedClaudeProvider.value !== 'ccx') {
-        request.apiKey = claudeProviderKeys.value[selectedClaudeProvider.value].trim()
+        const inputKey = claudeProviderKeys.value[selectedClaudeProvider.value].trim()
+        request.apiKey = inputKey || savedProviderKeys.value[`claude:${selectedClaudeProvider.value}`] || ''
       }
       if (selectedClaudeProvider.value === 'mimo') {
         request.baseUrl = claudeMiMoBaseUrl.value.trim()
@@ -137,11 +160,12 @@ const applyAgent = async (platform: AgentPlatform) => {
     }
     if (platform === 'codex') {
       request.provider = selectedCodexProvider.value
+      if (selectedCodexProvider.value === 'openai') {
+        request.apiKey = codexOpenAIKey.value.trim() || savedProviderKeys.value['codex:openai'] || ''
+      }
     }
     await ApplyAgentConfig(request)
-    if (platform === 'claude' && selectedClaudeProvider.value !== 'ccx') {
-      claudeProviderKeys.value[selectedClaudeProvider.value] = ''
-    }
+    await loadAgentStatuses()
   } finally {
     configLoading.value = false
   }
@@ -162,7 +186,10 @@ export function useAgentConfig() {
     configLoading,
     selectedClaudeProvider,
     claudeProviderKeys,
+    savedProviderKeys,
+    codexOpenAIKey,
     claudeMiMoBaseUrl,
+    selectedMiMoPlan,
     agentLabels,
     claudeProviderLabels,
     codexProviderLabels,

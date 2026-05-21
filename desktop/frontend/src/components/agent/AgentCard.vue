@@ -17,10 +17,13 @@ const props = defineProps<{
   canApply: boolean
   selectedClaudeProvider?: AgentProvider
   claudeProviderKeys?: Record<AgentProvider, string>
+  savedProviderKeys?: Record<string, string>
   claudeMiMoBaseUrl?: string
+  selectedMiMoPlan?: string
   claudeProviderLabel?: (value?: string) => string
   claudeTargetBaseUrl?: () => string
   selectedCodexProvider?: AgentProvider
+  codexOpenAIKey?: string
   codexProviderLabels?: Record<string, string>
   codexProviderLabel?: (value?: string) => string
 }>()
@@ -31,7 +34,9 @@ const emit = defineEmits<{
   'update:selectedClaudeProvider': [value: AgentProvider]
   'update:claudeProviderKeys': [value: Record<AgentProvider, string>]
   'update:claudeMiMoBaseUrl': [value: string]
+  'update:selectedMiMoPlan': [value: string]
   'update:selectedCodexProvider': [value: AgentProvider]
+  'update:codexOpenAIKey': [value: string]
 }>()
 
 const badgeClass = computed(() => {
@@ -81,10 +86,13 @@ const applyLabel = computed(() => {
         v-if="platform === 'claude'"
         :selected-provider="selectedClaudeProvider!"
         :provider-keys="claudeProviderKeys!"
+        :saved-provider-keys="savedProviderKeys || {}"
         :mi-m-o-base-url="claudeMiMoBaseUrl!"
+        :selected-mi-mo-plan="selectedMiMoPlan || 'https://api.mimo.xiaomi.com/v1'"
         @update:selected-provider="emit('update:selectedClaudeProvider', $event)"
         @update:provider-keys="emit('update:claudeProviderKeys', $event)"
         @update:mi-m-o-base-url="emit('update:claudeMiMoBaseUrl', $event)"
+        @update:selected-mi-mo-plan="emit('update:selectedMiMoPlan', $event)"
       />
       <div v-else-if="platform === 'codex'" class="space-y-3">
         <div class="space-y-1.5">
@@ -97,6 +105,16 @@ const applyLabel = computed(() => {
             <option value="ccx">CCX 本地网关</option>
             <option value="openai">OpenAI 官方</option>
           </select>
+        </div>
+        <div v-if="selectedCodexProvider === 'openai'" class="space-y-1.5">
+          <Label class="text-xs text-muted-foreground">OpenAI API Key</Label>
+          <Input
+            type="password"
+            autocomplete="off"
+            :placeholder="savedProviderKeys?.['codex:openai'] ? '已保存，留空则使用已保存的 key' : '仅写入 Codex 官方配置'"
+            :model-value="codexOpenAIKey || ''"
+            @update:model-value="emit('update:codexOpenAIKey', String($event))"
+          />
         </div>
       </div>
 

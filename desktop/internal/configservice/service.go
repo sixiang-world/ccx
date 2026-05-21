@@ -78,6 +78,11 @@ type CodexProxyState struct {
 	InjectedAPIKey        string  `json:"injectedApiKey"`
 }
 
+type ProviderKeyStore struct {
+	Version int               `json:"version"`
+	Keys    map[string]string `json:"keys"`
+}
+
 func New(dataDir string) (*Service, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil || homeDir == "" {
@@ -115,7 +120,7 @@ func (s *Service) Apply(req ApplyAgentConfigRequest, port int, accessKey string)
 	case PlatformCodex:
 		provider := strings.TrimSpace(req.Provider)
 		if provider == ProviderOpenAI {
-			return s.applyCodexOpenAI()
+			return s.applyCodexOpenAI(req.APIKey)
 		}
 		if port == 0 {
 			return fmt.Errorf("CCX 端口未设置")
@@ -127,6 +132,15 @@ func (s *Service) Apply(req ApplyAgentConfigRequest, port int, accessKey string)
 	default:
 		return fmt.Errorf("不支持的 agent 平台: %s", platform)
 	}
+}
+
+func (s *Service) GetSavedProviderKeys() map[string]string {
+	store := s.readProviderKeyStore()
+	keys := map[string]string{}
+	for name, key := range store.Keys {
+		keys[name] = key
+	}
+	return keys
 }
 
 func (s *Service) Restore(platform string) error {
@@ -240,6 +254,11 @@ func (s *Service) applyClaude(req ApplyAgentConfigRequest, port int, accessKey s
 		state.InjectedAuthToken = authToken
 		state.InjectedAPIKey = apiKey
 	}
+	if provider != ProviderCCX && req.APIKey != "" {
+		if err := s.saveProviderKey(PlatformClaude, provider, req.APIKey); err != nil {
+			return err
+		}
+	}
 	if err := writeJSONAtomic(s.claudeStatePath(), state); err != nil {
 		return err
 	}
@@ -341,15 +360,34 @@ func (s *Service) applyCodex(port int, accessKey string) error {
 	return writeJSONAtomic(authPath, authData)
 }
 
-func (s *Service) applyCodexOpenAI() error {
+func (s *Service) applyCodexOpenAI(apiKey string) error {
 	configPath := s.codexConfigPath()
+	authPath := s.codexAuthPath()
 	configContent, _, err := readTextFile(configPath)
 	if err != nil {
 		return err
 	}
+	authData, _, err := readJSONMap(authPath)
+	if err != nil {
+		return err
+	}
+	key := strings.TrimSpace(apiKey)
+	if key == "" {
+		key = s.GetSavedProviderKeys()["codex:"+ProviderOpenAI]
+	}
+	if key == "" {
+		return fmt.Errorf("OpenAI API Key 不能为空")
+	}
+	if err := s.saveProviderKey(PlatformCodex, ProviderOpenAI, key); err != nil {
+		return err
+	}
 	updated := upsertTopLevelTomlString(configContent, "model_provider", "openai")
 	updated = restoreNamedTomlBlock(updated, "model_providers.ccx", nil)
-	return writeTextAtomic(configPath, updated)
+	if err := writeTextAtomic(configPath, updated); err != nil {
+		return err
+	}
+	authData["OPENAI_API_KEY"] = key
+	return writeJSONAtomic(authPath, authData)
 }
 
 func (s *Service) restoreCodex() error {
@@ -411,6 +449,30 @@ func (s *Service) claudeStatePath() string {
 
 func (s *Service) codexStatePath() string {
 	return filepath.Join(s.stateDir, "codex.json")
+}
+
+func (s *Service) providerKeysPath() string {
+	return filepath.Join(s.stateDir, "provider-keys.json")
+}
+
+func (s *Service) readProviderKeyStore() ProviderKeyStore {
+	store := ProviderKeyStore{Version: stateVersion, Keys: map[string]string{}}
+	_ = readJSONFile(s.providerKeysPath(), &store)
+	if store.Keys == nil {
+		store.Keys = map[string]string{}
+	}
+	return store
+}
+
+func (s *Service) saveProviderKey(platform string, provider string, key string) error {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return nil
+	}
+	store := s.readProviderKeyStore()
+	store.Version = stateVersion
+	store.Keys[platform+":"+provider] = key
+	return writeJSONAtomic(s.providerKeysPath(), store)
 }
 
 func (s *Service) readClaudeState() (ClaudeProxyState, bool) {

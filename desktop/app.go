@@ -203,6 +203,13 @@ func (s *DesktopService) RestoreAgentConfig(platform string) error {
 	return s.configService.Restore(platform)
 }
 
+func (s *DesktopService) GetSavedProviderKeys() map[string]string {
+	if s.configService == nil {
+		return map[string]string{}
+	}
+	return s.configService.GetSavedProviderKeys()
+}
+
 func (s *DesktopService) ShowStatusTab() error {
 	s.showWindow()
 	if s.app != nil {

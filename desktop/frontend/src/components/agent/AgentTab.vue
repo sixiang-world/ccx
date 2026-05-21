@@ -11,7 +11,10 @@ const {
   configLoading,
   selectedClaudeProvider,
   claudeProviderKeys,
+  savedProviderKeys,
+  codexOpenAIKey,
   claudeMiMoBaseUrl,
+  selectedMiMoPlan,
   agentLabels,
   agentPlatforms,
   claudeProviderLabel,
@@ -68,10 +71,13 @@ const handleRestore = async (platform: AgentPlatform) => {
         :can-apply="canApplyAgent(platform, status.running)"
         :selected-claude-provider="selectedClaudeProvider"
         :claude-provider-keys="claudeProviderKeys"
+        :saved-provider-keys="savedProviderKeys"
         :claude-mi-m-o-base-url="claudeMiMoBaseUrl"
+        :selected-mi-mo-plan="selectedMiMoPlan"
         :claude-provider-label="claudeProviderLabel"
         :claude-target-base-url="claudeTargetBaseUrl"
         :selected-codex-provider="selectedCodexProvider"
+        :codex-open-a-i-key="codexOpenAIKey"
         :codex-provider-labels="codexProviderLabels"
         :codex-provider-label="codexProviderLabel"
         @apply="handleApply(platform)"
@@ -79,7 +85,9 @@ const handleRestore = async (platform: AgentPlatform) => {
         @update:selected-claude-provider="selectedClaudeProvider = $event"
         @update:claude-provider-keys="claudeProviderKeys = $event"
         @update:mi-m-o-base-url="claudeMiMoBaseUrl = $event"
+        @update:selected-mi-mo-plan="selectedMiMoPlan = $event"
         @update:selected-codex-provider="selectedCodexProvider = $event"
+        @update:codex-open-a-i-key="codexOpenAIKey = $event"
       />
     </div>
     <p v-if="actionError" class="text-sm text-destructive-foreground">{{ actionError }}</p>
