@@ -93,32 +93,32 @@ type ChannelPayload struct {
 func Presets() []ProviderPreset {
 	return []ProviderPreset{
 		{
-			ID:             ProviderDeepSeek,
-			Label:          "DeepSeek",
-			Description:    "支持 Claude Code 直连，也可加入 CCX messages 统一调度；默认关闭视觉。",
-			DirectAgent:    true,
-			NativeMessages: true,
-			Plans: []ProviderPlan{{
-				ID:          "anthropic",
-				Label:       "Anthropic-compatible",
-				BaseURL:     "https://api.deepseek.com/anthropic",
-				Description: "Claude Messages 兼容入口",
-				Recommended: true,
-			}},
-			Targets: []ChannelTarget{{
-				Type:        TargetMessages,
-				Label:       "CCX messages 渠道",
-				Description: "供 Claude Code / Claude Messages 客户端统一使用",
-				Recommended: true,
-			}},
+			ID:                  ProviderDeepSeek,
+			Label:               "DeepSeek",
+			Description:         "Messages 原生透传、Chat 渠道透传、Codex Responses 三种用法。",
+			DirectAgent:         true,
+			NativeMessages:      true,
+			ChatCompatible:      true,
+			ResponsesCompatible: true,
+			Plans: []ProviderPlan{
+				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.deepseek.com/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
+				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.deepseek.com/v1", Description: "Chat / Responses 通用入口"},
+			},
+			Targets: []ChannelTarget{
+				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
+				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
+				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
+			},
 			DefaultTarget: TargetMessages,
 		},
 		{
-			ID:             ProviderMiMo,
-			Label:          "MiMo",
-			Description:    "支持 Claude Code 直连和 CCX messages；内置按量与 token plan 入口。",
-			DirectAgent:    true,
-			NativeMessages: true,
+			ID:                  ProviderMiMo,
+			Label:               "MiMo",
+			Description:         "Messages 原生透传、Chat 渠道透传、Codex Responses；内置按量与 token plan 入口。",
+			DirectAgent:         true,
+			NativeMessages:      true,
+			ChatCompatible:      true,
+			ResponsesCompatible: true,
 			Plans: []ProviderPlan{
 				{ID: "default", Label: "按量计费", BaseURL: "https://api.mimo.xiaomi.com/v1", Description: "MiMo 默认 API 入口", Recommended: true},
 				{ID: "token-cn", Label: "Token Plan - 中国", BaseURL: "https://token-plan-cn.xiaomimimo.com/v1", Description: "中国区订阅套餐入口"},
@@ -126,19 +126,19 @@ func Presets() []ProviderPreset {
 				{ID: "token-ams", Label: "Token Plan - 欧洲", BaseURL: "https://token-plan-ams.xiaomimimo.com/v1", Description: "欧洲区订阅套餐入口"},
 				{ID: "custom", Label: "自定义", Description: "手动填写 MiMo 兼容入口", Custom: true},
 			},
-			Targets: []ChannelTarget{{
-				Type:        TargetMessages,
-				Label:       "CCX messages 渠道",
-				Description: "自动开启 reasoning passback 兼容",
-				Recommended: true,
-			}},
+			Targets: []ChannelTarget{
+				{Type: TargetMessages, Label: "Messages 原生透传", Description: "自动开启 reasoning passback 兼容", Recommended: true},
+				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
+				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
+			},
 			DefaultTarget: TargetMessages,
 		},
 		{
-			ID:             ProviderKimi,
-			Label:          "Kimi / Moonshot",
-			Description:    "OpenAI-compatible Chat 渠道，适合加入 CCX chat 池。",
-			ChatCompatible: true,
+			ID:                  ProviderKimi,
+			Label:               "Kimi / Moonshot",
+			Description:         "Chat 渠道透传与 Codex Responses，适合加入 CCX 调度池。",
+			ChatCompatible:      true,
+			ResponsesCompatible: true,
 			Plans: []ProviderPlan{{
 				ID:          "openai-chat",
 				Label:       "OpenAI-compatible",
@@ -146,19 +146,18 @@ func Presets() []ProviderPreset {
 				Description: "Moonshot OpenAI 兼容入口",
 				Recommended: true,
 			}},
-			Targets: []ChannelTarget{{
-				Type:        TargetChat,
-				Label:       "CCX chat 渠道",
-				Description: "供 OpenAI Chat 协议客户端统一使用",
-				Recommended: true,
-			}},
+			Targets: []ChannelTarget{
+				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用", Recommended: true},
+				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
+			},
 			DefaultTarget: TargetChat,
 		},
 		{
-			ID:             ProviderGLM,
-			Label:          "GLM / BigModel",
-			Description:    "OpenAI-compatible Chat 渠道，适合加入 CCX chat 池。",
-			ChatCompatible: true,
+			ID:                  ProviderGLM,
+			Label:               "GLM / BigModel",
+			Description:         "Chat 渠道透传与 Codex Responses，适合加入 CCX 调度池。",
+			ChatCompatible:      true,
+			ResponsesCompatible: true,
 			Plans: []ProviderPlan{{
 				ID:          "openai-chat",
 				Label:       "OpenAI-compatible",
@@ -166,19 +165,18 @@ func Presets() []ProviderPreset {
 				Description: "智谱 OpenAI 兼容入口",
 				Recommended: true,
 			}},
-			Targets: []ChannelTarget{{
-				Type:        TargetChat,
-				Label:       "CCX chat 渠道",
-				Description: "供 OpenAI Chat 协议客户端统一使用",
-				Recommended: true,
-			}},
+			Targets: []ChannelTarget{
+				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用", Recommended: true},
+				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
+			},
 			DefaultTarget: TargetChat,
 		},
 		{
-			ID:             ProviderMiniMax,
-			Label:          "MiniMax",
-			Description:    "OpenAI-compatible Chat 渠道，适合加入 CCX chat 池。",
-			ChatCompatible: true,
+			ID:                  ProviderMiniMax,
+			Label:               "MiniMax",
+			Description:         "Chat 渠道透传与 Codex Responses，适合加入 CCX 调度池。",
+			ChatCompatible:      true,
+			ResponsesCompatible: true,
 			Plans: []ProviderPlan{{
 				ID:          "openai-chat",
 				Label:       "OpenAI-compatible",
@@ -186,12 +184,10 @@ func Presets() []ProviderPreset {
 				Description: "MiniMax OpenAI 兼容入口",
 				Recommended: true,
 			}},
-			Targets: []ChannelTarget{{
-				Type:        TargetChat,
-				Label:       "CCX chat 渠道",
-				Description: "供 OpenAI Chat 协议客户端统一使用",
-				Recommended: true,
-			}},
+			Targets: []ChannelTarget{
+				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用", Recommended: true},
+				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
+			},
 			DefaultTarget: TargetChat,
 		},
 	}
@@ -213,7 +209,11 @@ func BuildPayload(req CreateChannelRequest) (ChannelPayload, error) {
 	if apiKey == "" {
 		return ChannelPayload{}, fmt.Errorf("API Key 不能为空")
 	}
-	baseURL, err := ResolveBaseURL(preset, req.PlanID, req.BaseURL)
+	planID := strings.TrimSpace(req.PlanID)
+	if planID == "" {
+		planID = bestPlanForTarget(preset, target)
+	}
+	baseURL, err := ResolveBaseURL(preset, planID, req.BaseURL)
 	if err != nil {
 		return ChannelPayload{}, err
 	}
@@ -236,6 +236,40 @@ func BuildPayload(req CreateChannelRequest) (ChannelPayload, error) {
 	}
 	applyTargetDefaults(&payload, preset.ID, target)
 	return payload, nil
+}
+
+// targetMatchesURL 判断 URL 是否与 target 协议兼容。
+// messages target 使用 Anthropic 协议，需要 anthropic 路径；
+// chat/responses target 使用 OpenAI 协议，不应使用 anthropic 路径。
+
+
+// bestPlanForTarget 根据 target 自动选择最合适的 plan。
+// 当 provider 有多个 plan（如 DeepSeek 的 /anthropic 和 /v1）时，
+// 确保 chat/responses 选择 OpenAI-compatible 入口，messages 选择 Anthropic 入口。
+func bestPlanForTarget(preset ProviderPreset, target string) string {
+	if len(preset.Plans) == 0 {
+		return ""
+	}
+	if len(preset.Plans) == 1 {
+		return preset.Plans[0].ID
+	}
+	for _, plan := range preset.Plans {
+		if !plan.Custom {
+			isAnthropic := strings.Contains(plan.BaseURL, "anthropic")
+			if target == TargetMessages && isAnthropic {
+				return plan.ID
+			}
+			if (target == TargetChat || target == TargetResponses) && !isAnthropic {
+				return plan.ID
+			}
+		}
+	}
+	for _, plan := range preset.Plans {
+		if plan.Recommended {
+			return plan.ID
+		}
+	}
+	return preset.Plans[0].ID
 }
 
 func FindPreset(provider string) (ProviderPreset, bool) {
@@ -328,6 +362,12 @@ func applyTargetDefaults(payload *ChannelPayload, provider string, target string
 		payload.ServiceType = "openai"
 		payload.NormalizeNonstandardChatRoles = true
 		switch provider {
+		case ProviderDeepSeek:
+			payload.SupportedModels = []string{"deepseek-chat", "deepseek-reasoner"}
+		case ProviderMiMo:
+			payload.SupportedModels = []string{"mimo-v2.5-pro", "MiMo-V2.5"}
+			payload.NoVisionModels = []string{"mimo-v2.5-pro"}
+			payload.VisionFallbackModel = "MiMo-V2.5"
 		case ProviderKimi:
 			payload.SupportedModels = []string{"moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k", "kimi-k2-0711-preview"}
 		case ProviderGLM:
@@ -339,5 +379,19 @@ func applyTargetDefaults(payload *ChannelPayload, provider string, target string
 		payload.ServiceType = "openai"
 		payload.CodexToolCompat = true
 		payload.StripCodexClientTools = true
+		switch provider {
+		case ProviderDeepSeek:
+			payload.SupportedModels = []string{"deepseek-chat", "deepseek-reasoner"}
+		case ProviderMiMo:
+			payload.SupportedModels = []string{"mimo-v2.5-pro", "MiMo-V2.5"}
+			payload.NoVisionModels = []string{"mimo-v2.5-pro"}
+			payload.VisionFallbackModel = "MiMo-V2.5"
+		case ProviderKimi:
+			payload.SupportedModels = []string{"moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k", "kimi-k2-0711-preview"}
+		case ProviderGLM:
+			payload.SupportedModels = []string{"glm-4.5", "glm-4.5-air", "glm-4.1v-thinking-flash"}
+		case ProviderMiniMax:
+			payload.SupportedModels = []string{"MiniMax-M1", "MiniMax-Text-01"}
+		}
 	}
 }

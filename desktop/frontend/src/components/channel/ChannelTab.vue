@@ -50,12 +50,32 @@ const targetOptions = computed<ChannelTarget[]>(() => currentPreset.value?.targe
 watch(currentPreset, (preset) => {
   if (!preset) return
   selectedTarget.value = preset.defaultTarget
-  const recommendedPlan = preset.plans.find((item) => item.recommended) || preset.plans[0]
-  selectedPlan.value = recommendedPlan?.id || ''
+  selectedPlan.value = bestPlanForTarget(preset, preset.defaultTarget)
   customBaseUrl.value = ''
   apiKey.value = ''
   channelName.value = `desktop-${preset.id}-${preset.defaultTarget}`
 }, { immediate: true })
+
+// target 变化时自动切换到最匹配的 plan（如 DeepSeek 的 /anthropic ↔ /v1）
+watch(selectedTarget, (target) => {
+  const preset = currentPreset.value
+  if (!preset || !target) return
+  selectedPlan.value = bestPlanForTarget(preset, target)
+  channelName.value = `desktop-${preset.id}-${target}`
+})
+
+function bestPlanForTarget(preset: ProviderPreset, target: string): string {
+  if (preset.plans.length <= 1) return preset.plans[0]?.id || ''
+  const wantAnthropic = target === 'messages'
+  for (const plan of preset.plans) {
+    if (plan.custom) continue
+    const isAnthropic = plan.baseUrl?.includes('anthropic')
+    if (wantAnthropic && isAnthropic) return plan.id
+    if (!wantAnthropic && !isAnthropic) return plan.id
+  }
+  const recommended = preset.plans.find((p) => p.recommended)
+  return recommended?.id || preset.plans[0]?.id || ''
+}
 
 const capabilityBadges = computed(() => {
   const preset = currentPreset.value
