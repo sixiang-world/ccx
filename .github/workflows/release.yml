@@ -80,6 +80,7 @@ jobs:
           BUILD_VERSION: ${{ github.ref_name }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
+          mkdir -p bin
           cp ../backend-go/ccx-darwin-arm64 bin/ccx-go
           BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
           VERSION="${BUILD_VERSION#v}"
@@ -245,6 +246,7 @@ jobs:
           BUILD_VERSION: ${{ github.ref_name }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
+          mkdir -p bin
           cp ../backend-go/ccx-windows-amd64.exe bin/ccx-go.exe
           cp bin/ccx-go.exe build/windows/nsis/ccx-go.exe
           BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
@@ -398,6 +400,7 @@ jobs:
           BUILD_VERSION: ${{ github.ref_name }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
+          mkdir -p bin
           cp ../backend-go/ccx-linux-amd64 bin/ccx-go
           BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
           VERSION="${BUILD_VERSION#v}"
@@ -507,6 +510,7 @@ jobs:
           BUILD_VERSION: ${{ github.ref_name }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
+          mkdir -p bin
           cp ../backend-go/ccx-linux-arm64 bin/ccx-go
           BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
           VERSION="${BUILD_VERSION#v}"
