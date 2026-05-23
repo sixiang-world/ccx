@@ -71,8 +71,14 @@ tasks:
     cmds:
       - cp {{.APP_BINARY}} {{.APP_NAME}}
       - |
+        CCX_GO_SRC=""
         if [ -f "../../../bin/ccx-go" ]; then
-          cp ../../../bin/ccx-go ccx-go
+          CCX_GO_SRC="../../../bin/ccx-go"
+        elif [ -f "../../../../dist/ccx-go" ]; then
+          CCX_GO_SRC="../../../../dist/ccx-go"
+        fi
+        if [ -n "$CCX_GO_SRC" ]; then
+          cp "$CCX_GO_SRC" ccx-go
         fi
       - cp ../../appicon.png {{.APP_NAME}}.png
       - APP_BACKEND=ccx-go wails3 generate appimage -binary {{.APP_NAME}} -icon {{.ICON}} -desktopfile {{.DESKTOP_FILE}} -outputdir {{.OUTPUT_DIR}} -builddir {{.ROOT_DIR}}/build/linux/appimage/build
