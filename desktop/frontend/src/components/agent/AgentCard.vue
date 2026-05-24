@@ -20,8 +20,8 @@ const props = defineProps<{
   selectedClaudeProvider?: AgentProvider
   claudeProviderKeys?: Record<AgentProvider, string>
   savedProviderKeys?: Record<string, string>
-  claudeMiMoBaseUrl?: string
-  selectedMiMoPlan?: string
+  claudeMimoBaseUrl?: string
+  selectedMimoPlan?: string
   claudeProviderLabel?: (value?: string) => string
   claudeTargetBaseUrl?: () => string
   selectedCodexProvider?: AgentProvider
@@ -36,8 +36,8 @@ const emit = defineEmits<{
   restore: []
   'update:selectedClaudeProvider': [value: AgentProvider]
   'update:claudeProviderKeys': [value: Record<AgentProvider, string>]
-  'update:claudeMiMoBaseUrl': [value: string]
-  'update:selectedMiMoPlan': [value: string]
+  'update:claudeMimoBaseUrl': [value: string]
+  'update:selectedMimoPlan': [value: string]
   'update:selectedCodexProvider': [value: AgentProvider]
   'update:codexOpenAIKey': [value: string]
 }>()
@@ -85,12 +85,12 @@ const applyLabel = computed(() => '应用配置')
         :selected-provider="selectedClaudeProvider!"
         :provider-keys="claudeProviderKeys!"
         :saved-provider-keys="savedProviderKeys || {}"
-        :mi-m-o-base-url="claudeMiMoBaseUrl!"
-        :selected-mi-mo-plan="selectedMiMoPlan || 'https://api.xiaomimimo.com/anthropic'"
+        :mimo-base-url="claudeMimoBaseUrl!"
+        :selected-mimo-plan="selectedMimoPlan || 'https://api.xiaomimimo.com/anthropic'"
         @update:selected-provider="emit('update:selectedClaudeProvider', $event)"
         @update:provider-keys="emit('update:claudeProviderKeys', $event)"
-        @update:mi-m-o-base-url="emit('update:claudeMiMoBaseUrl', $event)"
-        @update:selected-mi-mo-plan="emit('update:selectedMiMoPlan', $event)"
+        @update:mimo-base-url="emit('update:claudeMimoBaseUrl', $event)"
+        @update:selected-mimo-plan="emit('update:selectedMimoPlan', $event)"
       />
       <div v-else-if="platform === 'codex'" class="space-y-3">
         <div class="space-y-1.5">

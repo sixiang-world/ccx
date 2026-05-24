@@ -108,3 +108,18 @@ export type CreateChannelResult = {
   baseUrl: string
   message: string
 }
+
+export type DiffLine = {
+  type: 'context' | 'added' | 'removed'
+  content: string
+}
+
+export type FileDiff = {
+  path: string
+  action: 'modify' | 'create' | 'delete'
+  lines: DiffLine[]
+}
+
+export type ConfigDiffResult = {
+  files: FileDiff[]
+}

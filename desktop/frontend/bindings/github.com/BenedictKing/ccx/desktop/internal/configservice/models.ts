@@ -82,6 +82,96 @@ export class ApplyAgentConfigRequest {
     }
 }
 
+export class ConfigDiffResult {
+    "files": FileDiff[];
+
+    /** Creates a new ConfigDiffResult instance. */
+    constructor($$source: Partial<ConfigDiffResult> = {}) {
+        if (!("files" in $$source)) {
+            this["files"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ConfigDiffResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ConfigDiffResult {
+        const $$createField0_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("files" in $$parsedSource) {
+            $$parsedSource["files"] = $$createField0_0($$parsedSource["files"]);
+        }
+        return new ConfigDiffResult($$parsedSource as Partial<ConfigDiffResult>);
+    }
+}
+
+export class DiffLine {
+    /**
+     * "context" | "added" | "removed"
+     */
+    "type": string;
+    "content": string;
+
+    /** Creates a new DiffLine instance. */
+    constructor($$source: Partial<DiffLine> = {}) {
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("content" in $$source)) {
+            this["content"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DiffLine instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DiffLine {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DiffLine($$parsedSource as Partial<DiffLine>);
+    }
+}
+
+export class FileDiff {
+    "path": string;
+
+    /**
+     * "modify" | "create" | "delete"
+     */
+    "action": string;
+    "lines": DiffLine[];
+
+    /** Creates a new FileDiff instance. */
+    constructor($$source: Partial<FileDiff> = {}) {
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("action" in $$source)) {
+            this["action"] = "";
+        }
+        if (!("lines" in $$source)) {
+            this["lines"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FileDiff instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FileDiff {
+        const $$createField2_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("lines" in $$parsedSource) {
+            $$parsedSource["lines"] = $$createField2_0($$parsedSource["lines"]);
+        }
+        return new FileDiff($$parsedSource as Partial<FileDiff>);
+    }
+}
+
 export class ProviderKeyAsset {
     "provider": string;
     "apiKey": string;
@@ -105,7 +195,7 @@ export class ProviderKeyAsset {
      * Creates a new ProviderKeyAsset instance from a string or object.
      */
     static createFrom($$source: any = {}): ProviderKeyAsset {
-        const $$createField4_0 = $$createType0;
+        const $$createField4_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("usages" in $$parsedSource) {
             $$parsedSource["usages"] = $$createField4_0($$parsedSource["usages"]);
@@ -115,4 +205,8 @@ export class ProviderKeyAsset {
 }
 
 // Private type creation functions
-const $$createType0 = $Create.Array($Create.Any);
+const $$createType0 = FileDiff.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = DiffLine.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = $Create.Array($Create.Any);

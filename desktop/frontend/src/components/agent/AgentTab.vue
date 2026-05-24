@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import AgentCard from '@/components/agent/AgentCard.vue'
+import ConfigDiffDialog from '@/components/agent/ConfigDiffDialog.vue'
 import { useStatus } from '@/composables/useStatus'
 import { useAgentConfig } from '@/composables/useAgentConfig'
 import type { AgentPlatform } from '@/types'
@@ -13,8 +14,8 @@ const {
   claudeProviderKeys,
   savedProviderKeys,
   codexOpenAIKey,
-  claudeMiMoBaseUrl,
-  selectedMiMoPlan,
+  claudeMimoBaseUrl,
+  selectedMimoPlan,
   agentLabels,
   agentPlatforms,
   claudeProviderLabel,
@@ -23,12 +24,21 @@ const {
   agentStatusClass,
   loadAgentStatuses,
   canApplyAgent,
-  applyAgent,
-  restoreAgent,
   selectedCodexProvider,
   codexProviderLabels,
   codexProviderLabel,
   codexTargetBaseUrl,
+  // Diff preview
+  diffDialogOpen,
+  diffResult,
+  diffMode,
+  diffLoading,
+  diffPendingPlatform,
+  showApplyPreview,
+  showRestorePreview,
+  confirmApply,
+  confirmRestore,
+  closeDiffDialog,
 } = useAgentConfig()
 
 onMounted(() => {
@@ -38,8 +48,7 @@ onMounted(() => {
 const handleApply = async (platform: AgentPlatform) => {
   actionError.value = ''
   try {
-    await applyAgent(platform)
-    await loadAgentStatuses()
+    await showApplyPreview(platform)
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : String(error)
   }
@@ -48,7 +57,20 @@ const handleApply = async (platform: AgentPlatform) => {
 const handleRestore = async (platform: AgentPlatform) => {
   actionError.value = ''
   try {
-    await restoreAgent(platform)
+    await showRestorePreview(platform)
+  } catch (error) {
+    actionError.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+const handleConfirm = async () => {
+  actionError.value = ''
+  try {
+    if (diffMode.value === 'apply') {
+      await confirmApply()
+    } else {
+      await confirmRestore()
+    }
     await loadAgentStatuses()
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : String(error)
@@ -73,8 +95,8 @@ const handleRestore = async (platform: AgentPlatform) => {
         :selected-claude-provider="selectedClaudeProvider"
         :claude-provider-keys="claudeProviderKeys"
         :saved-provider-keys="savedProviderKeys"
-        :claude-mi-m-o-base-url="claudeMiMoBaseUrl"
-        :selected-mi-mo-plan="selectedMiMoPlan"
+        :claude-mimo-base-url="claudeMimoBaseUrl"
+        :selected-mimo-plan="selectedMimoPlan"
         :claude-provider-label="claudeProviderLabel"
         :claude-target-base-url="claudeTargetBaseUrl"
         :selected-codex-provider="selectedCodexProvider"
@@ -86,12 +108,22 @@ const handleRestore = async (platform: AgentPlatform) => {
         @restore="handleRestore(platform)"
         @update:selected-claude-provider="selectedClaudeProvider = $event"
         @update:claude-provider-keys="claudeProviderKeys = $event"
-        @update:mi-m-o-base-url="claudeMiMoBaseUrl = $event"
-        @update:selected-mi-mo-plan="selectedMiMoPlan = $event"
+        @update:mimo-base-url="claudeMimoBaseUrl = $event"
+        @update:selected-mimo-plan="selectedMimoPlan = $event"
         @update:selected-codex-provider="selectedCodexProvider = $event"
         @update:codex-open-a-i-key="codexOpenAIKey = $event"
       />
     </div>
     <p v-if="actionError" class="text-sm text-destructive-foreground">{{ actionError }}</p>
+
+    <ConfigDiffDialog
+      :open="diffDialogOpen"
+      :mode="diffMode"
+      :platform="diffPendingPlatform"
+      :result="diffResult"
+      :loading="diffLoading"
+      @confirm="handleConfirm"
+      @cancel="closeDiffDialog"
+    />
   </div>
 </template>

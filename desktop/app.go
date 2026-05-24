@@ -229,6 +229,31 @@ func (s *DesktopService) ApplyAgentConfig(req configservice.ApplyAgentConfigRequ
 	return s.configService.Apply(req, status.Port, key)
 }
 
+func (s *DesktopService) PreviewAgentConfigDiff(req configservice.ApplyAgentConfigRequest) (configservice.ConfigDiffResult, error) {
+	if s.configService == nil {
+		return configservice.ConfigDiffResult{}, fmt.Errorf("配置服务未初始化")
+	}
+	platform := req.Platform
+	if platform == "" {
+		return configservice.ConfigDiffResult{}, fmt.Errorf("agent 平台不能为空")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
+	defer cancel()
+	status := s.manager.Status(ctx)
+	var key string
+	if platform == configservice.PlatformCodex || (platform == configservice.PlatformClaude && (req.Provider == "" || req.Provider == configservice.ProviderCCX)) {
+		key, _ = s.manager.ReadProxyAccessKey()
+	}
+	return s.configService.PreviewApply(req, status.Port, key)
+}
+
+func (s *DesktopService) PreviewRestoreConfigDiff(platform string) (configservice.ConfigDiffResult, error) {
+	if s.configService == nil {
+		return configservice.ConfigDiffResult{}, fmt.Errorf("配置服务未初始化")
+	}
+	return s.configService.PreviewRestore(platform)
+}
+
 func (s *DesktopService) RestoreAgentConfig(platform string) error {
 	if s.configService == nil {
 		return fmt.Errorf("配置服务未初始化")

@@ -4,5 +4,8 @@
 export {
     AgentConfigStatus,
     ApplyAgentConfigRequest,
+    ConfigDiffResult,
+    DiffLine,
+    FileDiff,
     ProviderKeyAsset
 } from "./models.js";

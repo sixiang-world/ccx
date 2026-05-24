@@ -141,6 +141,18 @@ export function OpenWebUIInBrowser(): $CancellablePromise<void> {
     return $Call.ByID(2011844568);
 }
 
+export function PreviewAgentConfigDiff(req: configservice$0.ApplyAgentConfigRequest): $CancellablePromise<configservice$0.ConfigDiffResult> {
+    return $Call.ByID(2249637809, req).then(($result: any) => {
+        return $$createType14($result);
+    });
+}
+
+export function PreviewRestoreConfigDiff(platform: string): $CancellablePromise<configservice$0.ConfigDiffResult> {
+    return $Call.ByID(2382293170, platform).then(($result: any) => {
+        return $$createType14($result);
+    });
+}
+
 export function RestartService(): $CancellablePromise<void> {
     return $Call.ByID(194936479);
 }
@@ -203,3 +215,4 @@ const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = $Create.Map($Create.Any, $Create.Any);
 const $$createType12 = backend$0.Status.createFrom;
 const $$createType13 = $models.VersionInfo.createFrom;
+const $$createType14 = configservice$0.ConfigDiffResult.createFrom;

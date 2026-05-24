@@ -7,15 +7,15 @@ const props = defineProps<{
   selectedProvider: AgentProvider
   providerKeys: Record<AgentProvider, string>
   savedProviderKeys: Record<string, string>
-  miMOBaseUrl: string
-  selectedMiMoPlan: string
+  mimoBaseUrl: string
+  selectedMimoPlan: string
 }>()
 
 const emit = defineEmits<{
   'update:selectedProvider': [value: AgentProvider]
   'update:providerKeys': [value: Record<AgentProvider, string>]
-  'update:miMOBaseUrl': [value: string]
-  'update:selectedMiMoPlan': [value: string]
+  'update:mimoBaseUrl': [value: string]
+  'update:selectedMimoPlan': [value: string]
 }>()
 
 const mimoPlanOptions = [
@@ -37,16 +37,16 @@ const onKeyChange = (value: string | number) => {
   })
 }
 
-const onMiMoPlanChange = (e: Event) => {
+const onMimoPlanChange = (e: Event) => {
   const planValue = (e.target as HTMLSelectElement).value
-  emit('update:selectedMiMoPlan', planValue)
+  emit('update:selectedMimoPlan', planValue)
   if (planValue !== '') {
-    emit('update:miMOBaseUrl', planValue)
+    emit('update:mimoBaseUrl', planValue)
   }
 }
 
 const keyPlaceholder = (provider: AgentProvider) => {
-  if (provider === 'mimo' && props.selectedMiMoPlan && props.savedProviderKeys[`claude:${provider}:${props.selectedMiMoPlan}`]) {
+  if (provider === 'mimo' && props.selectedMimoPlan && props.savedProviderKeys[`claude:${provider}:${props.selectedMimoPlan}`]) {
     return '已保存，留空则使用已保存的 key'
   }
   if (props.savedProviderKeys[`claude:${provider}`]) {
@@ -81,9 +81,9 @@ const keyPlaceholder = (provider: AgentProvider) => {
     <div v-if="selectedProvider === 'mimo'" class="space-y-1.5">
       <Label class="text-xs text-muted-foreground">MiMo 计费模式</Label>
       <select
-        :value="selectedMiMoPlan"
+        :value="selectedMimoPlan"
         class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        @change="onMiMoPlanChange"
+        @change="onMimoPlanChange"
       >
         <option
           v-for="opt in mimoPlanOptions"
@@ -106,13 +106,13 @@ const keyPlaceholder = (provider: AgentProvider) => {
       />
     </div>
 
-    <div v-if="selectedProvider === 'mimo' && selectedMiMoPlan === ''" class="space-y-1.5">
+    <div v-if="selectedProvider === 'mimo' && selectedMimoPlan === ''" class="space-y-1.5">
       <Label class="text-xs text-muted-foreground">Base URL</Label>
       <Input
         type="url"
         placeholder="https://api.xiaomimimo.com/anthropic"
-        :model-value="miMOBaseUrl"
-        @update:model-value="emit('update:miMOBaseUrl', String($event))"
+        :model-value="mimoBaseUrl"
+        @update:model-value="emit('update:mimoBaseUrl', String($event))"
       />
     </div>
   </div>

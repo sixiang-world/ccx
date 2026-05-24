@@ -92,6 +92,21 @@ type CodexProxyState struct {
 	InjectedAPIKey        string  `json:"injectedApiKey"`
 }
 
+type DiffLine struct {
+	Type    string `json:"type"` // "context" | "added" | "removed"
+	Content string `json:"content"`
+}
+
+type FileDiff struct {
+	Path   string     `json:"path"`
+	Action string     `json:"action"` // "modify" | "create" | "delete"
+	Lines  []DiffLine `json:"lines"`
+}
+
+type ConfigDiffResult struct {
+	Files []FileDiff `json:"files"`
+}
+
 type ProviderKeyStore struct {
 	Version int                         `json:"version"`
 	Keys    map[string]string           `json:"keys"`
@@ -1188,4 +1203,307 @@ func restoreNamedTomlBlock(content string, table string, original *string) strin
 		return block
 	}
 	return content + "\n\n" + block
+}
+
+// PreviewApply 预览 Apply 操作的变更，不实际写入文件。
+func (s *Service) PreviewApply(req ApplyAgentConfigRequest, port int, accessKey string) (ConfigDiffResult, error) {
+	platform := strings.TrimSpace(req.Platform)
+	if platform == "" {
+		return ConfigDiffResult{}, fmt.Errorf("agent 平台不能为空")
+	}
+	switch platform {
+	case PlatformClaude:
+		return s.previewApplyClaude(req, port, accessKey)
+	case PlatformCodex:
+		provider := strings.TrimSpace(req.Provider)
+		if provider == ProviderOpenAI {
+			return s.previewApplyCodexOpenAI(req.APIKey)
+		}
+		if responsesURL, ok := codexResponsesBaseURL(provider); ok {
+			return s.previewApplyCodexThirdParty(provider, responsesURL, req.APIKey)
+		}
+		return s.previewApplyCodex(port, accessKey)
+	default:
+		return ConfigDiffResult{}, fmt.Errorf("不支持的 agent 平台: %s", platform)
+	}
+}
+
+// PreviewRestore 预览 Restore 操作的变更，不实际写入文件。
+func (s *Service) PreviewRestore(platform string) (ConfigDiffResult, error) {
+	switch platform {
+	case PlatformClaude:
+		return s.previewRestoreClaude()
+	case PlatformCodex:
+		return s.previewRestoreCodex()
+	default:
+		return ConfigDiffResult{}, fmt.Errorf("不支持的 agent 平台: %s", platform)
+	}
+}
+
+func (s *Service) previewApplyClaude(req ApplyAgentConfigRequest, port int, accessKey string) (ConfigDiffResult, error) {
+	provider := normalizeClaudeProvider(req.Provider)
+	baseURL, authToken, apiKey, err := resolveClaudeProvider(req, port, accessKey)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+	path := s.claudeSettingsPath()
+	data, _, err := readJSONMap(path)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+	oldData := maskJSONSensitiveKeys(copyJSONMap(data))
+
+	env, _ := data["env"].(map[string]any)
+	if env == nil {
+		env = map[string]any{}
+		data["env"] = env
+	}
+	env["ANTHROPIC_BASE_URL"] = baseURL
+	if authToken != "" {
+		env["ANTHROPIC_AUTH_TOKEN"] = authToken
+	} else {
+		delete(env, "ANTHROPIC_AUTH_TOKEN")
+	}
+	if apiKey != "" {
+		env["ANTHROPIC_API_KEY"] = apiKey
+	} else {
+		delete(env, "ANTHROPIC_API_KEY")
+	}
+	newData := maskJSONSensitiveKeys(data)
+
+	files := []FileDiff{computeJSONDiff(path, oldData, newData)}
+
+	if provider == ProviderCCX {
+		configPath := s.claudeConfigPath()
+		oldConfig, _, _ := readJSONMap(configPath)
+		newConfig := copyJSONMap(oldConfig)
+		newConfig["primaryApiKey"] = "ccx"
+		files = append(files, computeJSONDiff(configPath, oldConfig, newConfig))
+
+		rootPath := s.claudeRootConfigPath()
+		oldRoot, _, _ := readJSONMap(rootPath)
+		newRoot := copyJSONMap(oldRoot)
+		newRoot["hasCompletedOnboarding"] = true
+		files = append(files, computeJSONDiff(rootPath, oldRoot, newRoot))
+	}
+	return ConfigDiffResult{Files: files}, nil
+}
+
+func (s *Service) previewApplyCodex(port int, accessKey string) (ConfigDiffResult, error) {
+	configPath := s.codexConfigPath()
+	authPath := s.codexAuthPath()
+
+	configContent, _, err := readTextFile(configPath)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+	authData, _, err := readJSONMap(authPath)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+
+	targetURL := codexBaseURL(port)
+	updatedConfig := upsertTopLevelTomlString(configContent, "model_provider", "ccx")
+	updatedConfig = upsertNamedTomlBlock(updatedConfig, "model_providers.ccx", codexProviderBlock(targetURL))
+
+	keyValues := map[string]string{"OPENAI_API_KEY": accessKey}
+	oldConfig := maskTextSensitiveValues(configContent, keyValues)
+	newConfig := maskTextSensitiveValues(updatedConfig, keyValues)
+
+	newAuthData := copyJSONMap(authData)
+	newAuthData["OPENAI_API_KEY"] = accessKey
+	newAuthMasked := maskMapSensitiveKeys(newAuthData, "OPENAI_API_KEY")
+
+	return ConfigDiffResult{Files: []FileDiff{
+		computeTextDiff(configPath, oldConfig, newConfig),
+		computeJSONDiff(authPath, maskMapSensitiveKeys(authData, "OPENAI_API_KEY"), newAuthMasked),
+	}}, nil
+}
+
+func (s *Service) previewApplyCodexOpenAI(apiKey string) (ConfigDiffResult, error) {
+	configPath := s.codexConfigPath()
+	authPath := s.codexAuthPath()
+	configContent, _, err := readTextFile(configPath)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+	authData, _, err := readJSONMap(authPath)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+
+	key := strings.TrimSpace(apiKey)
+	if key == "" {
+		key = s.GetSavedProviderKeys()["codex:"+ProviderOpenAI]
+	}
+	if key == "" {
+		if state, ok := s.readCodexState(); ok && state.OriginalOpenAIAPIKey != nil && *state.OriginalOpenAIAPIKey != "" {
+			key = *state.OriginalOpenAIAPIKey
+		}
+	}
+	if key == "" {
+		if existingKey, ok := authData["OPENAI_API_KEY"].(string); ok && strings.TrimSpace(existingKey) != "" {
+			key = strings.TrimSpace(existingKey)
+		}
+	}
+	if key == "" {
+		key = "[未配置]"
+	}
+
+	keyValues := map[string]string{"OPENAI_API_KEY": key}
+	updatedConfig := upsertTopLevelTomlString(configContent, "model_provider", "openai")
+	updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers.ccx", nil)
+	updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers.openai", nil)
+
+	oldConfig := maskTextSensitiveValues(configContent, keyValues)
+	newConfig := maskTextSensitiveValues(updatedConfig, keyValues)
+
+	newAuthData := copyJSONMap(authData)
+	newAuthData["OPENAI_API_KEY"] = key
+	oldAuthMasked := maskMapSensitiveKeys(authData, "OPENAI_API_KEY")
+	newAuthMasked := maskMapSensitiveKeys(newAuthData, "OPENAI_API_KEY")
+
+	return ConfigDiffResult{Files: []FileDiff{
+		computeTextDiff(configPath, oldConfig, newConfig),
+		computeJSONDiff(authPath, oldAuthMasked, newAuthMasked),
+	}}, nil
+}
+
+func (s *Service) previewApplyCodexThirdParty(provider, baseURL, apiKey string) (ConfigDiffResult, error) {
+	configPath := s.codexConfigPath()
+	authPath := s.codexAuthPath()
+	configContent, _, err := readTextFile(configPath)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+	authData, _, err := readJSONMap(authPath)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+
+	key := strings.TrimSpace(apiKey)
+	if key == "" {
+		key = s.GetSavedProviderKeys()["codex:"+provider]
+	}
+	if key == "" {
+		key = "[未配置]"
+	}
+
+	keyValues := map[string]string{"OPENAI_API_KEY": key}
+
+	block := fmt.Sprintf(`[model_providers.%s]
+name = %q
+base_url = %q
+wire_api = "responses"
+`, provider, provider, baseURL)
+
+	updatedConfig := upsertTopLevelTomlString(configContent, "model_provider", provider)
+	updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers.ccx", nil)
+	updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers.openai", nil)
+	updatedConfig = upsertNamedTomlBlock(updatedConfig, "model_providers."+provider, block)
+
+	oldConfig := maskTextSensitiveValues(configContent, keyValues)
+	newConfig := maskTextSensitiveValues(updatedConfig, keyValues)
+
+	newAuthData := copyJSONMap(authData)
+	newAuthData["OPENAI_API_KEY"] = key
+	oldAuthMasked := maskMapSensitiveKeys(authData, "OPENAI_API_KEY")
+	newAuthMasked := maskMapSensitiveKeys(newAuthData, "OPENAI_API_KEY")
+
+	return ConfigDiffResult{Files: []FileDiff{
+		computeTextDiff(configPath, oldConfig, newConfig),
+		computeJSONDiff(authPath, oldAuthMasked, newAuthMasked),
+	}}, nil
+}
+
+func (s *Service) previewRestoreClaude() (ConfigDiffResult, error) {
+	var state ClaudeProxyState
+	if err := readJSONFile(s.claudeStatePath(), &state); err != nil {
+		return ConfigDiffResult{}, fmt.Errorf("未找到 Claude 配置状态，请先应用配置")
+	}
+	path := state.TargetPath
+	if !state.FileExisted {
+		data, _, _ := readJSONMap(path)
+		oldMasked := maskJSONSensitiveKeys(data)
+		return ConfigDiffResult{Files: []FileDiff{
+			computeJSONDiff(path, oldMasked, nil),
+		}}, nil
+	}
+	data, _, err := readJSONMap(path)
+	if err != nil {
+		return ConfigDiffResult{}, err
+	}
+	oldMasked := maskJSONSensitiveKeys(copyJSONMap(data))
+
+	env, _ := data["env"].(map[string]any)
+	if env == nil {
+		env = map[string]any{}
+		data["env"] = env
+	}
+	restoreStringField(env, "ANTHROPIC_BASE_URL", state.OriginalBaseURL)
+	restoreStringField(env, "ANTHROPIC_AUTH_TOKEN", state.OriginalAuthToken)
+	restoreStringField(env, "ANTHROPIC_API_KEY", state.OriginalAPIKey)
+	if !state.EnvExisted && len(env) == 0 {
+		delete(data, "env")
+	}
+	newMasked := maskJSONSensitiveKeys(data)
+
+	return ConfigDiffResult{Files: []FileDiff{
+		computeJSONDiff(path, oldMasked, newMasked),
+	}}, nil
+}
+
+func (s *Service) previewRestoreCodex() (ConfigDiffResult, error) {
+	var state CodexProxyState
+	if err := readJSONFile(s.codexStatePath(), &state); err != nil {
+		return ConfigDiffResult{}, fmt.Errorf("未找到 Codex 配置状态，请先应用配置")
+	}
+
+	var files []FileDiff
+
+	// config.toml
+	if state.ConfigFileExisted {
+		content, _, err := readTextFile(state.ConfigPath)
+		if err != nil {
+			return ConfigDiffResult{}, err
+		}
+		restoredContent := restoreTopLevelTomlString(content, "model_provider", state.OriginalModelProvider)
+		restoredContent = restoreNamedTomlBlock(restoredContent, "model_providers.ccx", state.OriginalProviderBlock)
+		if state.InjectedProvider != "" && state.InjectedProvider != ProviderCCX && state.InjectedProvider != ProviderOpenAI {
+			restoredContent = restoreNamedTomlBlock(restoredContent, "model_providers."+state.InjectedProvider, nil)
+		}
+		files = append(files, computeTextDiff(state.ConfigPath, content, restoredContent))
+	} else {
+		content, _, _ := readTextFile(state.ConfigPath)
+		files = append(files, computeTextDiff(state.ConfigPath, content, ""))
+	}
+
+	// auth.json
+	if state.AuthFileExisted {
+		authData, _, err := readJSONMap(state.AuthPath)
+		if err != nil {
+			return ConfigDiffResult{}, err
+		}
+		oldMasked := maskMapSensitiveKeys(authData, "OPENAI_API_KEY")
+		restoredAuth := copyJSONMap(authData)
+		restoreStringField(restoredAuth, "OPENAI_API_KEY", state.OriginalOpenAIAPIKey)
+		newMasked := maskMapSensitiveKeys(restoredAuth, "OPENAI_API_KEY")
+		files = append(files, computeJSONDiff(state.AuthPath, oldMasked, newMasked))
+	} else {
+		authData, _, _ := readJSONMap(state.AuthPath)
+		files = append(files, computeJSONDiff(state.AuthPath, maskMapSensitiveKeys(authData, "OPENAI_API_KEY"), nil))
+	}
+
+	return ConfigDiffResult{Files: files}, nil
+}
+
+// copyJSONMap 深拷贝一个 JSON map，避免修改原始数据。
+func copyJSONMap(data map[string]any) map[string]any {
+	if data == nil {
+		return nil
+	}
+	b, _ := json.Marshal(data)
+	var result map[string]any
+	_ = json.Unmarshal(b, &result)
+	return result
 }

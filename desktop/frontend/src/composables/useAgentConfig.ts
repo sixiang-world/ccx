@@ -1,10 +1,12 @@
 import { ref } from 'vue'
-import type { AgentPlatform, AgentProvider, AgentConfigStatus, ApplyAgentConfigRequest } from '@/types'
+import type { AgentPlatform, AgentProvider, AgentConfigStatus, ApplyAgentConfigRequest, ConfigDiffResult } from '@/types'
 import {
   GetAgentConfigStatus,
   ApplyAgentConfig,
   RestoreAgentConfig,
   GetSavedProviderKeys,
+  PreviewAgentConfigDiff,
+  PreviewRestoreConfigDiff,
 } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
 
 const agentLabels: Record<AgentPlatform, string> = {
@@ -63,9 +65,16 @@ const claudeProviderKeys = ref<Record<AgentProvider, string>>({
 })
 const savedProviderKeys = ref<Record<string, string>>({})
 const codexOpenAIKey = ref('')
-const claudeMiMoBaseUrl = ref('https://api.xiaomimimo.com/anthropic')
-const selectedMiMoPlan = ref('https://api.xiaomimimo.com/anthropic')
+const claudeMimoBaseUrl = ref('https://api.xiaomimimo.com/anthropic')
+const selectedMimoPlan = ref('https://api.xiaomimimo.com/anthropic')
 const selectedCodexProvider = ref<AgentProvider>('ccx')
+
+// Diff preview dialog state
+const diffDialogOpen = ref(false)
+const diffResult = ref<ConfigDiffResult | null>(null)
+const diffMode = ref<'apply' | 'restore'>('apply')
+const diffLoading = ref(false)
+const diffPendingPlatform = ref<AgentPlatform>('claude')
 
 const isClaudeProvider = (value?: string): value is AgentProvider => {
   return value === 'ccx' || value === 'deepseek' || value === 'mimo' || value === 'kimi' || value === 'glm' || value === 'minimax' || value === 'dashscope' || value === 'opencode-zen' || value === 'opencode-go'
@@ -88,7 +97,7 @@ const claudeTargetBaseUrl = () => {
     case 'deepseek':
       return 'https://api.deepseek.com/anthropic'
     case 'mimo':
-      return claudeMiMoBaseUrl.value || 'https://api.xiaomimimo.com/anthropic'
+      return claudeMimoBaseUrl.value || 'https://api.xiaomimimo.com/anthropic'
     case 'kimi':
       return 'https://api.moonshot.cn/anthropic'
     case 'glm':
@@ -163,8 +172,8 @@ const loadAgentStatuses = async () => {
       selectedClaudeProvider.value = claude.provider
     }
     if (claude.provider === 'mimo' && claude.currentBaseUrl) {
-      claudeMiMoBaseUrl.value = claude.currentBaseUrl
-      selectedMiMoPlan.value = resolveMiMoPlan(claude.currentBaseUrl)
+      claudeMimoBaseUrl.value = claude.currentBaseUrl
+      selectedMimoPlan.value = resolveMiMoPlan(claude.currentBaseUrl)
     }
     if (codex.provider && codex.provider !== 'ccx' && codex.provider !== '') {
       selectedCodexProvider.value = codex.provider as AgentProvider
@@ -198,7 +207,7 @@ const canApplyAgent = (platform: AgentPlatform, serviceRunning: boolean) => {
   if (selectedClaudeProvider.value === 'ccx') return true
   const provider = selectedClaudeProvider.value
   const inputKey = claudeProviderKeys.value[provider].trim()
-  const hasSaved = !!findSavedKey(provider, selectedMiMoPlan.value)
+  const hasSaved = !!findSavedKey(provider, selectedMimoPlan.value)
   return inputKey !== '' || hasSaved
 }
 
@@ -210,10 +219,10 @@ const applyAgent = async (platform: AgentPlatform) => {
       request.provider = selectedClaudeProvider.value
       if (selectedClaudeProvider.value !== 'ccx') {
         const inputKey = claudeProviderKeys.value[selectedClaudeProvider.value].trim()
-        request.apiKey = inputKey || findSavedKey(selectedClaudeProvider.value, selectedMiMoPlan.value)
+        request.apiKey = inputKey || findSavedKey(selectedClaudeProvider.value, selectedMimoPlan.value)
       }
       if (selectedClaudeProvider.value === 'mimo') {
-        request.baseUrl = claudeMiMoBaseUrl.value.trim()
+        request.baseUrl = claudeMimoBaseUrl.value.trim()
       }
     }
     if (platform === 'codex') {
@@ -228,6 +237,68 @@ const applyAgent = async (platform: AgentPlatform) => {
   } finally {
     configLoading.value = false
   }
+}
+
+const showApplyPreview = async (platform: AgentPlatform) => {
+  const request: ApplyAgentConfigRequest = { platform }
+  if (platform === 'claude') {
+    request.provider = selectedClaudeProvider.value
+    if (selectedClaudeProvider.value !== 'ccx') {
+      const inputKey = claudeProviderKeys.value[selectedClaudeProvider.value].trim()
+      request.apiKey = inputKey || findSavedKey(selectedClaudeProvider.value, selectedMimoPlan.value)
+    }
+    if (selectedClaudeProvider.value === 'mimo') {
+      request.baseUrl = claudeMimoBaseUrl.value.trim()
+    }
+  }
+  if (platform === 'codex') {
+    request.provider = selectedCodexProvider.value
+    if (selectedCodexProvider.value !== 'ccx') {
+      const inputKey = codexOpenAIKey.value.trim()
+      request.apiKey = inputKey || savedProviderKeys.value[`codex:${selectedCodexProvider.value}`] || ''
+    }
+  }
+  diffPendingPlatform.value = platform
+  diffMode.value = 'apply'
+  diffDialogOpen.value = true
+  diffLoading.value = true
+  diffResult.value = null
+  try {
+    diffResult.value = await PreviewAgentConfigDiff(request) as ConfigDiffResult
+  } catch {
+    diffResult.value = null
+  } finally {
+    diffLoading.value = false
+  }
+}
+
+const confirmApply = async () => {
+  diffDialogOpen.value = false
+  await applyAgent(diffPendingPlatform.value)
+}
+
+const showRestorePreview = async (platform: AgentPlatform) => {
+  diffPendingPlatform.value = platform
+  diffMode.value = 'restore'
+  diffDialogOpen.value = true
+  diffLoading.value = true
+  diffResult.value = null
+  try {
+    diffResult.value = await PreviewRestoreConfigDiff(platform) as ConfigDiffResult
+  } catch {
+    diffResult.value = null
+  } finally {
+    diffLoading.value = false
+  }
+}
+
+const confirmRestore = async () => {
+  diffDialogOpen.value = false
+  await restoreAgent(diffPendingPlatform.value)
+}
+
+const closeDiffDialog = () => {
+  diffDialogOpen.value = false
 }
 
 const restoreAgent = async (platform: AgentPlatform) => {
@@ -247,8 +318,8 @@ export function useAgentConfig() {
     claudeProviderKeys,
     savedProviderKeys,
     codexOpenAIKey,
-    claudeMiMoBaseUrl,
-    selectedMiMoPlan,
+    claudeMimoBaseUrl,
+    selectedMimoPlan,
     agentLabels,
     claudeProviderLabels,
     codexProviderLabels,
@@ -265,5 +336,16 @@ export function useAgentConfig() {
     selectedCodexProvider,
     codexProviderLabel,
     codexTargetBaseUrl,
+    // Diff preview
+    diffDialogOpen,
+    diffResult,
+    diffMode,
+    diffLoading,
+    diffPendingPlatform,
+    showApplyPreview,
+    showRestorePreview,
+    confirmApply,
+    confirmRestore,
+    closeDiffDialog,
   }
 }

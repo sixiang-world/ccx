@@ -358,6 +358,32 @@ func (m *Manager) EnsureProxyAccessKey() (string, error) {
 	return ensureProxyAccessKey(dataDir, rootDir)
 }
 
+// ReadProxyAccessKey 只读方式获取 PROXY_ACCESS_KEY，不生成新 key、不写入 .env。
+func (m *Manager) ReadProxyAccessKey() (string, error) {
+	if key := os.Getenv("PROXY_ACCESS_KEY"); strings.TrimSpace(key) != "" {
+		return strings.TrimSpace(key), nil
+	}
+	m.mu.Lock()
+	dataDir := m.dataDir
+	rootDir := m.rootDir
+	m.mu.Unlock()
+	candidates := uniquePaths([]string{
+		filepath.Join(dataDir, ".env"),
+		filepath.Join(rootDir, ".env"),
+		filepath.Join(rootDir, "backend-go", ".env"),
+	})
+	for _, candidate := range candidates {
+		key, err := readProxyAccessKey(candidate)
+		if err != nil {
+			return "", err
+		}
+		if key != "" {
+			return key, nil
+		}
+	}
+	return "", nil
+}
+
 func (m *Manager) WaitHealthy(ctx context.Context, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	var lastErr error
