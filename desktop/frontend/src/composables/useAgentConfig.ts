@@ -142,8 +142,9 @@ const findSavedKey = (provider: string, planID?: string): string => {
 const canApplyAgent = (platform: AgentPlatform, serviceRunning: boolean) => {
   if (configLoading.value) return false
   if (platform === 'codex') {
+    // 切换到 OpenAI 时始终允许，后端会尝试使用 auth.json 中现有的 key 或保存的 key
     if (selectedCodexProvider.value === 'openai') {
-      return codexOpenAIKey.value.trim() !== '' || !!savedProviderKeys.value['codex:openai']
+      return true
     }
     return true
   }
