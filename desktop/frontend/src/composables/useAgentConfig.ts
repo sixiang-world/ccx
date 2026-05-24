@@ -16,6 +16,9 @@ const claudeProviderLabels: Record<AgentProvider | 'custom', string> = {
   ccx: 'CCX',
   deepseek: 'DeepSeek',
   mimo: 'MiMo',
+  kimi: 'Kimi',
+  glm: 'GLM',
+  minimax: 'MiniMax',
   openai: 'OpenAI',
   custom: '自定义',
 }
@@ -25,6 +28,9 @@ const codexProviderLabels: Record<AgentProvider | 'custom', string> = {
   openai: 'OpenAI 官方',
   deepseek: 'DeepSeek',
   mimo: 'MiMo',
+  kimi: 'Kimi',
+  glm: 'GLM',
+  minimax: 'MiniMax',
   custom: '自定义',
 }
 
@@ -41,6 +47,9 @@ const claudeProviderKeys = ref<Record<AgentProvider, string>>({
   ccx: '',
   deepseek: '',
   mimo: '',
+  kimi: '',
+  glm: '',
+  minimax: '',
   openai: '',
 })
 const savedProviderKeys = ref<Record<string, string>>({})
@@ -50,7 +59,7 @@ const selectedMiMoPlan = ref('https://api.xiaomimimo.com/anthropic')
 const selectedCodexProvider = ref<AgentProvider>('ccx')
 
 const isClaudeProvider = (value?: string): value is AgentProvider => {
-  return value === 'ccx' || value === 'deepseek' || value === 'mimo'
+  return value === 'ccx' || value === 'deepseek' || value === 'mimo' || value === 'kimi' || value === 'glm' || value === 'minimax'
 }
 
 const claudeProviderLabel = (value?: string) => {
@@ -71,6 +80,12 @@ const claudeTargetBaseUrl = () => {
       return 'https://api.deepseek.com/anthropic'
     case 'mimo':
       return claudeMiMoBaseUrl.value || 'https://api.xiaomimimo.com/anthropic'
+    case 'kimi':
+      return 'https://api.moonshot.cn/anthropic'
+    case 'glm':
+      return 'https://open.bigmodel.cn/api/anthropic'
+    case 'minimax':
+      return 'https://api.minimaxi.com/anthropic'
     default:
       return ''
   }

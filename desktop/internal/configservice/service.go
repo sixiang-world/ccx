@@ -17,11 +17,17 @@ const (
 	ProviderCCX      = "ccx"
 	ProviderDeepSeek = "deepseek"
 	ProviderMiMo     = "mimo"
+	ProviderKimi     = "kimi"
+	ProviderGLM      = "glm"
+	ProviderMiniMax  = "minimax"
 	ProviderCustom   = "custom"
 	ProviderOpenAI   = "openai"
 
 	deepSeekClaudeBaseURL = "https://api.deepseek.com/anthropic"
 	defaultMiMoBaseURL    = "https://api.xiaomimimo.com/anthropic"
+	kimiClaudeBaseURL     = "https://api.moonshot.cn/anthropic"
+	glmClaudeBaseURL      = "https://open.bigmodel.cn/api/anthropic"
+	miniMaxClaudeBaseURL  = "https://api.minimaxi.com/anthropic"
 	stateVersion          = 1
 )
 
@@ -675,6 +681,12 @@ func normalizeClaudeProvider(provider string) string {
 		return ProviderDeepSeek
 	case ProviderMiMo:
 		return ProviderMiMo
+	case ProviderKimi:
+		return ProviderKimi
+	case ProviderGLM:
+		return ProviderGLM
+	case ProviderMiniMax:
+		return ProviderMiniMax
 	default:
 		return provider
 	}
@@ -711,6 +723,36 @@ func resolveClaudeProvider(req ApplyAgentConfigRequest, port int, accessKey stri
 			baseURL = defaultMiMoBaseURL
 		}
 		return baseURL, "", apiKey, nil
+	case ProviderKimi:
+		apiKey := strings.TrimSpace(req.APIKey)
+		if apiKey == "" {
+			return "", "", "", fmt.Errorf("Kimi API Key 不能为空")
+		}
+		baseURL := strings.TrimSpace(req.BaseURL)
+		if baseURL == "" {
+			baseURL = kimiClaudeBaseURL
+		}
+		return baseURL, "", apiKey, nil
+	case ProviderGLM:
+		apiKey := strings.TrimSpace(req.APIKey)
+		if apiKey == "" {
+			return "", "", "", fmt.Errorf("GLM API Key 不能为空")
+		}
+		baseURL := strings.TrimSpace(req.BaseURL)
+		if baseURL == "" {
+			baseURL = glmClaudeBaseURL
+		}
+		return baseURL, "", apiKey, nil
+	case ProviderMiniMax:
+		apiKey := strings.TrimSpace(req.APIKey)
+		if apiKey == "" {
+			return "", "", "", fmt.Errorf("MiniMax API Key 不能为空")
+		}
+		baseURL := strings.TrimSpace(req.BaseURL)
+		if baseURL == "" {
+			baseURL = miniMaxClaudeBaseURL
+		}
+		return baseURL, "", apiKey, nil
 	default:
 		return "", "", "", fmt.Errorf("不支持的 Claude Code provider: %s", provider)
 	}
@@ -727,6 +769,12 @@ func detectClaudeProvider(baseURL string) string {
 		return ProviderDeepSeek
 	case strings.Contains(value, "mimo.xiaomi.com") || strings.Contains(value, "xiaomimimo.com"):
 		return ProviderMiMo
+	case strings.Contains(value, "moonshot.cn"):
+		return ProviderKimi
+	case strings.Contains(value, "bigmodel.cn"):
+		return ProviderGLM
+	case strings.Contains(value, "minimaxi.com") || strings.Contains(value, "minimax.chat"):
+		return ProviderMiniMax
 	default:
 		return ProviderCustom
 	}
