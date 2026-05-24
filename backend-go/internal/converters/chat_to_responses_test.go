@@ -167,7 +167,7 @@ func TestConvertResponsesToOpenAIChatRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "tool_choice object 保真",
+			name: "tool_choice 无 tools 时不透传",
 			input: `{
 				"model": "gpt-4",
 				"input": "Call a tool",
@@ -177,11 +177,8 @@ func TestConvertResponsesToOpenAIChatRequest(t *testing.T) {
 			stream: false,
 			validate: func(t *testing.T, result []byte) {
 				root := gjson.ParseBytes(result)
-				if root.Get("tool_choice.type").String() != "function" {
-					t.Fatalf("tool_choice.type should be function, got %s", root.Get("tool_choice.type").String())
-				}
-				if root.Get("tool_choice.function.name").String() != "get_weather" {
-					t.Fatalf("tool_choice.function.name should be get_weather, got %s", root.Get("tool_choice.function.name").String())
+				if root.Get("tool_choice").Exists() {
+					t.Fatalf("tool_choice should not exist when tools are absent, got %s", root.Get("tool_choice").Raw)
 				}
 			},
 		},

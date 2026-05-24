@@ -80,18 +80,22 @@ func (c *OpenAIChatConverter) ToProviderRequest(sess *session.Session, req *type
 		}
 	}
 	if req.ToolChoice != nil {
-		if codexEnabled {
-			if converted := ConvertToolChoiceForCodex(req.ToolChoice, codexToolCtx); converted != nil {
-				openaiReq["tool_choice"] = converted
+		if _, hasTools := openaiReq["tools"]; hasTools {
+			if codexEnabled {
+				if converted := ConvertToolChoiceForCodex(req.ToolChoice, codexToolCtx); converted != nil {
+					openaiReq["tool_choice"] = converted
+				} else {
+					openaiReq["tool_choice"] = req.ToolChoice
+				}
 			} else {
 				openaiReq["tool_choice"] = req.ToolChoice
 			}
-		} else {
-			openaiReq["tool_choice"] = req.ToolChoice
 		}
 	}
 	if req.ParallelToolCalls != nil {
-		openaiReq["parallel_tool_calls"] = *req.ParallelToolCalls
+		if _, hasTools := openaiReq["tools"]; hasTools {
+			openaiReq["parallel_tool_calls"] = *req.ParallelToolCalls
+		}
 	}
 
 	// Store CodexToolContext in TransformerMetadata for response conversion.

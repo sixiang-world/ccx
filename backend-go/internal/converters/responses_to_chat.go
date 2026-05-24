@@ -43,10 +43,6 @@ func ConvertResponsesToOpenAIChatRequest(modelName string, inputRawJSON []byte, 
 		out, _ = sjson.Set(out, "max_tokens", maxTokens.Int())
 	}
 
-	if parallelToolCalls := root.Get("parallel_tool_calls"); parallelToolCalls.Exists() {
-		out, _ = sjson.Set(out, "parallel_tool_calls", parallelToolCalls.Bool())
-	}
-
 	if temperature := root.Get("temperature"); temperature.Exists() {
 		out, _ = sjson.Set(out, "temperature", temperature.Float())
 	}
@@ -106,9 +102,18 @@ func ConvertResponsesToOpenAIChatRequest(modelName string, inputRawJSON []byte, 
 		}
 	}
 
-	// 转换 tool_choice
+	// 转换 tool_choice (仅在 tools 存在时才写入，避免上游拒绝)
 	if toolChoice := root.Get("tool_choice"); toolChoice.Exists() {
-		out, _ = sjson.Set(out, "tool_choice", toolChoice.Value())
+		if gjson.GetBytes([]byte(out), "tools").Exists() {
+			out, _ = sjson.Set(out, "tool_choice", toolChoice.Value())
+		}
+	}
+
+	// 转换 parallel_tool_calls (仅在 tools 存在时才写入)
+	if parallelToolCalls := root.Get("parallel_tool_calls"); parallelToolCalls.Exists() {
+		if gjson.GetBytes([]byte(out), "tools").Exists() {
+			out, _ = sjson.Set(out, "parallel_tool_calls", parallelToolCalls.Bool())
+		}
 	}
 
 	return []byte(out)

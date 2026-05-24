@@ -2,6 +2,10 @@
 
 ### 修复
 
+- **Codex Responses 转 Chat 时空 tool_choice 导致上游 400** - 修复当 Codex 请求仅携带非 function 类型 tools（全被过滤）时，`tool_choice` 和 `parallel_tool_calls` 仍被透传给上游 Chat API 导致拒绝的问题
+  - `OpenAIChatConverter` 和 `ConvertResponsesToOpenAIChatRequest` 两条路径均增加 tools 存在性检查
+  - 无 tools 时自动剥离 `tool_choice` 和 `parallel_tool_calls`，与透传路径 `stripCodexClientOnlyTools` 行为一致
+
 - **Windows 桌面端双击无反应** - 修复 Windows 生产构建（`-H windowsgui`）下启动失败时错误静默吞掉的问题
   - 添加 Windows MessageBox 弹窗：WebView2 缺失、ccx-go 找不到等致命错误现在会弹窗提示用户
   - 添加顶层 `recover()` 兜底：未处理的 panic 不再导致进程静默退出
