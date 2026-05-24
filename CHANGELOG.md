@@ -1,3 +1,33 @@
+## [v2.7.26] - 2026-05-24
+
+### 新增
+
+- **多渠道 Messages 原生透传支持** - Kimi、GLM、MiniMax 新增 Messages 原生透传，DeepSeek codex responses 预设默认开启原生工具透传和 role 规范化
+- **渠道预设扩展** - 新增 OpenCode Zen/Go 和阿里云 DashScope 渠道预设与 Agent 直连支持
+- **Agent 直连选项** - Agent 配置新增 Kimi / GLM / MiniMax 直连选项
+- **渠道中心自动覆盖** - 添加到 CCX 时自动覆盖同名渠道配置
+- **Web UI 刷新按钮** - 内嵌 Web UI 页面添加刷新按钮
+- **Codex OpenAI 切换** - 支持 Codex 无缝切换回 OpenAI provider
+
+### 修复
+
+- **渠道中心文案与 URL** - 修正描述文案错别字，移除 /v1 结尾 base URL 的 # 后缀
+- **渠道中心 target 切换** - 修复切换 target 后被级联重置回 messages 的问题
+- **桌面端二进制路径** - 修复 ccx-go 后端二进制未打包到 App Bundle 的路径错误
+- **vite 插件路径** - 修复 vite 插件路径为绝对路径并更新前端依赖
+- **OpenAI provider 配置** - 修复 OpenAI 模式下目标 URL 显示为空，移除无效配置块写入
+- **监控面板初始化** - 初始化时预探测二进制路径，避免监控面板显示"未发现"
+
+### 重构
+
+- **Web UI 刷新按钮位置** - 刷新按钮移至标题栏，WebUITab 通过 defineExpose 暴露刷新方法
+- **渠道预设精简** - 移除渠道预设中所有 SupportedModels 显式赋值，MiniMax 预设精简默认值
+- **ccx-go 查找路径** - 改为向上遍历最多 6 层目录
+
+### 其他
+
+- **Wails 升级** - Wails v3.0.0-alpha.92 升级到 alpha.95
+
 ## [v2.7.25] - 2026-05-23
 
 ### 修复
