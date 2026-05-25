@@ -669,6 +669,18 @@ func (s *DesktopService) runUpdate(release *updater.Release) {
 		return
 	}
 
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer stopCancel()
+	if err := s.manager.Stop(stopCtx); err != nil {
+		if s.app != nil {
+			s.app.Event.Emit("update:progress", updater.Progress{
+				Phase: updater.PhaseError,
+				Error: fmt.Sprintf("停止 CCX 后端失败，请手动停止后重试更新: %v", err),
+			})
+		}
+		return
+	}
+
 	if err := s.updater.Install(localPath); err != nil {
 		if s.app != nil {
 			s.app.Event.Emit("update:progress", updater.Progress{
