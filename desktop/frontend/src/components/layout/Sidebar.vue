@@ -166,7 +166,7 @@ const handleDaemonAction = async () => {
               :title="updaterState.checking ? '检查中…' : '点击检查更新'"
             >
               <RefreshCw class="w-2.5 h-2.5" :class="updaterState.checking && 'animate-spin'" />
-              <span>v{{ updaterState.version?.version || '—' }}</span>
+              <span>{{ updaterState.version?.version || '—' }}</span>
             </button>
           </div>
         </div>

@@ -56,7 +56,7 @@ const close = () => {
             <div class="flex items-baseline justify-between">
               <h2 class="text-lg font-semibold text-white">发现新版本</h2>
               <div class="text-xs text-white/40">
-                v{{ state.version?.version || '—' }} → v{{ state.info?.latestVersion || '—' }}
+                {{ state.version?.version || '—' }} → {{ state.info?.latestVersion || '—' }}
               </div>
             </div>
           </div>
