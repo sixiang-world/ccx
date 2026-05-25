@@ -359,26 +359,19 @@ func (m *Manager) EnsureProxyAccessKey() (string, error) {
 
 // ReadProxyAccessKey 只读方式获取 PROXY_ACCESS_KEY，不生成新 key、不写入 .env。
 func (m *Manager) ReadProxyAccessKey() (string, error) {
-	if key := os.Getenv("PROXY_ACCESS_KEY"); strings.TrimSpace(key) != "" {
-		return strings.TrimSpace(key), nil
-	}
 	m.mu.Lock()
 	dataDir := m.dataDir
 	rootDir := m.rootDir
 	m.mu.Unlock()
-	candidates := uniquePaths([]string{
-		filepath.Join(dataDir, ".env"),
-		filepath.Join(rootDir, ".env"),
-		filepath.Join(rootDir, "backend-go", ".env"),
-	})
-	for _, candidate := range candidates {
-		key, err := readProxyAccessKey(candidate)
-		if err != nil {
-			return "", err
-		}
-		if key != "" {
-			return key, nil
-		}
+	key, err := readConfiguredProxyAccessKey(dataDir, rootDir)
+	if key != "" {
+		return key, nil
+	}
+	if envKey := os.Getenv("PROXY_ACCESS_KEY"); strings.TrimSpace(envKey) != "" {
+		return strings.TrimSpace(envKey), nil
+	}
+	if err != nil {
+		return "", err
 	}
 	return "", nil
 }
@@ -600,9 +593,27 @@ func (m *Manager) urlLocked() string {
 }
 
 func ensureProxyAccessKey(dataDir string, rootDir string) (string, error) {
-	if key := os.Getenv("PROXY_ACCESS_KEY"); strings.TrimSpace(key) != "" {
-		return strings.TrimSpace(key), nil
+	key, err := readConfiguredProxyAccessKey(dataDir, rootDir)
+	if key != "" {
+		return key, nil
 	}
+	if envKey := os.Getenv("PROXY_ACCESS_KEY"); strings.TrimSpace(envKey) != "" {
+		return strings.TrimSpace(envKey), nil
+	}
+	if err != nil {
+		return "", err
+	}
+	key, err = generateProxyAccessKey()
+	if err != nil {
+		return "", err
+	}
+	if err := appendEnvValue(filepath.Join(dataDir, ".env"), "PROXY_ACCESS_KEY", key); err != nil {
+		return "", err
+	}
+	return key, nil
+}
+
+func readConfiguredProxyAccessKey(dataDir string, rootDir string) (string, error) {
 	candidates := uniquePaths([]string{
 		filepath.Join(dataDir, ".env"),
 		filepath.Join(rootDir, ".env"),
@@ -617,14 +628,7 @@ func ensureProxyAccessKey(dataDir string, rootDir string) (string, error) {
 			return key, nil
 		}
 	}
-	key, err := generateProxyAccessKey()
-	if err != nil {
-		return "", err
-	}
-	if err := appendEnvValue(filepath.Join(dataDir, ".env"), "PROXY_ACCESS_KEY", key); err != nil {
-		return "", err
-	}
-	return key, nil
+	return "", nil
 }
 
 func readProxyAccessKey(path string) (string, error) {
@@ -637,10 +641,18 @@ func readProxyAccessKey(path string) (string, error) {
 	}
 	for _, line := range strings.Split(string(content), "\n") {
 		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") || !strings.HasPrefix(line, "PROXY_ACCESS_KEY=") {
+		if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
 			continue
 		}
-		value := strings.TrimSpace(strings.TrimPrefix(line, "PROXY_ACCESS_KEY="))
+		key, value, _ := strings.Cut(line, "=")
+		key = strings.TrimSpace(key)
+		if rest, ok := strings.CutPrefix(key, "export "); ok {
+			key = strings.TrimSpace(rest)
+		}
+		if key != "PROXY_ACCESS_KEY" {
+			continue
+		}
+		value = strings.TrimSpace(value)
 		return strings.Trim(value, `"'`), nil
 	}
 	return "", nil

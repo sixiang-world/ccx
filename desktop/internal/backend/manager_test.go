@@ -217,6 +217,38 @@ func TestEnsureProxyAccessKey(t *testing.T) {
 		}
 	})
 
+	t.Run("configured desktop env before process env", func(t *testing.T) {
+		dataDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dataDir, ".env"), []byte("PROXY_ACCESS_KEY=desktop-key\n"), 0o600); err != nil {
+			t.Fatalf("write desktop .env failed: %v", err)
+		}
+		t.Setenv("PROXY_ACCESS_KEY", "env-key-123")
+		m := NewManager(Options{RootDir: t.TempDir(), DataDir: dataDir})
+		key, err := m.EnsureProxyAccessKey()
+		if err != nil {
+			t.Fatalf("EnsureProxyAccessKey failed: %v", err)
+		}
+		if key != "desktop-key" {
+			t.Errorf("key = %q, want %q", key, "desktop-key")
+		}
+	})
+
+	t.Run("invalid configured env falls back to process env", func(t *testing.T) {
+		dataDir := t.TempDir()
+		if err := os.Mkdir(filepath.Join(dataDir, ".env"), 0o755); err != nil {
+			t.Fatalf("create invalid .env failed: %v", err)
+		}
+		t.Setenv("PROXY_ACCESS_KEY", "env-key-123")
+		m := NewManager(Options{RootDir: t.TempDir(), DataDir: dataDir})
+		key, err := m.EnsureProxyAccessKey()
+		if err != nil {
+			t.Fatalf("EnsureProxyAccessKey failed: %v", err)
+		}
+		if key != "env-key-123" {
+			t.Errorf("key = %q, want %q", key, "env-key-123")
+		}
+	})
+
 	t.Run("generate new", func(t *testing.T) {
 		dataDir := t.TempDir()
 		m := NewManager(Options{RootDir: t.TempDir(), DataDir: dataDir})

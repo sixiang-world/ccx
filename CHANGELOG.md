@@ -2,6 +2,7 @@
 
 ### 修复
 
+- **桌面端 Codex 应用 CCX 渠道时 auth 密钥不一致** - Codex Agent 配置现在优先读取桌面 dataDir、项目根目录和 `backend-go` 下 `.env` 中的 `PROXY_ACCESS_KEY`，再回退到进程环境变量或自动生成值，避免 `~/.codex/auth.json` 写入与实际后端配置不一致的密钥；同时增强 `.env` 解析以兼容 `export PROXY_ACCESS_KEY=...` 和等号周围空格。
 - **能力测试复制到其他 Tab 时原生协议类型错误** - 当能力测试中某个原生协议测试成功后复制渠道到其他协议 Tab 时，新增渠道的 `serviceType` 现在按成功协议映射为对应原生上游类型（Claude Messages / OpenAI Chat / Gemini / Responses），不再沿用源渠道的协议类型；转换按钮同时保留目标 Tab 与成功协议两个语义，避免复制到目标 Tab 时写入错误上游类型。
 - **桌面端初始配置完成状态误读环境变量** - `IsSetupComplete` 现在只读取桌面 dataDir 下的 `.env`，避免进程环境变量或项目根目录 `.env` 让首次启动引导被错误跳过，并补充对应单元测试。
 - **桌面端 Agent 状态路径展示溢出** - Agent 卡片中的当前/目标 URL、配置文件和认证文件路径改为固定标签列 + 可换行内容列，保留编辑器打开按钮且避免长路径挤压布局。
