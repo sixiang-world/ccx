@@ -820,7 +820,6 @@
               </div>
             </v-col>
 
-
             <v-col v-if="supportsOpenAIAdvancedOptions" cols="12">
               <div class="d-flex align-center justify-space-between ga-4">
                 <div class="d-flex align-center ga-2">
@@ -2879,7 +2878,6 @@ onUnmounted(() => {
   }
 }
 
-
 /* 暗色模式彩色按钮：深色文字，保证对比度 */
 :deep(.v-theme--dark .v-btn.v-btn--variant-elevated.v-btn--color-primary),
 :deep(.v-theme--dark .v-btn.v-btn--variant-elevated.v-btn--color-secondary),
@@ -2898,6 +2896,5 @@ onUnmounted(() => {
 :deep(.v-theme--dark .v-btn.v-btn--variant-flat.v-btn--color-success) {
   background-color: rgba(52, 211, 153, 0.92) !important;
 }
-
 
 </style>

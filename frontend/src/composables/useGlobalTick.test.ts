@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+/* eslint-disable vue/one-component-per-file */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { defineComponent, h, onMounted } from 'vue'
 import { mount } from '@vue/test-utils'

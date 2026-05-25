@@ -263,7 +263,7 @@
           </v-table>
 
           <!-- 模型重定向测试结果（已集成到虚拟协议中，不再单独显示） -->
-          <!-- <div v-if="hasRedirectTests" class="redirect-tests-section mt-4">
+          <!-- <div v-if="_hasRedirectTests" class="redirect-tests-section mt-4">
             <div class="redirect-tests-header mb-3">
               <v-icon color="info" size="small">mdi-swap-horizontal</v-icon>
               <span class="text-subtitle-2 font-weight-bold ml-2">{{ t('capability.redirectTests') }}</span>
@@ -310,7 +310,6 @@
               </v-tooltip>
             </div>
           </div> -->
-
 
         </div>
       </v-card-text>
@@ -391,7 +390,7 @@ const displayOutcome = computed(() => props.capabilityJob?.outcome ?? 'unknown')
 const runMode = computed(() => props.capabilityJob?.runMode ?? 'fresh')
 const isJobActiveLike = computed(() => state.value === 'pending' || state.value === 'running')
 const hasNoCompatibleProtocolsYet = computed(() => (job.value?.compatibleProtocols ?? []).length === 0)
-const hasRedirectTests = computed(() => (job.value?.redirectTests ?? []).length > 0)
+const _hasRedirectTests = computed(() => (job.value?.redirectTests ?? []).length > 0)
 
 // 当状态离开 running 时复位 cancelling（覆盖取消失败、重测恢复等场景）
 watch(state, (newState) => {

@@ -300,8 +300,6 @@ function handleDemote(index: number) {
   emit('setOverride', props.conversation.id, buildSequence(current))
 }
 
-
-
 async function copyRawUserId() {
   if (!props.conversation.rawUserId) return
   try {
@@ -404,8 +402,6 @@ async function copyRawUserId() {
   font-weight: 700;
   letter-spacing: 0.08em;
 }
-
-
 
 /* Display label (title/userId) */
 .display-label {

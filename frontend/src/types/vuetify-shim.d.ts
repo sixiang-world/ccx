@@ -4,7 +4,6 @@
  * vue-tsc 6.x 无法自动加载 Vuetify 的 ComponentCustomProperties 扩展，
  * 因此需要在此文件中显式声明 $vuetify 属性。
  */
-import type { Ref } from 'vue'
 
 declare module 'vue' {
   interface ComponentCustomProperties {

@@ -51,6 +51,11 @@ export default [
         Event: 'readonly',
         KeyboardEvent: 'readonly',
         MouseEvent: 'readonly',
+        HTMLElement: 'readonly',
+        Element: 'readonly',
+        ResizeObserver: 'readonly',
+        CustomEvent: 'readonly',
+        MessageEvent: 'readonly',
         // Node.js 环境
         process: 'readonly',
         __dirname: 'readonly',

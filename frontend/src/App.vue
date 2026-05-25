@@ -281,7 +281,6 @@
           </v-col>
         </v-row>
 
-
         <!-- 操作按钮区域 - 现代化设计 -->
         <div v-if="route.path !== '/conversations'" class="action-bar mb-6">
           <div class="action-bar-left">
@@ -742,16 +741,6 @@ type CapabilityChannelKind = 'messages' | 'chat' | 'responses' | 'gemini'
 
 const isCapabilityChannelKind = (tab: string): tab is CapabilityChannelKind => {
   return tab === 'messages' || tab === 'chat' || tab === 'responses' || tab === 'gemini'
-}
-
-const serviceTypeToChannelKind = (serviceType: string): CapabilityChannelKind => {
-  switch (serviceType) {
-    case 'claude': return 'messages'
-    case 'openai': return 'chat'
-    case 'responses': return 'responses'
-    case 'gemini': return 'gemini'
-    default: return 'chat'
-  }
 }
 
 const capabilityPlaceholderModels: Record<string, string[]> = {

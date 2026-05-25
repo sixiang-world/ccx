@@ -15,9 +15,9 @@ const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 
 // TS 6.x Plugin 类型兼容（Vue 3.5 app.use 签名变更）
-app.use(pinia as any)
-app.use(vuetify as any)
-app.use(router as any)
+app.use(pinia as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+app.use(vuetify as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+app.use(router as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // 初始化 AuthStore（从 localStorage 恢复状态）
 const authStore = useAuthStore()

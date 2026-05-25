@@ -25,7 +25,7 @@ describe('freezeImmutableFields', () => {
   })
 
   it('冻结 disabledApiKeys 数组（存在时）', () => {
-    const ch = makeChannel({ disabledApiKeys: [{ key: 'k1', reason: 'expired', blacklistedAt: 0 } as any] })
+    const ch = makeChannel({ disabledApiKeys: [{ key: 'k1', reason: 'expired', blacklistedAt: 0 } as any] }) // eslint-disable-line @typescript-eslint/no-explicit-any
     freezeImmutableFields(ch)
     expect(Object.isFrozen(ch.disabledApiKeys)).toBe(true)
   })
