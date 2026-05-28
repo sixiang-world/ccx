@@ -34,6 +34,38 @@ export class EnvFileState {
     }
 }
 
+/**
+ * LanguagePreference 描述桌面语言最终选择和原始系统语言。
+ */
+export class LanguagePreference {
+    "locale": string;
+    "manual": boolean;
+    "systemLocale": string;
+
+    /** Creates a new LanguagePreference instance. */
+    constructor($$source: Partial<LanguagePreference> = {}) {
+        if (!("locale" in $$source)) {
+            this["locale"] = "";
+        }
+        if (!("manual" in $$source)) {
+            this["manual"] = false;
+        }
+        if (!("systemLocale" in $$source)) {
+            this["systemLocale"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LanguagePreference instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LanguagePreference {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new LanguagePreference($$parsedSource as Partial<LanguagePreference>);
+    }
+}
+
 export class VersionInfo {
     "version": string;
     "buildTime": string;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, computed, nextTick, onMounted } from 'vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import StatusTab from '@/components/status/StatusTab.vue'
 import AgentTab from '@/components/agent/AgentTab.vue'
@@ -11,12 +11,14 @@ import SetupView from '@/components/setup/SetupView.vue'
 import { useStatus } from '@/composables/useStatus'
 import { useWailsEvents } from '@/composables/useWailsEvents'
 import { useSetup } from '@/composables/useSetup'
+import { useLanguage } from '@/composables/useLanguage'
 import { RefreshCw } from 'lucide-vue-next'
 
 import type { TabValue } from '@/types'
 
 const activeTab = ref<TabValue>('status')
 const { status, actionError, syncStatus } = useStatus()
+const { t, initializeLanguage } = useLanguage()
 
 useWailsEvents(activeTab, actionError, syncStatus)
 
@@ -24,6 +26,7 @@ useWailsEvents(activeTab, actionError, syncStatus)
 const { setupChecked, setupComplete, pendingTab, checkSetup } = useSetup()
 
 onMounted(() => {
+  void initializeLanguage()
   void checkSetup()
 })
 
@@ -51,13 +54,13 @@ watch(activeTab, async (tab) => {
 })
 
 // 选项卡标题映射
-const tabTitles: Record<TabValue, string> = {
-  status: '网关状态监控',
-  agent: 'Agent 代理配置',
-  channels: '渠道中心',
-  env: '环境参数管理',
-  web: '内置控制台 Web UI'
-}
+const tabTitles = computed<Record<TabValue, string>>(() => ({
+  status: t('tab.statusTitle'),
+  agent: t('tab.agentTitle'),
+  channels: t('tab.channelsTitle'),
+  env: t('tab.envTitle'),
+  web: t('tab.webTitle'),
+}))
 </script>
 
 <template>
@@ -73,7 +76,7 @@ const tabTitles: Record<TabValue, string> = {
       <header class="h-14 border-b border-slate-900/60 bg-slate-950/25 backdrop-blur-md flex items-center justify-between px-8 shrink-0" data-wails-drag>
         <div class="flex items-center gap-3">
           <span class="text-xs bg-blue-500/10 text-blue-400 font-semibold px-2 py-0.5 rounded border border-blue-500/15">
-            CCX CORE
+            {{ t('common.gatewayLabel') }}
           </span>
           <h2 class="text-sm font-bold text-slate-200 tracking-wide uppercase">
             {{ tabTitles[activeTab] }}
@@ -81,7 +84,7 @@ const tabTitles: Record<TabValue, string> = {
           <button
             v-if="activeTab === 'web'"
             class="text-slate-400 hover:text-slate-200 transition-colors p-1 rounded hover:bg-slate-800/50"
-            title="刷新 Web UI"
+            :title="t('common.refreshWebUI')"
             @click="refreshWebUI"
           >
             <RefreshCw class="w-3.5 h-3.5" />
@@ -94,19 +97,19 @@ const tabTitles: Record<TabValue, string> = {
             v-if="status.running"
             class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold px-2 py-0.5 rounded-full"
           >
-            GATEWAY ONLINE
+            {{ t('common.online') }}
           </span>
           <span
             v-else-if="status.starting"
             class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold px-2 py-0.5 rounded-full animate-pulse"
           >
-            CONNECTING...
+            {{ t('common.connecting') }}
           </span>
           <span
             v-else
             class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold px-2 py-0.5 rounded-full"
           >
-            GATEWAY OFFLINE
+            {{ t('common.offline') }}
           </span>
         </div>
       </header>

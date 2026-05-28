@@ -3,9 +3,12 @@ import { computed, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { ConfigDiffResult, DiffLine, FileDiff } from '@/types'
+import { useLanguage } from '@/composables/useLanguage'
 
 const CONTEXT_THRESHOLD = 4
 const CONTEXT_KEEP = 2
+
+const { t } = useLanguage()
 
 type DisplayLine =
   | { kind: 'line'; line: DiffLine; origIndex: number }
@@ -25,11 +28,11 @@ const emit = defineEmits<{
 }>()
 
 const title = computed(() =>
-  props.mode === 'apply' ? '应用配置预览' : '恢复配置预览'
+  props.mode === 'apply' ? t('agent.diffPreviewApply') : t('agent.diffPreviewRestore')
 )
 
 const confirmLabel = computed(() =>
-  props.mode === 'apply' ? '确认应用' : '确认恢复'
+  props.mode === 'apply' ? t('agent.diffConfirmApply') : t('agent.diffConfirmRestore')
 )
 
 const platformLabel = computed(() =>
@@ -38,9 +41,9 @@ const platformLabel = computed(() =>
 
 const actionLabel = (action: string) => {
   switch (action) {
-    case 'create': return '创建'
-    case 'delete': return '删除'
-    default: return '修改'
+    case 'create': return t('agent.diffActionCreate')
+    case 'delete': return t('agent.diffActionDelete')
+    default: return t('agent.diffActionModify')
   }
 }
 
@@ -140,12 +143,12 @@ const processedFiles = computed(() => {
           <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
             <!-- Loading state -->
             <div v-if="loading" class="flex items-center justify-center py-12">
-              <div class="text-sm text-white/40">计算变更中...</div>
+              <div class="text-sm text-white/40">{{ t('agent.diffComputing') }}</div>
             </div>
 
             <!-- No changes -->
             <div v-else-if="!result || result.files.length === 0" class="flex items-center justify-center py-12">
-              <div class="text-sm text-white/40">无变更</div>
+              <div class="text-sm text-white/40">{{ t('agent.diffNoChanges') }}</div>
             </div>
 
             <!-- Diff blocks -->
@@ -209,7 +212,7 @@ const processedFiles = computed(() => {
                               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
                               </svg>
-                              <span>展开 {{ item.lines.length }} 行未变更内容</span>
+                              <span>{{ t('agent.diffExpandContext', { count: String(item.lines.length) }) }}</span>
                             </button>
                           </td>
                         </tr>
@@ -225,7 +228,7 @@ const processedFiles = computed(() => {
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
                                 </svg>
-                                <span>收起 {{ item.lines.length }} 行</span>
+                                <span>{{ t('agent.diffCollapseContext', { count: String(item.lines.length) }) }}</span>
                               </button>
                             </td>
                           </tr>
@@ -253,7 +256,7 @@ const processedFiles = computed(() => {
           <!-- Footer -->
           <div class="flex justify-end gap-2 border-t border-white/[0.05] px-6 py-4 shrink-0">
             <Button variant="ghost" size="sm" @click="emit('cancel')">
-              取消
+              {{ t('agent.diffCancel') }}
             </Button>
             <Button size="sm" :disabled="loading" @click="emit('confirm')">
               {{ confirmLabel }}

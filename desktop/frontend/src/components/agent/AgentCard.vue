@@ -10,6 +10,7 @@ import { openProviderConsole, providerConsoleLinks } from '@/lib/external-link'
 import { DetectEditors, OpenFileInEditor } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
 import ProviderForm from '@/components/agent/ProviderForm.vue'
 import type { AgentPlatform, AgentConfigStatus, AgentProvider } from '@/types'
+import { useLanguage } from '@/composables/useLanguage'
 
 interface EditorInfo { id: string; name: string; path: string }
 
@@ -53,13 +54,15 @@ const codexKeyRequired = computed(() => {
   return p !== 'ccx' && p !== 'openai'
 })
 
+const { t } = useLanguage()
+
 const badgeClass = computed(() => {
   if (props.agentStatusClass === 'running') return 'bg-accent text-accent-foreground border-0'
   if (props.agentStatusClass === 'starting') return 'bg-warning text-warning-foreground border-0'
   return 'bg-destructive text-destructive-foreground border-0'
 })
 
-const applyLabel = computed(() => '应用配置')
+const applyLabel = computed(() => t('agent.applyConfig'))
 
 // 编辑器检测与文件打开
 const editors = ref<EditorInfo[]>([])
@@ -99,9 +102,9 @@ const openFileInEditor = async (filePath: string) => {
     <CardContent class="space-y-4">
       <div class="space-y-2 text-sm">
         <div v-for="detail in [
-          { label: '当前 Provider', value: (platform === 'codex' ? codexProviderLabel : claudeProviderLabel)?.(agentStatus?.provider) || agentStatus?.provider || '未设置' },
-          { label: '当前 URL', value: agentStatus?.currentBaseUrl || '未设置' },
-          { label: '目标 URL', value: platform === 'claude' ? claudeTargetBaseUrl?.() : codexTargetBaseUrl?.() },
+          { label: t('agent.currentProvider'), value: (platform === 'codex' ? codexProviderLabel : claudeProviderLabel)?.(agentStatus?.provider) || agentStatus?.provider || t('agent.notSet') },
+          { label: t('agent.currentUrl'), value: agentStatus?.currentBaseUrl || t('agent.notSet') },
+          { label: t('agent.targetUrl'), value: platform === 'claude' ? claudeTargetBaseUrl?.() : codexTargetBaseUrl?.() },
         ]" :key="detail.label" class="grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-3">
           <span class="text-muted-foreground">{{ detail.label }}</span>
           <div class="min-w-0 text-right">
@@ -110,14 +113,14 @@ const openFileInEditor = async (filePath: string) => {
         </div>
         <!-- 配置文件 — 带编辑器打开按钮 -->
         <div class="grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-3">
-          <span class="text-muted-foreground">配置文件</span>
+          <span class="text-muted-foreground">{{ t('agent.configPath') }}</span>
           <div class="flex min-w-0 items-center justify-end gap-2">
             <code class="inline-block min-w-0 max-w-full rounded bg-secondary px-2 py-0.5 text-right text-xs break-all">{{ agentStatus?.configPath || '--' }}</code>
             <Button
               v-if="agentStatus?.configPath && editors.length > 0"
               variant="ghost"
               size="icon-sm"
-              title="用编辑器打开"
+              :title="t('agent.openFileInEditor')"
               class="shrink-0"
               :disabled="openingFile === agentStatus.configPath"
               @click="openFileInEditor(agentStatus.configPath)"
@@ -128,14 +131,14 @@ const openFileInEditor = async (filePath: string) => {
         </div>
         <!-- 认证文件 — 带编辑器打开按钮 -->
         <div v-if="agentStatus?.authPath" class="grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-3">
-          <span class="text-muted-foreground">认证文件</span>
+          <span class="text-muted-foreground">{{ t('agent.authPath') }}</span>
           <div class="flex min-w-0 items-center justify-end gap-2">
             <code class="inline-block min-w-0 max-w-full rounded bg-secondary px-2 py-0.5 text-right text-xs break-all">{{ agentStatus.authPath }}</code>
             <Button
               v-if="editors.length > 0"
               variant="ghost"
               size="icon-sm"
-              title="用编辑器打开"
+              :title="t('agent.openFileInEditor')"
               class="shrink-0"
               :disabled="openingFile === agentStatus.authPath"
               @click="openFileInEditor(agentStatus.authPath!)"
@@ -168,11 +171,11 @@ const openFileInEditor = async (filePath: string) => {
             class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             @change="emit('update:selectedCodexProvider', ($event.target as HTMLSelectElement).value as AgentProvider)"
           >
-            <option value="ccx">CCX 本地网关</option>
-            <option value="openai">OpenAI 官方</option>
-            <option value="dashscope">DashScope 直连</option>
-            <option value="opencode-zen">OpenCode Zen 直连</option>
-            <option value="opencode-go">OpenCode Go 直连</option>
+            <option value="ccx">{{ t('agent.localGateway') }}</option>
+            <option value="openai">{{ t('agent.provider.openaiDirect') }}</option>
+            <option value="dashscope">DashScope</option>
+            <option value="opencode-zen">OpenCode Zen</option>
+            <option value="opencode-go">OpenCode Go</option>
           </select>
         </div>
         <button
@@ -181,7 +184,7 @@ const openFileInEditor = async (filePath: string) => {
           class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200"
           @click="openProviderConsole(selectedCodexProvider)"
         >
-          访问官方控制台
+          {{ t('agent.openConsole') }}
           <ExternalLink class="h-3 w-3" />
         </button>
         <div v-if="selectedCodexProvider !== 'ccx'" class="space-y-1.5">
@@ -189,7 +192,7 @@ const openFileInEditor = async (filePath: string) => {
           <Input
             type="password"
             autocomplete="off"
-            :placeholder="savedProviderKeys?.[`codex:${selectedCodexProvider}`] ? '已保存，留空则使用已保存的 key' : codexKeyRequired ? '必填：输入 API Key' : '仅写入 Codex 配置'"
+            :placeholder="savedProviderKeys?.[`codex:${selectedCodexProvider}`] ? t('agent.codexPlaceholderSaved') : codexKeyRequired ? t('agent.codexPlaceholderRequired') : t('agent.codexPlaceholderWriteOnly')"
             :model-value="codexOpenAIKey || ''"
             @update:model-value="emit('update:codexOpenAIKey', String($event))"
           />
@@ -203,7 +206,7 @@ const openFileInEditor = async (filePath: string) => {
           {{ applyLabel }}
         </Button>
         <Button size="sm" variant="secondary" :disabled="configLoading || !agentStatus?.hasState" @click="emit('restore')">
-          恢复原始配置
+          {{ t('agent.restoreConfig') }}
         </Button>
       </div>
     </CardContent>

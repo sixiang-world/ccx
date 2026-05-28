@@ -4,12 +4,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Globe } from 'lucide-vue-next'
 import type { DesktopStatus } from '@/types'
+import { useLanguage } from '@/composables/useLanguage'
 import { GetProxyAccessKey, OpenWebUIInBrowser } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
 
 const props = defineProps<{
   status: DesktopStatus
   loading: boolean
 }>()
+
+const { t } = useLanguage()
 
 const iframeRef = ref<HTMLIFrameElement | null>(null)
 
@@ -64,10 +67,10 @@ const openInBrowser = async () => {
     </div>
     <Card v-else>
       <CardContent class="flex flex-col items-start gap-4 py-8">
-        <p class="text-sm text-muted-foreground">CCX 服务尚未启动，无法显示 Web UI。</p>
+        <p class="text-sm text-muted-foreground">{{ t('webui.notRunning') }}</p>
         <Button size="sm" :disabled="loading" @click="openInBrowser">
           <Globe class="w-4 h-4 mr-1.5" />
-          浏览器打开
+          {{ t('webui.openInBrowser') }}
         </Button>
       </CardContent>
     </Card>

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import Logo from '@/components/layout/Logo.vue'
+import { useLanguage } from '@/composables/useLanguage'
+
+const { t } = useLanguage()
 </script>
 
 <template>
@@ -7,7 +10,7 @@ import Logo from '@/components/layout/Logo.vue'
     <Logo :size="56" />
     <div class="mt-6 flex items-center gap-2 text-xs font-mono tracking-widest text-slate-500 uppercase">
       <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-      <span>正在初始化 CCX 控制台</span>
+      <span>{{ t('setup.loading') }}</span>
     </div>
   </div>
 </template>

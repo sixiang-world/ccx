@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useStatus } from '@/composables/useStatus'
+import { useLanguage } from '@/composables/useLanguage'
 import { GetVersion } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
 import type { VersionInfo } from '@bindings/github.com/BenedictKing/ccx/desktop/models'
 import Logo from '@/components/layout/Logo.vue'
@@ -19,6 +20,7 @@ import type { TabValue } from '@/types'
 const modelValue = defineModel<TabValue>({ required: true })
 
 const { status, loading, autostartEnabled, startService, stopService, setAutostart } = useStatus()
+const { locale, languageOptions, setLanguage, t } = useLanguage()
 
 const versionInfo = ref<VersionInfo | null>(null)
 const isStoreDistribution = computed(() => versionInfo.value?.distribution === 'store')
@@ -31,18 +33,18 @@ onMounted(async () => {
   }
 })
 
-const menuItems = [
-  { id: 'status', label: '网关监控', icon: Activity, desc: '实时状态及核心日志' },
-  { id: 'agent', label: 'Agent 配置', icon: Settings, desc: '本地开发代理控制' },
-  { id: 'channels', label: '渠道中心', icon: Network, desc: '一键添加上游渠道' },
-  { id: 'env', label: '环境参数', icon: Sliders, desc: '网关配置文件编辑' },
-  { id: 'web', label: '管理界面', icon: Globe, desc: 'CCX Web 控制面板' }
-] as const
+const menuItems = computed(() => [
+  { id: 'status', label: t('nav.status'), icon: Activity, desc: t('nav.statusDesc') },
+  { id: 'agent', label: t('nav.agent'), icon: Settings, desc: t('nav.agentDesc') },
+  { id: 'channels', label: t('nav.channels'), icon: Network, desc: t('nav.channelsDesc') },
+  { id: 'env', label: t('nav.env'), icon: Sliders, desc: t('nav.envDesc') },
+  { id: 'web', label: t('nav.web'), icon: Globe, desc: t('nav.webDesc') }
+] as const)
 
 const statusLabel = computed(() => {
-  if (status.value.running) return '运行正常'
-  if (status.value.starting) return '网关启动中'
-  return '服务已断开'
+  if (status.value.running) return t('common.serviceHealthy')
+  if (status.value.starting) return t('common.serviceStarting')
+  return t('common.serviceDisconnected')
 })
 
 const statusGlowClass = computed(() => {
@@ -108,6 +110,27 @@ const handleDaemonAction = async () => {
           </span>
         </div>
       </button>
+
+      <div class="mt-4 rounded-lg border border-white/[0.03] bg-white/[0.01] p-3 text-slate-300 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">{{ t('sidebar.language') }}</span>
+          <div class="flex gap-1">
+            <button
+              v-for="option in languageOptions"
+              :key="option.locale"
+              :class="[
+                'px-2 py-1 rounded border text-[11px] transition-colors',
+                locale === option.locale
+                  ? 'border-blue-500/20 bg-blue-500/10 text-blue-300'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+              ]"
+              @click="setLanguage(option.locale)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+      </div>
     </nav>
 
     <!-- 底部常驻迷你服务守护面板 -->
@@ -137,19 +160,19 @@ const handleDaemonAction = async () => {
         <!-- 详细物理信息 -->
         <div class="space-y-1.5 text-[10px] font-mono text-slate-500">
           <div class="flex justify-between items-center">
-            <span>网关端口</span>
+            <span>{{ t('common.gatewayPort') }}</span>
             <span class="text-slate-300 bg-slate-900/80 px-1.5 py-0.5 rounded border border-white/[0.02]">
               {{ status.port || '——' }}
             </span>
           </div>
           <div class="flex justify-between items-center" v-if="status.pid">
-            <span>守护 PID</span>
+            <span>{{ t('common.daemonPid') }}</span>
             <span class="text-slate-300 bg-slate-900/80 px-1.5 py-0.5 rounded border border-white/[0.02]">
               {{ status.pid }}
             </span>
           </div>
           <div class="flex justify-between items-center">
-            <span>开机自启</span>
+            <span>{{ t('common.autoStart') }}</span>
             <button
               @click="setAutostart(!autostartEnabled)"
               :class="[
@@ -160,11 +183,11 @@ const handleDaemonAction = async () => {
               ]"
             >
               <Power class="w-2.5 h-2.5" />
-              <span>{{ autostartEnabled ? '已开启' : '已关闭' }}</span>
+              <span>{{ autostartEnabled ? t('common.autoStartOn') : t('common.autoStartOff') }}</span>
             </button>
           </div>
           <div class="flex justify-between items-center">
-            <span>当前版本</span>
+            <span>{{ t('common.version') }}</span>
             <span
               :class="[
                 'flex items-center gap-1 px-1.5 py-0.5 rounded border',
@@ -172,7 +195,7 @@ const handleDaemonAction = async () => {
                   ? 'bg-slate-900/80 text-slate-500 border-white/[0.02]'
                   : 'bg-slate-900/80 text-slate-300 border-white/[0.02]'
               ]"
-              :title="isStoreDistribution ? 'Microsoft Store 版本由 Store 自动更新' : '通过托盘菜单检查更新'"
+              :title="isStoreDistribution ? t('sidebar.versionHintStore') : t('sidebar.versionHintTray')"
             >
               <span>{{ versionInfo?.version || '—' }}</span>
             </span>

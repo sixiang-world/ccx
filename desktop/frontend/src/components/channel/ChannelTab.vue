@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useChannelPresets } from '@/composables/useChannelPresets'
+import { useLanguage } from '@/composables/useLanguage'
 import { openProviderPromotion, openProviderConsole, providerConsoleLinks, providerPromotionLinks } from '@/lib/external-link'
 import compshareIcon from '@/assets/compshare.png'
 import type { ProviderPreset, ChannelTarget } from '@/types'
+
+const { t } = useLanguage()
 
 const {
   presets,
@@ -100,8 +103,8 @@ const capabilityBadges = computed(() => {
   const preset = currentPreset.value
   if (!preset) return []
   return [
-    preset.directAgent && 'Agent 直连',
-    preset.nativeMessages && 'Messages 原生',
+    preset.directAgent && t('channel.badgeDirectAgent'),
+    preset.nativeMessages && t('channel.badgeNativeMessages'),
     preset.chatCompatible && 'OpenAI Chat',
     preset.responsesCompatible && 'Responses',
   ].filter(Boolean) as string[]
@@ -112,7 +115,7 @@ const effectiveBaseUrl = computed(() => {
 })
 
 const keyPlaceholder = computed(() => {
-  return currentAsset.value?.apiKey ? '已保存，留空则复用该 Provider Key' : '输入 API Key，仅保存在本机 Desktop 配置中'
+  return currentAsset.value?.apiKey ? t('channel.keySavedPlaceholder') : t('channel.keyInputPlaceholder')
 })
 
 const submit = async () => {
@@ -120,7 +123,7 @@ const submit = async () => {
   const preset = currentPreset.value
   if (!preset) return
   if (!apiKey.value.trim() && !currentAsset.value?.apiKey) {
-    localError.value = '请填写 API Key，或先在 Agent 配置中保存该 Provider 的 key。'
+    localError.value = t('channel.missingKey')
     return
   }
   await createChannel({
@@ -142,11 +145,11 @@ const submit = async () => {
         <div>
           <div class="flex items-center gap-2 text-blue-400 mb-2">
             <Network class="w-4 h-4" />
-            <span class="text-xs font-bold uppercase tracking-[0.2em]">Channel Preset Center</span>
+            <span class="text-xs font-bold uppercase tracking-[0.2em]">{{ t('channel.headerEyebrow') }}</span>
           </div>
-          <h3 class="text-xl font-bold text-slate-100">渠道中心</h3>
+          <h3 class="text-xl font-bold text-slate-100">{{ t('channel.title') }}</h3>
           <p class="text-sm text-slate-500 mt-1 max-w-2xl">
-            统一把 DeepSeek、MiMo、Kimi、GLM、MiniMax Key 可同时用于 Agent 直连和 CCX 统一渠道池，复杂开关由预设自动处理。
+            {{ t('channel.description') }}
           </p>
         </div>
       </div>
@@ -176,7 +179,7 @@ const submit = async () => {
               <div class="flex items-center justify-between gap-2">
                 <span class="font-semibold text-slate-200">{{ preset.label }}</span>
                 <span v-if="keysByProvider[preset.id]" class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                  已有 Key
+                  {{ t('channel.hasKey') }}
                 </span>
               </div>
               <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ preset.description }}</p>
@@ -205,7 +208,7 @@ const submit = async () => {
               class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-300 hover:text-blue-200"
               @click="openProviderPromotion(currentPreset.id)"
             >
-              通过推广链接注册，领取 5 元平台试用金
+              {{ t('channel.promo') }}
               <ExternalLink class="h-3 w-3" />
             </button>
             <button
@@ -214,7 +217,7 @@ const submit = async () => {
               class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200"
               @click="openProviderConsole(currentPreset.id)"
             >
-              访问官方控制台
+              {{ t('channel.console') }}
               <ExternalLink class="h-3 w-3" />
             </button>
           </div>
@@ -222,7 +225,7 @@ const submit = async () => {
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="space-y-2">
-            <Label class="text-xs text-slate-400">添加目标</Label>
+            <Label class="text-xs text-slate-400">{{ t('channel.target') }}</Label>
             <select
               v-model="selectedTarget"
               class="w-full h-9 rounded-md border border-slate-800 bg-slate-950/70 px-3 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -254,27 +257,27 @@ const submit = async () => {
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="space-y-2">
             <Label class="text-xs text-slate-400">API Key</Label>
-            <Input v-model="apiKey" type="password" autocomplete="off" :placeholder="keyPlaceholder" />
+            <Input v-model="apiKey" type="password" autocomplete="off" :placeholder="currentAsset?.apiKey ? t('channel.keySavedPlaceholder') : t('channel.keyInputPlaceholder')" />
             <div v-if="currentAsset?.apiKey" class="flex items-center gap-1.5 text-xs text-emerald-400">
               <KeyRound class="w-3 h-3" />
-              将复用本机已保存的 {{ currentPreset.label }} Key
+              {{ t('channel.reuseKey', { provider: currentPreset.label }) }}
             </div>
           </div>
 
           <div class="space-y-2">
-            <Label class="text-xs text-slate-400">渠道名称</Label>
+            <Label class="text-xs text-slate-400">{{ t('channel.name') }}</Label>
             <Input v-model="channelName" placeholder="desktop-provider-type" />
-            <p class="text-xs text-slate-500">同名渠道会被直接覆盖更新；如需新建独立渠道，请改用不同名称。</p>
+            <p class="text-xs text-slate-500">{{ t('channel.nameHint') }}</p>
           </div>
         </div>
 
         <div class="rounded-xl bg-slate-950/50 border border-slate-900 p-3 text-xs text-slate-400 space-y-1.5">
           <div class="flex items-center gap-1.5 text-slate-300">
             <Sparkles class="w-3.5 h-3.5 text-blue-400" />
-            <span class="font-semibold">预设将自动写入</span>
+            <span class="font-semibold">{{ t('channel.presetWrites') }}</span>
           </div>
           <p>Base URL: <code class="text-slate-200">{{ effectiveBaseUrl || '—' }}</code></p>
-          <p>能力开关：reasoning / vision / model list / 兼容字段会按 Provider 自动配置。</p>
+          <p>{{ t('channel.capabilityHint') }}</p>
         </div>
 
         <p v-if="localError || error" class="text-sm text-rose-400">{{ localError || error }}</p>
@@ -286,7 +289,7 @@ const submit = async () => {
         <div class="flex justify-end">
           <Button :disabled="creating" @click="submit">
             <Loader2 v-if="creating" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
-            添加到 CCX
+            {{ t('channel.addToCCX') }}
           </Button>
         </div>
       </div>

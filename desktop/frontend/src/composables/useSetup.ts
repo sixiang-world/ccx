@@ -7,6 +7,7 @@ import {
   StartService,
 } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
 import { detectEnvNewline, parseEnvFile, serializeEnvFile } from '@/lib/env-file'
+import { useLanguage } from '@/composables/useLanguage'
 import type { TabValue } from '@/types'
 
 // 模块级单例：所有调用方共享同一份 setup 状态
@@ -48,7 +49,7 @@ const checkSetup = async () => {
 const confirmSetup = async (key: string, target: TabValue = 'agent') => {
   const trimmed = key.trim()
   if (!trimmed) {
-    setupError.value = 'PROXY_ACCESS_KEY 不能为空'
+    setupError.value = useLanguage().t('setup.errorEmptyKey')
     return false
   }
   setupSaving.value = true

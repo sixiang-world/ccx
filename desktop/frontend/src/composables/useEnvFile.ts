@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { GetEnvFile, SaveEnvFile, DetectEditors, OpenEnvFileInEditor } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
+import { useLanguage } from '@/composables/useLanguage'
 
 type EnvFileState = {
   path: string
@@ -22,6 +23,8 @@ const envError = ref('')
 const editors = ref<EditorInfo[]>([])
 const editorsLoading = ref(false)
 const openingEditor = ref(false)
+
+const { t } = useLanguage()
 
 const loadEnvFile = async () => {
   envLoading.value = true
@@ -47,7 +50,7 @@ const saveEnvFile = async (content?: string) => {
     await SaveEnvFile(nextContent)
     envContent.value = nextContent
     await loadEnvFile()
-    envMessage.value = '.env 已保存，重启服务后生效'
+    envMessage.value = t('env.saveSuccessHint')
   } catch (error) {
     envError.value = error instanceof Error ? error.message : String(error)
   } finally {
@@ -73,7 +76,7 @@ const openInEditor = async (editorPath: string) => {
   envMessage.value = ''
   try {
     await OpenEnvFileInEditor(editorPath)
-    envMessage.value = '已在编辑器中打开 .env 文件'
+    envMessage.value = t('env.openedInEditor')
   } catch (error) {
     envError.value = error instanceof Error ? error.message : String(error)
   } finally {

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Alert } from '@/components/ui/alert'
 import { Check, RefreshCw, Save, X, ExternalLink } from 'lucide-vue-next'
 import { useEnvFile } from '@/composables/useEnvFile'
+import { useLanguage } from '@/composables/useLanguage'
 import { detectEnvNewline, getEnvFieldValue, parseEnvFile, serializeEnvFile, type EnvEntry } from '@/lib/env-file'
 
 type FieldType = 'text' | 'password' | 'number' | 'select'
@@ -37,88 +38,90 @@ const booleanOptions = [
   { label: 'false', value: 'false' },
 ]
 
+const { t } = useLanguage()
+
 const defaultAppUILanguage = () => {
   if (typeof navigator === 'undefined') return 'en'
   const languages = [...(navigator.languages || []), navigator.language].filter(Boolean)
   return languages.some(language => language.toLowerCase().startsWith('zh')) ? 'zh-CN' : 'en'
 }
 
-const envGroups: EnvGroup[] = [
+const envGroups = computed<EnvGroup[]>(() => [
   {
-    title: '访问控制',
-    description: '代理入口与管理入口的访问密钥。',
+    title: t('env.groupAccess'),
+    description: t('env.groupAccessDesc'),
     fields: [
-      { key: 'PROXY_ACCESS_KEY', label: '代理访问密钥', type: 'password', defaultValue: '', required: true, disallow: ['your-proxy-access-key'], placeholder: '请输入强随机密钥' },
-      { key: 'ADMIN_ACCESS_KEY', label: '管理 API 独立密钥', type: 'password', defaultValue: '', placeholder: '留空则回退到 PROXY_ACCESS_KEY', description: '用于管理界面和 /api/* 端点。' },
+      { key: 'PROXY_ACCESS_KEY', label: t('env.fieldProxyAccessKey'), type: 'password' as const, defaultValue: '', required: true, disallow: ['your-proxy-access-key'], placeholder: t('env.placeholderProxyAccessKey') },
+      { key: 'ADMIN_ACCESS_KEY', label: t('env.fieldAdminAccessKey'), type: 'password' as const, defaultValue: '', placeholder: t('env.placeholderAdminAccessKey'), description: t('env.descAdminAccessKey') },
     ],
   },
   {
-    title: '服务器配置',
-    description: 'Desktop 会在启动时注入部分运行参数；这里仍完整覆盖 .env.example。',
+    title: t('env.groupServer'),
+    description: t('env.groupServerDesc'),
     fields: [
-      { key: 'PORT', label: '服务端口', type: 'number', defaultValue: '3688', min: 1, max: 65535, description: '启动时优先使用此端口，被占用时自动递增分配。' },
-      { key: 'ENV', label: '运行环境', type: 'select', defaultValue: 'production', options: [{ label: 'production', value: 'production' }, { label: 'development', value: 'development' }], description: 'production 为推荐值。' },
+      { key: 'PORT', label: t('env.fieldPort'), type: 'number' as const, defaultValue: '3688', min: 1, max: 65535, description: t('env.descPort') },
+      { key: 'ENV', label: t('env.fieldEnv'), type: 'select' as const, defaultValue: 'production', options: [{ label: 'production', value: 'production' }, { label: 'development', value: 'development' }], description: t('env.descEnv') },
     ],
   },
   {
-    title: 'Web UI 配置',
-    description: '控制管理界面是否启用以及默认语言。',
+    title: t('env.groupWebUI'),
+    description: t('env.groupWebUIDesc'),
     fields: [
-      { key: 'ENABLE_WEB_UI', label: '启用 Web UI', type: 'select', defaultValue: 'true', options: booleanOptions, description: 'Desktop 模式通常会强制启用。' },
-      { key: 'APP_UI_LANGUAGE', label: '默认语言', type: 'select', defaultValue: defaultAppUILanguage(), options: [{ label: 'English', value: 'en' }, { label: 'Bahasa Indonesia', value: 'id' }, { label: '简体中文', value: 'zh-CN' }] },
+      { key: 'ENABLE_WEB_UI', label: t('env.fieldEnableWebUI'), type: 'select' as const, defaultValue: 'true', options: booleanOptions, description: t('env.descEnableWebUI') },
+      { key: 'APP_UI_LANGUAGE', label: t('env.fieldAppUILanguage'), type: 'select' as const, defaultValue: defaultAppUILanguage(), options: [{ label: 'English', value: 'en' }, { label: 'Bahasa Indonesia', value: 'id' }, { label: '简体中文', value: 'zh-CN' }] },
     ],
   },
   {
-    title: '日志配置',
-    description: '控制请求/响应日志、SSE 调试和模型字段改写。',
+    title: t('env.groupLogs'),
+    description: t('env.groupLogsDesc'),
     fields: [
-      { key: 'LOG_LEVEL', label: '日志级别', type: 'select', defaultValue: 'info', options: [{ label: 'error', value: 'error' }, { label: 'warn', value: 'warn' }, { label: 'info', value: 'info' }, { label: 'debug', value: 'debug' }] },
-      { key: 'ENABLE_REQUEST_LOGS', label: '启用请求日志', type: 'select', defaultValue: 'false', options: booleanOptions },
-      { key: 'ENABLE_RESPONSE_LOGS', label: '启用响应日志', type: 'select', defaultValue: 'false', options: booleanOptions, description: '响应日志可能增加敏感内容暴露风险。' },
-      { key: 'QUIET_POLLING_LOGS', label: '静默轮询日志', type: 'select', defaultValue: 'true', options: booleanOptions },
-      { key: 'RAW_LOG_OUTPUT', label: '原始日志输出', type: 'select', defaultValue: 'false', options: booleanOptions },
-      { key: 'SSE_DEBUG_LEVEL', label: 'SSE 调试级别', type: 'select', defaultValue: 'off', options: [{ label: 'off', value: 'off' }, { label: 'summary', value: 'summary' }, { label: 'full', value: 'full' }] },
-      { key: 'REWRITE_RESPONSE_MODEL', label: '改写响应 model', type: 'select', defaultValue: 'false', options: booleanOptions },
+      { key: 'LOG_LEVEL', label: t('env.fieldLogLevel'), type: 'select' as const, defaultValue: 'info', options: [{ label: 'error', value: 'error' }, { label: 'warn', value: 'warn' }, { label: 'info', value: 'info' }, { label: 'debug', value: 'debug' }] },
+      { key: 'ENABLE_REQUEST_LOGS', label: t('env.fieldEnableRequestLogs'), type: 'select' as const, defaultValue: 'false', options: booleanOptions },
+      { key: 'ENABLE_RESPONSE_LOGS', label: t('env.fieldEnableResponseLogs'), type: 'select' as const, defaultValue: 'false', options: booleanOptions, description: t('env.descEnableResponseLogs') },
+      { key: 'QUIET_POLLING_LOGS', label: t('env.fieldQuietPollingLogs'), type: 'select' as const, defaultValue: 'true', options: booleanOptions },
+      { key: 'RAW_LOG_OUTPUT', label: t('env.fieldRawLogOutput'), type: 'select' as const, defaultValue: 'false', options: booleanOptions },
+      { key: 'SSE_DEBUG_LEVEL', label: t('env.fieldSseDebugLevel'), type: 'select' as const, defaultValue: 'off', options: [{ label: 'off', value: 'off' }, { label: 'summary', value: 'summary' }, { label: 'full', value: 'full' }] },
+      { key: 'REWRITE_RESPONSE_MODEL', label: t('env.fieldRewriteResponseModel'), type: 'select' as const, defaultValue: 'false', options: booleanOptions },
     ],
   },
   {
-    title: '性能配置',
-    description: '请求链路超时和请求体大小限制。',
+    title: t('env.groupPerformance'),
+    description: t('env.groupPerformanceDesc'),
     fields: [
-      { key: 'REQUEST_TIMEOUT', label: '请求超时（毫秒）', type: 'number', defaultValue: '300000', min: 1 },
-      { key: 'SERVER_READ_TIMEOUT', label: '服务端读取超时（毫秒）', type: 'number', defaultValue: '60000', min: 10000, max: 300000 },
-      { key: 'MAX_REQUEST_BODY_SIZE_MB', label: '请求体最大大小（MB）', type: 'number', defaultValue: '50', min: 1 },
-      { key: 'RESPONSE_HEADER_TIMEOUT', label: '响应头超时（秒）', type: 'number', defaultValue: '60', min: 30, max: 120 },
+      { key: 'REQUEST_TIMEOUT', label: t('env.fieldRequestTimeout'), type: 'number' as const, defaultValue: '300000', min: 1 },
+      { key: 'SERVER_READ_TIMEOUT', label: t('env.fieldServerReadTimeout'), type: 'number' as const, defaultValue: '60000', min: 10000, max: 300000 },
+      { key: 'MAX_REQUEST_BODY_SIZE_MB', label: t('env.fieldMaxRequestBodySize'), type: 'number' as const, defaultValue: '50', min: 1 },
+      { key: 'RESPONSE_HEADER_TIMEOUT', label: t('env.fieldResponseHeaderTimeout'), type: 'number' as const, defaultValue: '60', min: 30, max: 120 },
     ],
   },
   {
-    title: 'CORS 配置',
-    description: '跨域访问控制。',
+    title: t('env.groupCors'),
+    description: t('env.groupCorsDesc'),
     fields: [
-      { key: 'ENABLE_CORS', label: '启用 CORS', type: 'select', defaultValue: 'false', options: booleanOptions },
-      { key: 'CORS_ORIGIN', label: '允许的 Origin', type: 'text', defaultValue: '*', placeholder: '*' },
+      { key: 'ENABLE_CORS', label: t('env.fieldEnableCors'), type: 'select' as const, defaultValue: 'false', options: booleanOptions },
+      { key: 'CORS_ORIGIN', label: t('env.fieldCorsOrigin'), type: 'text' as const, defaultValue: '*', placeholder: '*' },
     ],
   },
   {
-    title: '熔断指标配置',
-    description: '控制调度指标窗口与失败率阈值。',
+    title: t('env.groupCircuitBreaker'),
+    description: t('env.groupCircuitBreakerDesc'),
     fields: [
-      { key: 'METRICS_WINDOW_SIZE', label: '滑动窗口大小', type: 'number', defaultValue: '10', min: 3 },
-      { key: 'METRICS_FAILURE_THRESHOLD', label: '失败率阈值', type: 'number', defaultValue: '0.5', min: 0, max: 1, step: '0.01' },
+      { key: 'METRICS_WINDOW_SIZE', label: t('env.fieldMetricsWindowSize'), type: 'number' as const, defaultValue: '10', min: 3 },
+      { key: 'METRICS_FAILURE_THRESHOLD', label: t('env.fieldMetricsFailureThreshold'), type: 'number' as const, defaultValue: '0.5', min: 0, max: 1, step: '0.01' },
     ],
   },
   {
-    title: '指标持久化配置',
-    description: '控制 SQLite 指标持久化与数据保留。',
+    title: t('env.groupMetricsPersistence'),
+    description: t('env.groupMetricsPersistenceDesc'),
     fields: [
-      { key: 'METRICS_PERSISTENCE_ENABLED', label: '启用指标持久化', type: 'select', defaultValue: 'true', options: booleanOptions },
-      { key: 'METRICS_RETENTION_DAYS', label: '指标保留天数', type: 'number', defaultValue: '30', min: 3, max: 90 },
+      { key: 'METRICS_PERSISTENCE_ENABLED', label: t('env.fieldMetricsPersistenceEnabled'), type: 'select' as const, defaultValue: 'true', options: booleanOptions },
+      { key: 'METRICS_RETENTION_DAYS', label: t('env.fieldMetricsRetentionDays'), type: 'number' as const, defaultValue: '30', min: 3, max: 90 },
     ],
   },
-]
+])
 
-const supportedKeys = envGroups.flatMap((group) => group.fields.map((field) => field.key))
-const allFields = envGroups.flatMap((group) => group.fields)
+const supportedKeys = envGroups.value.flatMap((group) => group.fields.map((field) => field.key))
+const allFields = envGroups.value.flatMap((group) => group.fields)
 const fieldMap = new Map(allFields.map((field) => [field.key, field]))
 
 const { envFile, envLoading, envSaving, envMessage, envError, editors, editorsLoading, openingEditor, loadEnvFile, saveEnvFile, loadEditors, openInEditor } = useEnvFile()
@@ -160,29 +163,29 @@ const fieldErrors = computed(() => {
   for (const field of allFields) {
     const value = String(form[field.key] ?? '').trim()
     if (field.required && !value) {
-      errors[field.key] = `${field.label}不能为空`
+      errors[field.key] = t('env.fieldRequired', { field: field.label })
       continue
     }
     if (field.disallow?.includes(value)) {
-      errors[field.key] = `${field.label}不能使用示例占位值`
+      errors[field.key] = t('env.fieldDisallow', { field: field.label })
       continue
     }
     if (field.type === 'number') {
       const numberValue = Number(value)
       if (!Number.isFinite(numberValue)) {
-        errors[field.key] = `${field.label}必须是数字`
+        errors[field.key] = t('env.fieldNumber', { field: field.label })
         continue
       }
       if (field.step !== '0.01' && !Number.isInteger(numberValue)) {
-        errors[field.key] = `${field.label}必须是整数`
+        errors[field.key] = t('env.fieldInteger', { field: field.label })
         continue
       }
       if (field.min !== undefined && numberValue < field.min) {
-        errors[field.key] = `${field.label}不能小于 ${field.min}`
+        errors[field.key] = t('env.fieldMin', { field: field.label, min: String(field.min) })
         continue
       }
       if (field.max !== undefined && numberValue > field.max) {
-        errors[field.key] = `${field.label}不能大于 ${field.max}`
+        errors[field.key] = t('env.fieldMax', { field: field.label, max: String(field.max) })
       }
     }
   }
@@ -193,7 +196,7 @@ const validationError = computed(() => Object.values(fieldErrors.value)[0] || ''
 
 const alertMessage = computed(() => {
   if (validationError.value) return validationError.value
-  if (saveState.value === 'saved') return '.env 已保存，重启服务后生效'
+  if (saveState.value === 'saved') return t('env.saveSuccess')
   if (saveState.value === 'failed' && envError.value) return envError.value
   if (envError.value) return envError.value
   if (envMessage.value) return envMessage.value
@@ -217,21 +220,21 @@ const saveButtonState = computed(() => {
     saved: {
       variant: 'success' as const,
       icon: Check,
-      text: '已保存',
+      text: t('env.saved'),
       disabled: false,
       spinning: false,
     },
     failed: {
       variant: 'error' as const,
       icon: X,
-      text: '失败',
+      text: t('env.failed'),
       disabled: false,
       spinning: false,
     },
     idle: {
       variant: 'default' as const,
       icon: Save,
-      text: '保存',
+      text: t('env.save'),
       disabled: false,
       spinning: false,
     },
@@ -241,7 +244,7 @@ const saveButtonState = computed(() => {
     return {
       variant: 'default' as const,
       icon: RefreshCw,
-      text: '保存中',
+      text: t('env.saving'),
       disabled: true,
       spinning: true,
     }
@@ -276,7 +279,7 @@ const load = async () => {
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    envError.value = `加载配置失败：${msg}`
+    envError.value = t('env.loadFailed', { error: msg })
   }
 }
 
@@ -331,23 +334,23 @@ onUnmounted(() => {
     <CardHeader class="pb-3">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <CardTitle class="text-base">环境配置</CardTitle>
+          <CardTitle class="text-base">{{ t('env.title') }}</CardTitle>
           <p class="text-xs text-muted-foreground mt-1 break-all">
-            {{ envFile.path || '检测中' }}
+            {{ envFile.path || t('env.pathDetecting') }}
           </p>
         </div>
         <div class="flex gap-2">
           <Button size="sm" variant="ghost" :disabled="envLoading || envSaving" @click="load">
             <RefreshCw class="w-4 h-4 mr-1.5" />
-            刷新
+            {{ t('env.refresh') }}
           </Button>
 
           <div class="relative" v-if="editors.length > 0">
             <Button size="sm" variant="outline" :disabled="openingEditor || envSaving" @click="editors.length === 1 ? openInEditor(editors[0].path) : null" :class="editors.length > 1 ? 'pr-8' : ''">
               <ExternalLink class="w-4 h-4 mr-1.5" />
-              <span v-if="openingEditor">打开中…</span>
-              <span v-else-if="editors.length === 1">用 {{ editors[0].name }} 打开</span>
-              <span v-else>用编辑器打开</span>
+              <span v-if="openingEditor">{{ t('env.openingEditor') }}</span>
+              <span v-else-if="editors.length === 1">{{ t('env.openWithEditor', { editor: editors[0].name }) }}</span>
+              <span v-else>{{ t('env.openInEditor') }}</span>
             </Button>
             <select
               v-if="editors.length > 1"
@@ -355,7 +358,7 @@ onUnmounted(() => {
               :disabled="openingEditor || envSaving"
               @change="($event.target as HTMLSelectElement).value && openInEditor(($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).selectedIndex = 0"
             >
-              <option value="" disabled selected>选择编辑器…</option>
+              <option value="" disabled selected>{{ t('env.selectEditor') }}</option>
               <option v-for="ed in editors" :key="ed.id" :value="ed.path">{{ ed.name }}</option>
             </select>
           </div>
@@ -389,10 +392,10 @@ onUnmounted(() => {
             <div v-if="field.type === 'password'" class="flex gap-2">
               <Input v-model="form[field.key]" :type="inputType(field)" :placeholder="field.placeholder" />
               <Button type="button" variant="secondary" size="sm" @click="showSecret[field.key] = !showSecret[field.key]">
-                {{ showSecret[field.key] ? '隐藏' : '显示' }}
+                {{ showSecret[field.key] ? t('env.hide') : t('env.show') }}
               </Button>
               <Button v-if="form[field.key]" type="button" variant="outline" size="sm" @click="copyToClipboard(field.key)">
-                {{ copiedKey === field.key ? '已复制' : '复制' }}
+                {{ copiedKey === field.key ? t('env.copied') : t('env.copy') }}
               </Button>
             </div>
 

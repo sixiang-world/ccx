@@ -17,6 +17,7 @@ import (
 	"github.com/BenedictKing/ccx/desktop/internal/channelpreset"
 	"github.com/BenedictKing/ccx/desktop/internal/configservice"
 	"github.com/BenedictKing/ccx/desktop/internal/editor"
+	"github.com/BenedictKing/ccx/desktop/internal/uipreferences"
 	"github.com/pkg/browser"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
@@ -42,6 +43,13 @@ type EnvFileState struct {
 	Path    string `json:"path"`
 	Content string `json:"content"`
 	Exists  bool   `json:"exists"`
+}
+
+// LanguagePreference 描述桌面语言最终选择和原始系统语言。
+type LanguagePreference struct {
+	Locale       string `json:"locale"`
+	Manual       bool   `json:"manual"`
+	SystemLocale string `json:"systemLocale"`
 }
 
 func NewDesktopService(manager *backend.Manager) *DesktopService {
@@ -574,6 +582,51 @@ func (s *DesktopService) SetAutostart(enabled bool) error {
 		return s.app.Autostart.Enable()
 	}
 	return s.app.Autostart.Disable()
+}
+
+// GetLanguagePreference 返回当前桌面语言偏好，供前端初始化多语言。
+func (s *DesktopService) GetLanguagePreference() (LanguagePreference, error) {
+	prefs, exists, err := uipreferences.Load(s.manager.DataDir())
+	if err != nil {
+		return LanguagePreference{}, err
+	}
+	sys := detectSystemLocale()
+	resolved := uipreferences.NormalizeLocale(sys)
+	manual := false
+	if exists {
+		resolved = prefs.Locale
+		manual = prefs.Manual
+	}
+	return LanguagePreference{
+		Locale:       resolved,
+		Manual:       manual,
+		SystemLocale: sys,
+	}, nil
+}
+
+// SaveLanguagePreference 手动保存用户选择的语言。
+func (s *DesktopService) SaveLanguagePreference(locale string) error {
+	normalized := uipreferences.NormalizeLocale(locale)
+	if normalized == "" {
+		normalized = uipreferences.LocaleEnglish
+	}
+	return uipreferences.Save(s.manager.DataDir(), uipreferences.Preferences{
+		Locale: normalized,
+		Manual: true,
+	})
+}
+
+func detectSystemLocale() string {
+	if v := os.Getenv("LC_ALL"); v != "" {
+		return v
+	}
+	if v := os.Getenv("LC_MESSAGES"); v != "" {
+		return v
+	}
+	if v := os.Getenv("LANG"); v != "" {
+		return v
+	}
+	return ""
 }
 
 func (s *DesktopService) Shutdown() {

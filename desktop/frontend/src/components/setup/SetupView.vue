@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Shield, Eye, EyeOff, Copy, Check, FolderOpen, Info, Sparkles, RefreshCw } from 'lucide-vue-next'
+import { useLanguage } from '@/composables/useLanguage'
 
 const { setupKey, setupSaving, setupError, envPath, confirmSetup, regenerateKey } = useSetup()
+const { t } = useLanguage()
 
 const inputKey = ref('')
 const userEdited = ref(false)
@@ -82,9 +84,9 @@ onBeforeUnmount(() => {
           <div class="flex justify-center mb-4">
             <Logo :size="48" />
           </div>
-          <CardTitle class="text-lg font-bold tracking-wide">CCX Desktop 初始配置</CardTitle>
+          <CardTitle class="text-lg font-bold tracking-wide">{{ t('setup.title') }}</CardTitle>
           <CardDescription class="text-slate-500 leading-relaxed">
-            PROXY_ACCESS_KEY 是 AI Agent 通过 CCX 代理访问上游 API 的身份凭证，所有调用方必须持有此密钥。
+            {{ t('setup.description') }}
           </CardDescription>
         </CardHeader>
 
@@ -98,10 +100,10 @@ onBeforeUnmount(() => {
                 @click="handleRegenerate"
                 :disabled="setupSaving"
                 class="text-[10px] text-blue-400/70 hover:text-blue-400 flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
-                title="重新生成随机密钥"
+                :title="t('setup.regenerateTitle')"
               >
                 <Sparkles class="w-3 h-3" />
-                <span>重新生成</span>
+                <span>{{ t('setup.regenerate') }}</span>
               </button>
             </div>
 
@@ -113,11 +115,11 @@ onBeforeUnmount(() => {
                 class="font-mono text-sm h-9"
                 @input="onInput"
               />
-              <Button type="button" variant="secondary" size="sm" @click="showKey = !showKey" class="shrink-0 px-2.5" :title="showKey ? '隐藏' : '显示'">
+              <Button type="button" variant="secondary" size="sm" @click="showKey = !showKey" class="shrink-0 px-2.5" :title="showKey ? t('setup.hide') : t('setup.show')">
                 <EyeOff v-if="showKey" class="w-4 h-4" />
                 <Eye v-else class="w-4 h-4" />
               </Button>
-              <Button type="button" variant="outline" size="sm" @click="handleCopyKey" :disabled="!inputKey" class="shrink-0 px-2.5" :title="copiedTarget === 'key' ? '已复制' : '复制密钥'">
+              <Button type="button" variant="outline" size="sm" @click="handleCopyKey" :disabled="!inputKey" class="shrink-0 px-2.5" :title="copiedTarget === 'key' ? t('setup.copied') : t('setup.copyKey')">
                 <Check v-if="copiedTarget === 'key'" class="w-4 h-4 text-emerald-400" />
                 <Copy v-else class="w-4 h-4" />
               </Button>
@@ -128,14 +130,14 @@ onBeforeUnmount(() => {
           <div v-if="envPath" class="flex items-start gap-2 rounded-lg border border-slate-800/50 bg-slate-900/30 px-3 py-2">
             <FolderOpen class="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0" />
             <div class="min-w-0 flex-1">
-              <p class="text-[10px] text-slate-500 mb-0.5">配置文件路径</p>
+              <p class="text-[10px] text-slate-500 mb-0.5">{{ t('setup.configPath') }}</p>
               <p class="text-xs font-mono text-slate-400 break-all">{{ envPath }}</p>
             </div>
             <button
               type="button"
               @click="handleCopyPath"
               class="text-slate-500 hover:text-slate-400 transition-colors shrink-0 mt-1 cursor-pointer"
-              :title="copiedTarget === 'path' ? '已复制' : '复制路径'"
+              :title="copiedTarget === 'path' ? t('setup.copied') : t('setup.copyPath')"
             >
               <Check v-if="copiedTarget === 'path'" class="w-3 h-3 text-emerald-400" />
               <Copy v-else class="w-3 h-3" />
@@ -152,7 +154,7 @@ onBeforeUnmount(() => {
           <!-- 后续可修改提示 -->
           <div class="flex items-start gap-2 text-[11px] text-slate-600">
             <Info class="w-3.5 h-3.5 shrink-0 mt-px" />
-            <span>保存后 CCX 将自动启动。后续可在主界面【环境参数】页继续调整其他配置。</span>
+            <span>{{ t('setup.hint') }}</span>
           </div>
 
           <!-- 提交按钮 -->
@@ -165,7 +167,7 @@ onBeforeUnmount(() => {
           >
             <RefreshCw v-if="setupSaving" class="w-4 h-4 animate-spin" />
             <Shield v-else class="w-4 h-4" />
-            {{ setupSaving ? '正在保存并启动...' : '完成配置并启动' }}
+            {{ setupSaving ? t('setup.saving') : t('setup.submit') }}
           </Button>
         </CardContent>
       </Card>

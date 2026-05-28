@@ -2,12 +2,14 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { Terminal, Copy, Trash2, Search, ArrowDown } from 'lucide-vue-next'
 import { useStatus } from '@/composables/useStatus'
+import { useLanguage } from '@/composables/useLanguage'
 
 const props = defineProps<{
   logs: string[]
 }>()
 
 const { status } = useStatus()
+const { t } = useLanguage()
 const searchQuery = ref('')
 const terminalBody = ref<HTMLDivElement | null>(null)
 const autoScroll = ref(true)
@@ -133,7 +135,7 @@ const clearLocalLogs = () => {
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="搜索日志..."
+            :placeholder="t('logs.searchPlaceholder')"
             class="bg-slate-950/80 border border-slate-900 rounded-md pl-7 pr-2.5 py-1 text-[11px] font-mono text-slate-300 w-36 focus:w-48 focus:border-blue-500/30 focus:outline-none transition-all duration-300"
           />
         </div>
@@ -147,7 +149,7 @@ const clearLocalLogs = () => {
               ? 'bg-blue-500/10 text-blue-400 border-blue-500/15'
               : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-900'
           ]"
-          title="自动滚动到底部"
+          :title="t('logs.autoScroll')"
         >
           <ArrowDown class="w-3.5 h-3.5" />
         </button>
@@ -156,7 +158,7 @@ const clearLocalLogs = () => {
         <button
           @click="copyLogs"
           class="p-1.5 rounded text-slate-400 border border-transparent hover:text-slate-200 hover:bg-slate-900 cursor-pointer"
-          :title="copySuccess ? '已复制！' : '复制全部日志'"
+                    :title="copySuccess ? t('logs.copied') : t('logs.copyAll')"
         >
           <Copy class="w-3.5 h-3.5" :class="copySuccess ? 'text-emerald-400' : ''" />
         </button>
@@ -165,7 +167,7 @@ const clearLocalLogs = () => {
         <button
           @click="clearLocalLogs"
           class="p-1.5 rounded text-slate-500 border border-transparent hover:text-rose-400 hover:bg-slate-900 cursor-pointer"
-          title="清空日志控制台"
+          :title="t('logs.clear')"
         >
           <Trash2 class="w-3.5 h-3.5" />
         </button>
@@ -178,7 +180,7 @@ const clearLocalLogs = () => {
       class="flex-1 p-4 overflow-y-auto font-mono text-xs leading-relaxed space-y-1 bg-[#04060c] scroll-smooth"
     >
       <div v-if="parsedLogs.length === 0" class="text-slate-600 text-center py-10 italic">
-        {{ searchQuery ? '未找到匹配的日志行' : '暂无日志输出，启动服务后即可查看' }}
+        {{ searchQuery ? t('logs.noSearchResults') : t('logs.empty') }}
       </div>
       <div v-else v-for="item in parsedLogs" :key="item.id" class="whitespace-pre-wrap break-all flex items-start gap-2 hover:bg-white/[0.01] px-1 rounded">
         <!-- 1. 时间戳 (柔和灰色) -->

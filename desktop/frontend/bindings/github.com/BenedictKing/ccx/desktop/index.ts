@@ -8,5 +8,6 @@ export {
 
 export {
     EnvFileState,
+    LanguagePreference,
     VersionInfo
 } from "./models.js";

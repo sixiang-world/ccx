@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { openProviderPromotion, openProviderConsole, providerConsoleLinks, providerPromotionLinks } from '@/lib/external-link'
 import type { AgentProvider } from '@/types'
+import { useLanguage } from '@/composables/useLanguage'
 
 const props = defineProps<{
   selectedProvider: AgentProvider
@@ -22,16 +23,18 @@ const emit = defineEmits<{
   'update:selectedDashScopePlan': [value: string]
 }>()
 
+const { t } = useLanguage()
+
 const mimoPlanOptions = [
-  { label: '按量', value: 'https://api.xiaomimimo.com/anthropic' },
-  { label: '订阅套餐 - 中国', value: 'https://token-plan-cn.xiaomimimo.com/anthropic' },
-  { label: '订阅套餐 - 新加坡', value: 'https://token-plan-sgp.xiaomimimo.com/anthropic' },
-  { label: '订阅套餐 - 欧洲', value: 'https://token-plan-ams.xiaomimimo.com/anthropic' },
+  { label: t('agent.planPayAsYouGo'), value: 'https://api.xiaomimimo.com/anthropic' },
+  { label: t('agent.planChina'), value: 'https://token-plan-cn.xiaomimimo.com/anthropic' },
+  { label: t('agent.planSingapore'), value: 'https://token-plan-sgp.xiaomimimo.com/anthropic' },
+  { label: t('agent.planEurope'), value: 'https://token-plan-ams.xiaomimimo.com/anthropic' },
 ]
 
 const dashScopePlanOptions = [
-  { label: '按量', value: 'https://dashscope.aliyuncs.com/apps/anthropic' },
-  { label: '订阅套餐', value: 'https://coding.dashscope.aliyuncs.com/apps/anthropic' },
+  { label: t('agent.planPayAsYouGo'), value: 'https://dashscope.aliyuncs.com/apps/anthropic' },
+  { label: t('agent.planSubscription'), value: 'https://coding.dashscope.aliyuncs.com/apps/anthropic' },
 ]
 
 const onProviderChange = (e: Event) => {
@@ -58,17 +61,17 @@ const onDashScopePlanChange = (e: Event) => {
 
 const keyPlaceholder = (provider: AgentProvider) => {
   if (provider === 'mimo' && props.selectedMimoPlan && props.savedProviderKeys[`claude:${provider}:${props.selectedMimoPlan}`]) {
-    return '已保存，留空则使用已保存的 key'
+    return t('agent.placeholderSaved')
   }
   if (provider === 'dashscope' && props.selectedDashScopePlan && props.savedProviderKeys[`claude:${provider}:${props.selectedDashScopePlan}`]) {
-    return '已保存，留空则使用已保存的 key'
+    return t('agent.placeholderSaved')
   }
   if (props.savedProviderKeys[`claude:${provider}`]) {
-    return '已保存，留空则使用已保存的 key'
+    return t('agent.placeholderSaved')
   }
-  if (provider === 'mimo') return '必填：MiMo API Key（tp-xxx 或账号 key）'
-  if (provider === 'dashscope') return '必填：DashScope API Key（sk-xxx 或 sk-sp-xxx）'
-  return '必填：输入 API Key'
+  if (provider === 'mimo') return t('agent.placeholderMimo')
+  if (provider === 'dashscope') return t('agent.placeholderDashScope')
+  return t('agent.placeholderRequired')
 }
 </script>
 
@@ -81,16 +84,16 @@ const keyPlaceholder = (provider: AgentProvider) => {
         class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         @change="onProviderChange"
       >
-        <option value="ccx">CCX 本地网关</option>
-        <option value="deepseek">DeepSeek 直连</option>
-        <option value="mimo">MiMo 直连</option>
-        <option value="compshare">Compshare 直连</option>
-        <option value="kimi">Kimi 直连</option>
-        <option value="glm">GLM 直连</option>
-        <option value="minimax">MiniMax 直连</option>
-        <option value="dashscope">DashScope 直连</option>
-        <option value="opencode-zen">OpenCode Zen 直连</option>
-        <option value="opencode-go">OpenCode Go 直连</option>
+        <option value="ccx">{{ t('agent.provider.localGateway') }}</option>
+        <option value="deepseek">{{ t('agent.provider.deepseekDirect') }}</option>
+        <option value="mimo">{{ t('agent.provider.mimoDirect') }}</option>
+        <option value="compshare">{{ t('agent.provider.compshareDirect') }}</option>
+        <option value="kimi">{{ t('agent.provider.kimiDirect') }}</option>
+        <option value="glm">{{ t('agent.provider.glmDirect') }}</option>
+        <option value="minimax">{{ t('agent.provider.minimaxDirect') }}</option>
+        <option value="dashscope">{{ t('agent.provider.dashscopeDirect') }}</option>
+        <option value="opencode-zen">{{ t('agent.provider.opencodeZenDirect') }}</option>
+        <option value="opencode-go">{{ t('agent.provider.opencodeGoDirect') }}</option>
       </select>
     </div>
 
@@ -101,7 +104,7 @@ const keyPlaceholder = (provider: AgentProvider) => {
         class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-300 hover:text-blue-200"
         @click="openProviderPromotion(selectedProvider)"
       >
-        通过推广链接注册，领取 5 元平台试用金
+        {{ t('agent.promo') }}
         <ExternalLink class="h-3 w-3" />
       </button>
       <button
@@ -110,13 +113,13 @@ const keyPlaceholder = (provider: AgentProvider) => {
         class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200"
         @click="openProviderConsole(selectedProvider)"
       >
-        访问官方控制台
+        {{ t('agent.openConsole') }}
         <ExternalLink class="h-3 w-3" />
       </button>
     </div>
 
     <div v-if="selectedProvider === 'mimo'" class="space-y-1.5">
-      <Label class="text-xs text-muted-foreground">MiMo 计费模式</Label>
+      <Label class="text-xs text-muted-foreground">{{ t('agent.billingModeMiMo') }}</Label>
       <select
         :value="selectedMimoPlan"
         class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -133,7 +136,7 @@ const keyPlaceholder = (provider: AgentProvider) => {
     </div>
 
     <div v-if="selectedProvider === 'dashscope'" class="space-y-1.5">
-      <Label class="text-xs text-muted-foreground">DashScope 计费模式</Label>
+      <Label class="text-xs text-muted-foreground">{{ t('agent.billingModeDashScope') }}</Label>
       <select
         :value="selectedDashScopePlan"
         class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

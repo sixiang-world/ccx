@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { AlertTriangle, XCircle, HardDrive, Network, Clock, ShieldAlert, X } from 'lucide-vue-next'
+import { useLanguage } from '@/composables/useLanguage'
 
 const props = defineProps<{
   error: string
@@ -9,6 +10,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   dismiss: []
 }>()
+
+const { t } = useLanguage()
 
 const dismissed = ref(false)
 
@@ -40,67 +43,67 @@ const patterns: { re: RegExp; kind: ErrorKind }[] = [
   { re: /permission.*denied|权限|access.*denied|不允许/i, kind: 'permission' },
 ]
 
-const kindDefaults: Record<ErrorKind, Omit<DiagnosticInfo, 'kind'>> = {
+const kindDefaults = computed<Record<ErrorKind, Omit<DiagnosticInfo, 'kind'>>>(() => ({
   binary: {
     icon: HardDrive,
-    title: '二进制文件未找到',
+    title: t('diagnostic.binaryTitle'),
     color: 'text-amber-400',
     suggestions: [
-      '确认 CCX 二进制已构建: cd backend-go && make build',
-      '检查 Desktop 数据目录中是否存在 ccx-go / ccx-go.exe',
-      '首次使用需先构建后端，或从 Release 页面下载预编译版本',
+      t('diagnostic.binarySuggestionBuild'),
+      t('diagnostic.binarySuggestionCheckDataDir'),
+      t('diagnostic.binarySuggestionDownload'),
     ],
   },
   port: {
     icon: Network,
-    title: '端口冲突',
+    title: t('diagnostic.portTitle'),
     color: 'text-orange-400',
     suggestions: [
-      '检查是否有其他 CCX 实例已在运行',
-      '修改 .env 中 PORT 字段使用其他端口',
-      '使用 lsof -i :3688 (macOS/Linux) 或 netstat -ano | findstr :3688 (Windows) 检查端口占用',
+      t('diagnostic.portSuggestionInstance'),
+      t('diagnostic.portSuggestionEnv'),
+      t('diagnostic.portSuggestionInspect'),
     ],
   },
   health: {
     icon: Clock,
-    title: '健康检查超时',
+    title: t('diagnostic.healthTitle'),
     color: 'text-amber-400',
     suggestions: [
-      '查看日志面板中是否有启动错误信息',
-      '检查 .env 配置是否有语法错误',
-      '确认上游渠道配置正确，首次启动可能需要较长时间',
-      '尝试手动重启服务',
+      t('diagnostic.healthSuggestionLogs'),
+      t('diagnostic.healthSuggestionEnv'),
+      t('diagnostic.healthSuggestionChannels'),
+      t('diagnostic.healthSuggestionRestart'),
     ],
   },
   permission: {
     icon: ShieldAlert,
-    title: '权限不足',
+    title: t('diagnostic.permissionTitle'),
     color: 'text-rose-400',
     suggestions: [
-      '检查数据目录是否有写入权限',
-      'macOS/Linux: 确认二进制文件有执行权限 (chmod +x)',
-      'Windows: 尝试以管理员身份运行',
+      t('diagnostic.permissionSuggestionDataDir'),
+      t('diagnostic.permissionSuggestionExecutable'),
+      t('diagnostic.permissionSuggestionWindows'),
     ],
   },
   generic: {
     icon: XCircle,
-    title: '启动失败',
+    title: t('diagnostic.genericTitle'),
     color: 'text-rose-400',
     suggestions: [
-      '查看下方日志面板获取详细错误信息',
-      '尝试重启服务',
+      t('diagnostic.genericSuggestionLogs'),
+      t('diagnostic.genericSuggestionRestart'),
     ],
   },
-}
+}))
 
 const diagnostic = computed<DiagnosticInfo>(() => {
   const msg = props.error
   for (const { re, kind } of patterns) {
     if (re.test(msg)) {
-      return { kind, ...kindDefaults[kind] }
+      return { kind, ...kindDefaults.value[kind] }
     }
   }
-  return { kind: 'generic', ...kindDefaults.generic }
+  return { kind: 'generic', ...kindDefaults.value.generic }
 })
 </script>
 
