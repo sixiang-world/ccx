@@ -1618,7 +1618,8 @@ const applyModelMappingPreset = (preset: keyof typeof modelMappingPresets) => {
 // 规则顺序：先新后旧、先精确后宽松；同家族新版本在前，带 codex/pro/max 等精确后缀优先于通用名
 // 数据基线：2026-05 各家官方在售模型
 const modelPriorityPatterns: RegExp[] = [
-  // Anthropic Claude（4.7 旗舰 / 4.6 Sonnet / 4.5 Haiku）
+  // Anthropic Claude（4.8 旗舰 / 4.7 / 4.6 Sonnet / 4.5 Haiku）
+  /opus-4-8/i,
   /opus-4-7/i,
   /sonnet-4-7/i,
   /haiku-4-7/i,
