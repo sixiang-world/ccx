@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { applyDocumentLanguage, normalizeLocale, resolveInitialLocale, translate as coreTranslate } from '@/i18n/core'
+import { applyDocumentLanguage, normalizeLocale, resolveInitialLocale, translate as coreTranslate, translateOrFallback as coreTranslateFallback } from '@/i18n/core'
 import type { MessageKey, SupportedLocale } from '@/i18n/messages'
 import { defaultLocale, languageOptions } from '@/i18n/messages'
 import {
@@ -13,6 +13,8 @@ let initPromise: Promise<void> | null = null
 
 export const useLanguage = () => {
   const t = (key: MessageKey, params?: Record<string, string>) => coreTranslate(locale.value, key, params)
+  const tf = (key: string, fallback: string, params?: Record<string, string>) =>
+    coreTranslateFallback(locale.value, key, fallback, params)
 
   const initializeLanguage = async () => {
     if (initPromise) {
@@ -49,5 +51,6 @@ export const useLanguage = () => {
     initializeLanguage,
     setLanguage,
     t,
+    tf,
   }
 }

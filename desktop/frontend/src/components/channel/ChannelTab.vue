@@ -8,9 +8,9 @@ import { useChannelPresets } from '@/composables/useChannelPresets'
 import { useLanguage } from '@/composables/useLanguage'
 import { openProviderPromotion, openProviderConsole, providerConsoleLinks, providerPromotionLinks } from '@/lib/external-link'
 import compshareIcon from '@/assets/compshare.png'
-import type { ProviderPreset, ChannelTarget } from '@/types'
+import type { ProviderPreset, ProviderPlan, ChannelTarget } from '@/types'
 
-const { t } = useLanguage()
+const { t, tf } = useLanguage()
 
 const {
   presets,
@@ -45,6 +45,30 @@ const currentPreset = computed(() => {
   return presets.value.find((item) => item.id === selectedProvider.value) || null
 })
 
+const localizePresetLabel = (preset: ProviderPreset) =>
+  tf(`channel.preset.${preset.id}.label`, preset.label)
+
+const localizePresetDescription = (preset: ProviderPreset) =>
+  tf(`channel.preset.${preset.id}.description`, preset.description)
+
+const localizePlanLabel = (preset: ProviderPreset, plan: ProviderPlan) =>
+  tf(`channel.preset.${preset.id}.plan.${plan.id}.label`, plan.label)
+
+const localizePlanDescription = (preset: ProviderPreset, plan: ProviderPlan) =>
+  tf(`channel.preset.${preset.id}.plan.${plan.id}.description`, plan.description)
+
+const localizeTargetLabel = (target: ChannelTarget) =>
+  tf(`channel.target.${target.type}.label`, target.label)
+
+// target description 优先取 provider 级覆盖（如 MiMo messages 描述差异化），
+// 找不到时回退到共用 target description，再回退到 Go preset 原文
+const localizeTargetDescription = (preset: ProviderPreset, target: ChannelTarget) => {
+  const overrideKey = `channel.preset.${preset.id}.target.${target.type}.description`
+  const sharedKey = `channel.target.${target.type}.description`
+  const sharedFallback = tf(sharedKey, target.description)
+  return tf(overrideKey, sharedFallback)
+}
+
 const currentAsset = computed(() => {
   return selectedProvider.value ? keysByProvider.value[selectedProvider.value] : undefined
 })
@@ -63,7 +87,7 @@ watch(selectedProvider, (id) => {
   selectedTarget.value = preset.defaultTarget
   selectedPlan.value = bestPlanForTarget(preset, preset.defaultTarget)
   apiKey.value = ''
-  channelName.value = `desktop-${preset.id}-${preset.defaultTarget}`
+  channelName.value = buildChannelName(preset, preset.defaultTarget, selectedPlan.value)
 })
 
 // target 变化时重新加载后端过滤后的 plans，尽量保留已选 plan；
@@ -83,8 +107,26 @@ watch(selectedTarget, async (target) => {
     const match = preset.plans.find((p) => p.id === counterpart)
     selectedPlan.value = match ? match.id : bestPlanForTarget(preset, target)
   }
-  channelName.value = `desktop-${preset.id}-${target}`
+  channelName.value = buildChannelName(preset, target, selectedPlan.value)
 })
+
+// plan 变化时同步刷新 channel 名，确保不同套餐入口可以共存而非互相覆盖
+watch(selectedPlan, (planId) => {
+  const preset = currentPreset.value
+  if (!preset || !planId) return
+  channelName.value = buildChannelName(preset, selectedTarget.value || preset.defaultTarget, planId)
+})
+
+// buildChannelName 生成默认渠道名：仅在选中的 plan 不是当前 target 的默认 plan 时追加 plan suffix。
+// 例如 MiMo + messages + 默认 anthropic plan → desktop-mimo-messages
+//      MiMo + messages + token-sgp-anthropic → desktop-mimo-messages-token-sgp-anthropic
+// 这样用户切换非默认套餐时会得到独立渠道名，避免后端同名覆盖。
+function buildChannelName(preset: ProviderPreset, target: string, planId: string): string {
+  const base = `desktop-${preset.id}-${target}`
+  const defaultPlan = bestPlanForTarget(preset, target)
+  if (!planId || planId === defaultPlan) return base
+  return `${base}-${planId}`
+}
 
 function bestPlanForTarget(preset: ProviderPreset, target: string): string {
   if (preset.plans.length <= 1) return preset.plans[0]?.id || ''
@@ -177,12 +219,12 @@ const submit = async () => {
             >
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between gap-2">
-                <span class="font-semibold text-slate-200">{{ preset.label }}</span>
+                <span class="font-semibold text-slate-200">{{ localizePresetLabel(preset) }}</span>
                 <span v-if="keysByProvider[preset.id]" class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                   {{ t('channel.hasKey') }}
                 </span>
               </div>
-              <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ preset.description }}</p>
+              <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ localizePresetDescription(preset) }}</p>
             </div>
           </div>
         </button>
@@ -191,7 +233,7 @@ const submit = async () => {
       <div v-if="currentPreset" class="bg-glass border border-white/[0.03] rounded-2xl p-5 space-y-5">
         <div class="space-y-3">
           <div class="flex flex-wrap items-center gap-2">
-            <h3 class="text-lg font-semibold text-slate-100">{{ currentPreset.label }}</h3>
+            <h3 class="text-lg font-semibold text-slate-100">{{ localizePresetLabel(currentPreset) }}</h3>
             <span
               v-for="badge in capabilityBadges"
               :key="badge"
@@ -200,7 +242,7 @@ const submit = async () => {
               {{ badge }}
             </span>
           </div>
-          <p class="text-sm text-slate-500">{{ currentPreset.description }}</p>
+          <p class="text-sm text-slate-500">{{ localizePresetDescription(currentPreset) }}</p>
           <div class="flex items-center gap-4">
             <button
               v-if="providerPromotionLinks[currentPreset.id]"
@@ -231,11 +273,15 @@ const submit = async () => {
               class="w-full h-9 rounded-md border border-slate-800 bg-slate-950/70 px-3 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option v-for="target in targetOptions" :key="target.type" :value="target.type">
-                {{ target.label }}
+                {{ localizeTargetLabel(target) }}
               </option>
             </select>
             <p class="text-xs text-slate-500">
-              {{ targetOptions.find((item) => item.type === selectedTarget)?.description }}
+              {{
+                currentPreset && targetOptions.find((item) => item.type === selectedTarget)
+                  ? localizeTargetDescription(currentPreset, targetOptions.find((item) => item.type === selectedTarget)!)
+                  : ''
+              }}
             </p>
           </div>
 
@@ -246,10 +292,10 @@ const submit = async () => {
               class="w-full h-9 rounded-md border border-slate-800 bg-slate-950/70 px-3 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option v-for="plan in currentPreset.plans" :key="plan.id" :value="plan.id">
-                {{ plan.label }}
+                {{ localizePlanLabel(currentPreset, plan) }}
               </option>
             </select>
-            <p class="text-xs text-slate-500">{{ currentPlan?.description }}</p>
+            <p class="text-xs text-slate-500">{{ currentPlan ? localizePlanDescription(currentPreset, currentPlan) : '' }}</p>
             <p v-if="currentPlan?.baseUrl" class="text-xs text-slate-400 font-mono">{{ currentPlan.baseUrl }}</p>
           </div>
         </div>
@@ -260,7 +306,7 @@ const submit = async () => {
             <Input v-model="apiKey" type="password" autocomplete="off" :placeholder="currentAsset?.apiKey ? t('channel.keySavedPlaceholder') : t('channel.keyInputPlaceholder')" />
             <div v-if="currentAsset?.apiKey" class="flex items-center gap-1.5 text-xs text-emerald-400">
               <KeyRound class="w-3 h-3" />
-              {{ t('channel.reuseKey', { provider: currentPreset.label }) }}
+              {{ t('channel.reuseKey', { provider: localizePresetLabel(currentPreset) }) }}
             </div>
           </div>
 
