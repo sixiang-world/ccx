@@ -127,6 +127,41 @@ func TestGetUpstreams_IncludesStripEmptyTextBlocksField(t *testing.T) {
 	}
 }
 
+func TestGetUpstreams_IncludesNormalizeSystemRoleToTopLevelField(t *testing.T) {
+	cm := setupTestConfigManager(t, []config.UpstreamConfig{{
+		Name:                          "msg-ch",
+		ServiceType:                   "claude",
+		BaseURL:                       "https://api.example.com",
+		APIKeys:                       []string{"sk-1"},
+		NormalizeSystemRoleToTopLevel: true,
+	}})
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/messages/channels", GetUpstreams(cm))
+
+	req := httptest.NewRequest(http.MethodGet, "/messages/channels", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+
+	var resp struct {
+		Channels []map[string]interface{} `json:"channels"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if len(resp.Channels) != 1 {
+		t.Fatalf("len(channels) = %d, want 1", len(resp.Channels))
+	}
+	if got := resp.Channels[0]["normalizeSystemRoleToTopLevel"]; got != true {
+		t.Fatalf("normalizeSystemRoleToTopLevel = %v, want true", got)
+	}
+}
+
 func TestGetUpstreams_IncludesStatusAndDisabledApiKeys(t *testing.T) {
 	cm := setupTestConfigManager(t, []config.UpstreamConfig{{
 		Name:        "msg-ch",

@@ -365,6 +365,44 @@ describe('buildChannelPayload', () => {
     expect(result.passbackThinkingBlocks).toBe(true)
   })
 
+  it('应携带 normalizeSystemRoleToTopLevel 开关', () => {
+    const result = buildChannelPayload({
+      name: 'claude-system-normalize',
+      serviceType: 'claude',
+      baseUrl: 'https://api.example.com/v1',
+      baseUrls: [],
+      website: '',
+      insecureSkipVerify: false,
+      lowQuality: false,
+      injectDummyThoughtSignature: false,
+      stripThoughtSignature: false,
+      passbackReasoningContent: false,
+      passbackThinkingBlocks: false,
+      description: '',
+      apiKeys: ['sk-1'],
+      modelMapping: {},
+      reasoningMapping: {},
+      reasoningParamStyle: 'reasoning',
+      textVerbosity: '',
+      fastMode: false,
+      customHeaders: {},
+      proxyUrl: '',
+      routePrefix: '',
+      supportedModels: [],
+      autoBlacklistBalance: true,
+      normalizeMetadataUserId: true,
+      stripEmptyTextBlocks: false,
+      normalizeSystemRoleToTopLevel: true,
+      codexNativeToolPassthrough: false,
+      codexToolCompat: true,
+      noVision: false,
+      noVisionModels: [],
+      visionFallbackModel: ''
+    })
+
+    expect(result.normalizeSystemRoleToTopLevel).toBe(true)
+  })
+
   it('应携带 normalizeNonstandardChatRoles 开关', () => {
     const result = buildChannelPayload({
       name: 'chat-role-guard',

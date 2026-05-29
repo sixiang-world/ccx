@@ -29,8 +29,6 @@ func GetUpstreams(cfgManager *config.ConfigManager) gin.HandlerFunc {
 		upstreams := make([]gin.H, len(cfg.GeminiUpstream))
 		for i, up := range cfg.GeminiUpstream {
 			upstreams[i] = common.BuildChannelView(up, i)
-			upstreams[i]["injectDummyThoughtSignature"] = up.InjectDummyThoughtSignature
-			upstreams[i]["stripThoughtSignature"] = up.StripThoughtSignature
 		}
 
 		c.JSON(200, gin.H{

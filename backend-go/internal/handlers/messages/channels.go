@@ -27,12 +27,6 @@ func GetUpstreams(cfgManager *config.ConfigManager) gin.HandlerFunc {
 		upstreams := make([]gin.H, len(cfg.Upstream))
 		for i, up := range cfg.Upstream {
 			upstreams[i] = common.BuildChannelView(up, i)
-			upstreams[i]["passbackReasoningContent"] = up.PassbackReasoningContent
-			upstreams[i]["passbackThinkingBlocks"] = up.PassbackThinkingBlocks
-			upstreams[i]["stripEmptyTextBlocks"] = up.StripEmptyTextBlocks
-			upstreams[i]["normalizeSystemRoleToTopLevel"] = up.NormalizeSystemRoleToTopLevel
-			upstreams[i]["injectDummyThoughtSignature"] = up.InjectDummyThoughtSignature
-			upstreams[i]["stripThoughtSignature"] = up.StripThoughtSignature
 		}
 
 		c.JSON(200, gin.H{

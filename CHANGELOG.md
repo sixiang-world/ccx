@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### 修复
+
+- **修复 normalizeSystemRoleToTopLevel 开关保存后回显失效** - 将 `normalizeSystemRoleToTopLevel`、`stripEmptyTextBlocks`、`passbackReasoningContent`、`passbackThinkingBlocks`、`injectDummyThoughtSignature`、`stripThoughtSignature` 六个高级开关字段统一收归 `BuildChannelView()` 公共函数输出，消除 messages/chat/responses/gemini 四个 handler 中的重复补丁，确保所有渠道类型的 WebUI 编辑回显与保存一致。
+
 ## [v2.8.14] - 2026-05-29
 
 ### 新增

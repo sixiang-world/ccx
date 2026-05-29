@@ -45,5 +45,13 @@ func BuildChannelView(up config.UpstreamConfig, index int) gin.H {
 		"noVision":                      up.NoVision,
 		"noVisionModels":                up.NoVisionModels,
 		"visionFallbackModel":           up.VisionFallbackModel,
+		// Claude 协议兼容开关
+		"passbackReasoningContent":      up.PassbackReasoningContent,
+		"passbackThinkingBlocks":        up.PassbackThinkingBlocks,
+		"stripEmptyTextBlocks":          up.StripEmptyTextBlocks,
+		"normalizeSystemRoleToTopLevel": up.NormalizeSystemRoleToTopLevel,
+		// Gemini 特定开关
+		"injectDummyThoughtSignature": up.InjectDummyThoughtSignature,
+		"stripThoughtSignature":       up.StripThoughtSignature,
 	}
 }
