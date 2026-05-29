@@ -408,3 +408,18 @@ func TestBuildPayloadAutoCorrectsPlan(t *testing.T) {
 		t.Fatalf("ServiceType = %q, want openai", got.ServiceType)
 	}
 }
+
+func TestBuildPayloadSetsProviderConsoleWebsite(t *testing.T) {
+	got, err := BuildPayload(CreateChannelRequest{
+		Provider: ProviderCompshare,
+		Target:   TargetResponses,
+		APIKey:   "cs-test",
+	})
+	if err != nil {
+		t.Fatalf("BuildPayload() error = %v", err)
+	}
+	want := "https://console.compshare.cn/light-gpu/model-manage"
+	if got.Website != want {
+		t.Fatalf("Website = %q, want %q", got.Website, want)
+	}
+}

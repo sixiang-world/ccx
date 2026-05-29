@@ -108,6 +108,18 @@ type ChannelPayload struct {
 	Status                        string            `json:"status,omitempty"`
 }
 
+var providerConsoleURLs = map[string]string{
+	ProviderDeepSeek:    "https://platform.deepseek.com/usage",
+	ProviderMiMo:        "https://platform.xiaomimimo.com/console/balance",
+	ProviderCompshare:   "https://console.compshare.cn/light-gpu/model-manage",
+	ProviderKimi:        "https://platform.moonshot.cn/console/account",
+	ProviderGLM:         "https://open.bigmodel.cn/coding-plan/personal/overview",
+	ProviderMiniMax:     "https://platform.minimaxi.com/user-center/payment/balance",
+	ProviderDashScope:   "https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key",
+	ProviderOpenCodeZen: "https://opencode.ai/",
+	ProviderOpenCodeGo:  "https://opencode.ai/",
+}
+
 func Presets() []ProviderPreset {
 	return []ProviderPreset{
 		{
@@ -324,6 +336,7 @@ func BuildPayload(req CreateChannelRequest) (ChannelPayload, error) {
 	payload := ChannelPayload{
 		Name:        name,
 		Description: strings.TrimSpace(req.Description),
+		Website:     providerConsoleURLs[preset.ID],
 		BaseURL:     baseURL,
 		APIKeys:     []string{apiKey},
 		Priority:    1,

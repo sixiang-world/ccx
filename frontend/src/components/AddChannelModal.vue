@@ -1565,8 +1565,7 @@ const supportsChatRoleNormalization = computed(() => {
 })
 
 const showModelMappingPresets = computed(() => {
-  if (props.channelType === 'responses' && form.serviceType === 'responses') return false
-  return (props.channelType === 'messages' || props.channelType === 'responses') && (form.serviceType === 'openai' || form.serviceType === 'responses')
+  return props.channelType === 'messages' && (form.serviceType === 'openai' || form.serviceType === 'responses')
 })
 const modelNameCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 
