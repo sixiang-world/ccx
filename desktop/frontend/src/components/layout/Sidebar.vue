@@ -33,8 +33,8 @@ const { theme, setTheme } = useTheme()
 
 const themeOptions = computed(() => [
   { value: 'auto' as const, icon: Monitor, label: t('sidebar.themeAuto') },
-  { value: 'light' as const, icon: Sun, label: t('sidebar.themeLight') },
   { value: 'dark' as const, icon: Moon, label: t('sidebar.themeDark') },
+  { value: 'light' as const, icon: Sun, label: t('sidebar.themeLight') },
 ])
 
 const versionInfo = ref<VersionInfo | null>(null)
