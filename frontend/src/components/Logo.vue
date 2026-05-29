@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useTheme } from 'vuetify'
 
 const props = withDefaults(defineProps<{
   size?: number | string
@@ -9,10 +10,16 @@ const props = withDefaults(defineProps<{
   animated: true
 })
 
+const theme = useTheme()
+const isDark = computed(() => theme.global.current.value.dark)
+
 const sizeStyle = computed(() => {
   const s = typeof props.size === 'number' ? `${props.size}px` : props.size
   return { width: s, height: s }
 })
+
+// 根据主题选择对应的 gradient ID 前缀
+const gradientPrefix = computed(() => isDark.value ? 'web' : 'light')
 </script>
 
 <template>
@@ -26,27 +33,48 @@ const sizeStyle = computed(() => {
     >
       <defs>
         <!-- 与 App Icon 同源的终端网关流光渐变 -->
-        <linearGradient id="web-gateway-flow" x1="18%" y1="28%" x2="82%" y2="72%">
-          <stop offset="0%" stop-color="#38bdf8" />
-          <stop offset="48%" stop-color="#6366f1" />
-          <stop offset="100%" stop-color="#10b981" />
+        <linearGradient :id="`${gradientPrefix}-gateway-flow`" x1="18%" y1="28%" x2="82%" y2="72%">
+          <template v-if="isDark">
+            <stop offset="0%" stop-color="#38bdf8" />
+            <stop offset="48%" stop-color="#6366f1" />
+            <stop offset="100%" stop-color="#10b981" />
+          </template>
+          <template v-else>
+            <stop offset="0%" stop-color="#0284c7" />
+            <stop offset="48%" stop-color="#4f46e5" />
+            <stop offset="100%" stop-color="#059669" />
+          </template>
         </linearGradient>
 
-        <!-- 深色玻璃面板渐变 -->
-        <linearGradient id="web-gateway-panel" x1="15%" y1="20%" x2="85%" y2="82%">
-          <stop offset="0%" stop-color="#102a56" stop-opacity="0.95" />
-          <stop offset="52%" stop-color="#06142a" stop-opacity="0.92" />
-          <stop offset="100%" stop-color="#042f2e" stop-opacity="0.95" />
+        <!-- 玻璃面板渐变 -->
+        <linearGradient :id="`${gradientPrefix}-gateway-panel`" x1="15%" y1="20%" x2="85%" y2="82%">
+          <template v-if="isDark">
+            <stop offset="0%" stop-color="#102a56" stop-opacity="0.95" />
+            <stop offset="52%" stop-color="#06142a" stop-opacity="0.92" />
+            <stop offset="100%" stop-color="#042f2e" stop-opacity="0.95" />
+          </template>
+          <template v-else>
+            <stop offset="0%" stop-color="#f0f9ff" stop-opacity="0.98" />
+            <stop offset="52%" stop-color="#eff6ff" stop-opacity="0.95" />
+            <stop offset="100%" stop-color="#ecfdf5" stop-opacity="0.98" />
+          </template>
         </linearGradient>
 
-        <radialGradient id="web-gateway-bg" cx="70%" cy="70%" r="86%">
-          <stop offset="0%" stop-color="#064e3b" />
-          <stop offset="40%" stop-color="#082f49" />
-          <stop offset="100%" stop-color="#020617" />
+        <radialGradient :id="`${gradientPrefix}-gateway-bg`" cx="70%" cy="70%" r="86%">
+          <template v-if="isDark">
+            <stop offset="0%" stop-color="#064e3b" />
+            <stop offset="40%" stop-color="#082f49" />
+            <stop offset="100%" stop-color="#020617" />
+          </template>
+          <template v-else>
+            <stop offset="0%" stop-color="#d1fae5" />
+            <stop offset="40%" stop-color="#dbeafe" />
+            <stop offset="100%" stop-color="#f8fafc" />
+          </template>
         </radialGradient>
 
-        <filter id="web-gateway-glow" x="-28%" y="-28%" width="156%" height="156%">
-          <feGaussianBlur stdDeviation="2.2" result="blur" />
+        <filter :id="`${gradientPrefix}-gateway-glow`" x="-28%" y="-28%" width="156%" height="156%">
+          <feGaussianBlur :stdDeviation="isDark ? 2.2 : 1.8" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -55,29 +83,41 @@ const sizeStyle = computed(() => {
       </defs>
 
       <!-- 1. App 图标同源深色圆角底 -->
-      <rect x="5" y="5" width="90" height="90" rx="22" fill="url(#web-gateway-bg)" />
-      <rect x="7.5" y="7.5" width="85" height="85" rx="20" fill="none" stroke="#93c5fd" stroke-width="0.9" opacity="0.32" />
+      <rect x="5" y="5" width="90" height="90" rx="22" :fill="`url(#${gradientPrefix}-gateway-bg)`" />
+      <rect
+        x="7.5" y="7.5" width="85" height="85" rx="20"
+        fill="none"
+        :stroke="isDark ? '#93c5fd' : '#3b82f6'"
+        stroke-width="0.9"
+        :opacity="isDark ? 0.32 : 0.3"
+      />
 
       <!-- 2. 玻璃终端窗口 -->
-      <rect x="15" y="20" width="70" height="62" rx="14" fill="url(#web-gateway-panel)" stroke="#93c5fd" stroke-width="1.4" opacity="0.98" />
-      <path d="M 19 32 H 81" stroke="#bae6fd" stroke-width="0.8" opacity="0.18" />
-      <circle cx="25" cy="26.5" r="2.3" fill="#10b981" />
-      <circle cx="32" cy="26.5" r="2.3" fill="#38bdf8" opacity="0.78" />
-      <circle cx="39" cy="26.5" r="2.3" fill="#6366f1" opacity="0.78" />
+      <rect
+        x="15" y="20" width="70" height="62" rx="14"
+        :fill="`url(#${gradientPrefix}-gateway-panel)`"
+        :stroke="isDark ? '#93c5fd' : '#3b82f6'"
+        stroke-width="1.4"
+        opacity="0.98"
+      />
+      <path d="M 19 32 H 81" :stroke="isDark ? '#bae6fd' : '#94a3b8'" stroke-width="0.8" :opacity="isDark ? 0.18 : 0.25" />
+      <circle cx="25" cy="26.5" r="2.3" :fill="isDark ? '#10b981' : '#059669'" />
+      <circle cx="32" cy="26.5" r="2.3" :fill="isDark ? '#38bdf8' : '#0284c7'" :opacity="isDark ? 0.78 : 0.85" />
+      <circle cx="39" cy="26.5" r="2.3" :fill="isDark ? '#6366f1' : '#4f46e5'" :opacity="isDark ? 0.78 : 0.85" />
 
       <!-- 3. 终端网关提示符与 X 路由束 -->
-      <g filter="url(#web-gateway-glow)" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M 28 39 L 42 51 L 28 63" stroke="url(#web-gateway-flow)" stroke-width="8" />
-        <path d="M 52 38 L 73 64" stroke="url(#web-gateway-flow)" stroke-width="8" />
-        <path d="M 73 38 L 52 64" stroke="url(#web-gateway-flow)" stroke-width="8" />
+      <g :filter="`url(#${gradientPrefix}-gateway-glow)`" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 28 39 L 42 51 L 28 63" :stroke="`url(#${gradientPrefix}-gateway-flow)`" stroke-width="8" />
+        <path d="M 52 38 L 73 64" :stroke="`url(#${gradientPrefix}-gateway-flow)`" stroke-width="8" />
+        <path d="M 73 38 L 52 64" :stroke="`url(#${gradientPrefix}-gateway-flow)`" stroke-width="8" />
       </g>
 
       <!-- 4. 底部网关状态线与在线节点 -->
-      <path d="M 22 74 H 50" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" opacity="0.46" />
-      <path d="M 55 74 H 68" stroke="#38bdf8" stroke-width="2.6" stroke-linecap="round" opacity="0.34" />
+      <path d="M 22 74 H 50" :stroke="isDark ? '#10b981' : '#059669'" stroke-width="2.6" stroke-linecap="round" :opacity="isDark ? 0.46 : 0.55" />
+      <path d="M 55 74 H 68" :stroke="isDark ? '#38bdf8' : '#0284c7'" stroke-width="2.6" stroke-linecap="round" :opacity="isDark ? 0.34 : 0.42" />
       <g :class="{ 'animate-gateway-pulse': animated }">
-        <circle cx="76" cy="74" r="2.4" fill="#5eead4" />
-        <circle cx="76" cy="74" r="5.5" stroke="#5eead4" stroke-width="1.1" opacity="0.24" />
+        <circle cx="76" cy="74" r="2.4" :fill="isDark ? '#5eead4' : '#14b8a6'" />
+        <circle cx="76" cy="74" r="5.5" :stroke="isDark ? '#5eead4' : '#14b8a6'" stroke-width="1.1" :opacity="isDark ? 0.24 : 0.3" />
       </g>
     </svg>
   </div>
