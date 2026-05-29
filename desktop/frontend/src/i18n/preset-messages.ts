@@ -94,6 +94,10 @@ export const presetMessages: Record<SupportedLocale, Record<string, string>> = {
       'Subscription plan Messages endpoint',
     'channel.preset.dashscope.plan.coding-openai-chat.description':
       'Subscription plan OpenAI-compatible endpoint',
+    'channel.preset.dashscope.plan.token-plan-anthropic.description':
+      'Token Plan Messages endpoint',
+    'channel.preset.dashscope.plan.token-plan-openai-chat.description':
+      'Token Plan OpenAI-compatible endpoint',
 
     // OpenCode Zen
     'channel.preset.opencode-zen.description':
