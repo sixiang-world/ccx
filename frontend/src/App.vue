@@ -128,7 +128,7 @@
 
       <!-- 版本信息（< 500px 隐藏，避免在窄屏挤压右侧按钮） -->
       <div
-        v-if="$vuetify.display.width >= 500 && systemStore.versionInfo.currentVersion"
+        v-if="!isDesktopWebUI && $vuetify.display.width >= 500 && systemStore.versionInfo.currentVersion"
         class="version-badge"
         :class="{
           'version-clickable': systemStore.versionInfo.status === 'update-available' || systemStore.versionInfo.status === 'latest',
@@ -539,6 +539,7 @@ const translatedApiTabOptions = computed(() => {
     label: t(tab.labelKey),
   }))
 })
+const isDesktopWebUI = new URLSearchParams(window.location.search).get('ccx_desktop') === '1'
 
 const currentTabLabel = computed(() => {
   return translatedApiTabOptions.value.find(tab => tab.value === channelStore.activeTab)?.label || channelStore.activeTab
@@ -1698,7 +1699,7 @@ const handleAuthError = (error: unknown) => {
 
 // 版本检查
 const checkVersion = async () => {
-  if (systemStore.isCheckingVersion) return
+  if (isDesktopWebUI || systemStore.isCheckingVersion) return
 
   systemStore.setCheckingVersion(true)
   try {
@@ -1763,13 +1764,15 @@ onMounted(async () => {
   // 加载保存的暗色模式偏好（从 PreferencesStore 读取，已自动从 localStorage 恢复）
   setDarkMode(preferencesStore.darkModePreference)
 
-  // 版本检查（独立于认证，静默执行）
-  checkVersion()
+  if (!isDesktopWebUI) {
+    // 版本检查（独立于认证，静默执行）
+    checkVersion()
 
-  // 监听 UpdateDialog 手动触发的版本检查
-  window.addEventListener('ccx-check-version', () => { checkVersion() })
+    // 监听 UpdateDialog 手动触发的版本检查
+    window.addEventListener('ccx-check-version', () => { checkVersion() })
+  }
 
-  const desktopAutoLogin = window.self !== window.top && new URLSearchParams(window.location.search).get('ccx_desktop') === '1'
+  const desktopAutoLogin = window.self !== window.top && isDesktopWebUI
 
   if (desktopAutoLogin) {
     authStore.clearAuth()

@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -558,7 +559,14 @@ func (s *DesktopService) OpenWebUIInBrowser() error {
 	if err := s.manager.WaitHealthy(ctx, 15*time.Second); err != nil {
 		return err
 	}
-	return browser.OpenURL(s.manager.WebURL())
+	webURL, err := url.Parse(s.manager.WebURL())
+	if err != nil {
+		return err
+	}
+	query := webURL.Query()
+	query.Set("ccx_desktop", "1")
+	webURL.RawQuery = query.Encode()
+	return browser.OpenURL(webURL.String())
 }
 
 func (s *DesktopService) GetAutostartStatus() (bool, error) {
