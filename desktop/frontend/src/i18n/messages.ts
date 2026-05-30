@@ -185,8 +185,6 @@ export type MessageKey =
   | 'channel.target.responses.description'
   | 'channel.target.chat.label'
   | 'channel.target.chat.description'
-  // MiMo target override
-  | 'channel.preset.mimo.target.messages.description'
   | 'env.title'
   | 'env.pathDetecting'
   | 'env.refresh'
@@ -906,8 +904,6 @@ export const messages: Record<SupportedLocale, Messages> = {
     'channel.target.responses.description': 'OpenAI Responses 协议，专供 Codex CLI 及兼容客户端使用',
     'channel.target.chat.label': 'OpenAI Chat',
     'channel.target.chat.description': 'OpenAI Chat Completions 协议，兼容各类 Chat 客户端和第三方工具',
-    // MiMo target override
-    'channel.preset.mimo.target.messages.description': '自动开启 reasoning passback 兼容',
     'env.title': '环境配置',
     'env.pathDetecting': '检测中',
     'env.refresh': '刷新',
