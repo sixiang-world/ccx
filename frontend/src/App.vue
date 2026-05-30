@@ -428,24 +428,10 @@
             {{ t('dialog.circuitBreaker.description') }}
           </div>
 
-          <!-- 预设按钮 -->
-          <div class="d-flex ga-2 mb-5">
-            <v-btn
-              v-for="preset in cbPresets"
-              :key="preset.key"
-              :variant="activePreset === preset.key ? 'flat' : 'outlined'"
-              :color="activePreset === preset.key ? 'primary' : 'default'"
-              size="small"
-              @click="applyPreset(preset)"
-            >
-              {{ t(preset.labelKey) }}
-            </v-btn>
-          </div>
-
           <!-- 滑块区域 - 三列并排 -->
-          <div class="d-flex">
+          <div class="d-flex mb-4">
             <!-- 滑动窗口大小 -->
-            <div class="flex-grow-1 px-2">
+            <div class="flex-grow-1 px-3">
               <div class="d-flex align-center mb-1">
                 <span class="text-caption text-medium-emphasis flex-grow-1">{{ t('dialog.circuitBreaker.windowSize') }}</span>
                 <span class="text-caption font-weight-bold">{{ cbForm.windowSize }}</span>
@@ -467,7 +453,7 @@
             <v-divider vertical class="mx-1" />
 
             <!-- 失败率阈值 -->
-            <div class="flex-grow-1 px-2">
+            <div class="flex-grow-1 px-3">
               <div class="d-flex align-center mb-1">
                 <span class="text-caption text-medium-emphasis flex-grow-1">{{ t('dialog.circuitBreaker.failureThreshold') }}</span>
                 <span class="text-caption font-weight-bold">{{ cbForm.failureThreshold.toFixed(2) }}</span>
@@ -489,7 +475,7 @@
             <v-divider vertical class="mx-1" />
 
             <!-- 连续失败阈值 -->
-            <div class="flex-grow-1 px-2">
+            <div class="flex-grow-1 px-3">
               <div class="d-flex align-center mb-1">
                 <span class="text-caption text-medium-emphasis flex-grow-1">{{ t('dialog.circuitBreaker.consecutiveFailuresThreshold') }}</span>
                 <span class="text-caption font-weight-bold">{{ cbForm.consecutiveFailuresThreshold }}</span>
@@ -507,6 +493,20 @@
                 <span>1</span><span>100</span>
               </div>
             </div>
+          </div>
+
+          <!-- 预设按钮 -->
+          <div class="d-flex ga-2">
+            <v-btn
+              v-for="preset in cbPresets"
+              :key="preset.key"
+              :variant="activePreset === preset.key ? 'flat' : 'outlined'"
+              :color="activePreset === preset.key ? 'primary' : 'default'"
+              size="small"
+              @click="applyPreset(preset)"
+            >
+              {{ t(preset.labelKey) }}
+            </v-btn>
           </div>
         </v-card-text>
         <v-divider />

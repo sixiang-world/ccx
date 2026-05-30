@@ -182,24 +182,10 @@ onMounted(() => {
     </CardHeader>
 
     <CardContent class="space-y-4">
-      <!-- Preset buttons -->
-      <div class="flex gap-2">
-        <Button
-          v-for="p in presets"
-          :key="p.key"
-          size="sm"
-          :variant="activePreset === p.key ? 'default' : 'outline'"
-          :disabled="!status.running"
-          @click="applyPreset(p)"
-        >
-          {{ t(p.labelKey) }}
-        </Button>
-      </div>
-
       <!-- Sliders - 三列并排 -->
-      <div class="flex">
+      <div class="flex mb-4">
         <!-- 滑动窗口大小 -->
-        <div class="flex-1 px-2">
+        <div class="flex-1 px-3">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs text-muted-foreground">{{ t('env.runtimeCbWindowSize') }}</span>
             <span class="text-xs font-medium">{{ form.windowSize }}</span>
@@ -220,7 +206,7 @@ onMounted(() => {
         <div class="w-px bg-border mx-1 self-stretch" />
 
         <!-- 失败率阈值 -->
-        <div class="flex-1 px-2">
+        <div class="flex-1 px-3">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs text-muted-foreground">{{ t('env.runtimeCbFailureThreshold') }}</span>
             <span class="text-xs font-medium">{{ form.failureThreshold.toFixed(2) }}</span>
@@ -241,7 +227,7 @@ onMounted(() => {
         <div class="w-px bg-border mx-1 self-stretch" />
 
         <!-- 连续失败阈值 -->
-        <div class="flex-1 px-2">
+        <div class="flex-1 px-3">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs text-muted-foreground">{{ t('env.runtimeCbConsecutiveFailures') }}</span>
             <span class="text-xs font-medium">{{ form.consecutiveFailuresThreshold }}</span>
@@ -258,6 +244,20 @@ onMounted(() => {
           />
           <div class="flex justify-between text-xs text-muted-foreground"><span>1</span><span>100</span></div>
         </div>
+      </div>
+
+      <!-- Preset buttons -->
+      <div class="flex gap-2">
+        <Button
+          v-for="p in presets"
+          :key="p.key"
+          size="sm"
+          :variant="activePreset === p.key ? 'default' : 'outline'"
+          :disabled="!status.running"
+          @click="applyPreset(p)"
+        >
+          {{ t(p.labelKey) }}
+        </Button>
       </div>
     </CardContent>
   </Card>
