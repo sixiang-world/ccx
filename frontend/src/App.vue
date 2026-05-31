@@ -187,6 +187,18 @@
         </v-list>
       </v-menu>
 
+      <!-- 新用户指引 -->
+      <v-btn
+        icon
+        variant="text"
+        size="small"
+        class="header-btn"
+        :title="t('guide.helpButton')"
+        @click="openGuide"
+      >
+        <v-icon size="20">mdi-help-circle</v-icon>
+      </v-btn>
+
       <!-- 暗色模式切换 -->
       <v-btn icon variant="text" size="small" class="header-btn" @click="toggleDarkMode">
         <v-icon size="20">{{
@@ -415,6 +427,9 @@
     <!-- OTA 更新对话框 -->
     <UpdateDialog v-model="systemStore.updateDialogOpen" />
 
+    <!-- 新用户指引对话框 -->
+    <UserGuideDialog v-model="showGuide" />
+
     <!-- 熔断器配置对话框 -->
     <v-dialog v-model="circuitBreakerDialogOpen" max-width="640">
       <v-card class="cb-dialog-card">
@@ -600,6 +615,7 @@ import type { SupportedLocale } from './i18n'
 import AddChannelModal from './components/AddChannelModal.vue'
 import CapabilityTestDialog from './components/CapabilityTestDialog.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
+import UserGuideDialog from './components/UserGuideDialog.vue'
 // 异步加载图表组件，减少首屏 JS 体积
 const GlobalStatsChart = defineAsyncComponent(() => import('./components/GlobalStatsChart.vue'))
 import { useAppTheme } from './composables/useTheme'
@@ -1652,6 +1668,27 @@ const toggleStripBillingHeader = async () => {
     systemStore.setStripBillingHeaderLoading(false)
   }
 }
+
+// 新用户指引
+const showGuide = ref(false)
+
+function openGuide() {
+  showGuide.value = true
+}
+
+// 指引关闭后标记已看过，避免下次自动弹出
+watch(showGuide, (open) => {
+  if (!open) preferencesStore.markGuideSeen()
+})
+
+// 首次认证成功后自动弹出一次指引（仅独立 WebUI，桌面端内嵌不打扰）
+// 直接 watch authStore（在前文已定义），避免引用尚未声明的 isAuthenticated computed
+watch(() => authStore.isAuthenticated, (authed) => {
+  const isEmbedded = typeof window !== 'undefined' && window.self !== window.top
+  if (authed && !preferencesStore.hasSeenGuide && !isEmbedded) {
+    showGuide.value = true
+  }
+})
 
 // 熔断器配置
 const circuitBreakerDialogOpen = ref(false)
