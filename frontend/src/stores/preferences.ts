@@ -31,6 +31,9 @@ export const usePreferencesStore = defineStore('preferences', () => {
   // 全局统计面板展开状态
   const showGlobalStats = ref(false)
 
+  // 是否已看过新用户指引（首次登录自动弹出一次）
+  const hasSeenGuide = ref(false)
+
   // ===== 操作方法 =====
 
   /**
@@ -101,6 +104,13 @@ export const usePreferencesStore = defineStore('preferences', () => {
     showGlobalStats.value = !showGlobalStats.value
   }
 
+  /**
+   * 标记新用户指引已看过
+   */
+  function markGuideSeen() {
+    hasSeenGuide.value = true
+  }
+
   return {
     // 状态
     darkModePreference,
@@ -108,6 +118,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     stripBillingHeader,
     uiLanguage,
     showGlobalStats,
+    hasSeenGuide,
 
     // 方法
     setDarkMode,
@@ -119,6 +130,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     setUILanguage,
     initializeUILanguage,
     toggleGlobalStats,
+    markGuideSeen,
   }
 }, {
   // 持久化配置

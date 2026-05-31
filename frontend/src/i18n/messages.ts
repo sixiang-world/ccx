@@ -438,6 +438,42 @@ export type MessageKey =
   | 'update.checkFailed'
   | 'update.checkBtn'
   | 'update.downloadBtn'
+  | 'guide.title'
+  | 'guide.helpButton'
+  | 'guide.prev'
+  | 'guide.next'
+  | 'guide.gotIt'
+  | 'guide.stepIndicator'
+  | 'guide.welcome.title'
+  | 'guide.welcome.body'
+  | 'guide.welcome.step1'
+  | 'guide.welcome.step2'
+  | 'guide.welcome.step3'
+  | 'guide.protocol.title'
+  | 'guide.protocol.body'
+  | 'guide.addChannel.title'
+  | 'guide.addChannel.body'
+  | 'guide.channelList.title'
+  | 'guide.channelList.intro'
+  | 'guide.channelList.demoNormalName'
+  | 'guide.channelList.demoTrippedName'
+  | 'guide.channelList.clickName'
+  | 'guide.channelList.clickRow'
+  | 'guide.channelList.clickLogs'
+  | 'guide.channelList.clickResume'
+  | 'guide.channelList.drag'
+  | 'guide.legend.title'
+  | 'guide.legend.normal'
+  | 'guide.legend.tripped'
+  | 'guide.legend.disabled'
+  | 'guide.legend.error'
+  | 'guide.legend.unknown'
+  | 'guide.switches.title'
+  | 'guide.switches.cb'
+  | 'guide.switches.fuzzy'
+  | 'guide.switches.cch'
+  | 'guide.connect.title'
+  | 'guide.connect.body'
 
 export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
   en: {
@@ -878,6 +914,42 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'update.checkFailed': 'Failed to check for updates',
     'update.checkBtn': 'Check for Updates',
     'update.downloadBtn': 'Download Update',
+    'guide.title': 'Getting Started',
+    'guide.helpButton': 'Guide',
+    'guide.prev': 'Previous',
+    'guide.next': 'Next',
+    'guide.gotIt': 'Got it',
+    'guide.stepIndicator': 'Step {current} / {total}',
+    'guide.welcome.title': 'Welcome to CCX',
+    'guide.welcome.body': 'CCX is a multi-upstream AI proxy and protocol-conversion gateway. Get started in three steps:',
+    'guide.welcome.step1': 'Pick a protocol tab at the top',
+    'guide.welcome.step2': 'Add a channel and fill in your API key',
+    'guide.welcome.step3': 'Point your client at the gateway and start using it',
+    'guide.protocol.title': 'Switch protocol at the top',
+    'guide.protocol.body': 'The tabs at the top — Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit — each manage their own set of channels. Switching a tab changes both the channel list below and what the Add channel button creates. Pick the protocol your client speaks first.',
+    'guide.addChannel.title': 'Add a channel',
+    'guide.addChannel.body': 'Click the Add channel button at the top left to add an upstream for the current protocol. Quick mode needs only a name, base URL and API key; detailed mode exposes model mapping, capability options and more.',
+    'guide.channelList.title': 'Reading the channel list',
+    'guide.channelList.intro': 'Each row is a channel. The example below shows a normal channel and a tripped (circuit-broken) one:',
+    'guide.channelList.demoNormalName': 'GPT-4 Proxy',
+    'guide.channelList.demoTrippedName': 'Claude Relay',
+    'guide.channelList.clickName': 'Click the channel name or the key-count badge to open the channel editor.',
+    'guide.channelList.clickRow': 'Click the middle of the row to expand the usage stats chart.',
+    'guide.channelList.clickLogs': 'Click the log button on the right to view that channel’s logs.',
+    'guide.channelList.clickResume': 'Click the resume button (shown only on tripped channels) to restore a circuit-broken channel right away.',
+    'guide.channelList.drag': 'Drag the handle on the left to reorder priority and the failover sequence.',
+    'guide.legend.title': 'Channel status legend',
+    'guide.legend.normal': 'Normal: serving traffic',
+    'guide.legend.tripped': 'Tripped: circuit broken by failures, temporarily skipped',
+    'guide.legend.disabled': 'Disabled: manually moved to the standby pool',
+    'guide.legend.error': 'Error: last health check failed',
+    'guide.legend.unknown': 'Unknown: not probed yet',
+    'guide.switches.title': 'Top toolbar switches',
+    'guide.switches.cb': 'CB — circuit breaker thresholds (window size, failure rate, consecutive failures); changes apply instantly.',
+    'guide.switches.fuzzy': 'Fuzzy — loose error handling that retries across all channels.',
+    'guide.switches.cch': 'CCH — strips the cch= billing header (Claude channels only).',
+    'guide.connect.title': 'Connect your client',
+    'guide.connect.body': 'Once a channel works, point your client (Claude Code, Codex, etc.) at this gateway: use the gateway URL as the base URL and PROXY_ACCESS_KEY as the API key. The same key you used to sign in here is the proxy access key.',
   },
   id: {
     'app.auth.verifyingTitle': 'Memverifikasi akses',
@@ -1317,6 +1389,42 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'update.checkFailed': 'Gagal memeriksa pembaruan',
     'update.checkBtn': 'Periksa Pembaruan',
     'update.downloadBtn': 'Unduh Pembaruan',
+    'guide.title': 'Panduan Awal',
+    'guide.helpButton': 'Panduan',
+    'guide.prev': 'Sebelumnya',
+    'guide.next': 'Berikutnya',
+    'guide.gotIt': 'Mengerti',
+    'guide.stepIndicator': 'Langkah {current} / {total}',
+    'guide.welcome.title': 'Selamat datang di CCX',
+    'guide.welcome.body': 'CCX adalah proxy AI multi-upstream sekaligus gateway konversi protokol. Mulai dalam tiga langkah:',
+    'guide.welcome.step1': 'Pilih tab protokol di bagian atas',
+    'guide.welcome.step2': 'Tambahkan channel dan isi API key Anda',
+    'guide.welcome.step3': 'Arahkan klien Anda ke gateway lalu mulai gunakan',
+    'guide.protocol.title': 'Beralih protokol di bagian atas',
+    'guide.protocol.body': 'Tab di atas — Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit — masing-masing mengelola kumpulan channel sendiri. Mengganti tab mengubah daftar channel di bawah sekaligus apa yang dibuat tombol Tambah channel. Pilih dulu protokol yang dipakai klien Anda.',
+    'guide.addChannel.title': 'Tambah channel',
+    'guide.addChannel.body': 'Klik tombol Tambah channel di kiri atas untuk menambah upstream bagi protokol saat ini. Mode cepat hanya butuh nama, base URL, dan API key; mode detail menampilkan pemetaan model, opsi kapabilitas, dan lainnya.',
+    'guide.channelList.title': 'Membaca daftar channel',
+    'guide.channelList.intro': 'Setiap baris adalah satu channel. Contoh di bawah menampilkan channel normal dan channel yang terputus (circuit breaker aktif):',
+    'guide.channelList.demoNormalName': 'GPT-4 Proxy',
+    'guide.channelList.demoTrippedName': 'Claude Relay',
+    'guide.channelList.clickName': 'Klik nama channel atau badge jumlah key untuk membuka editor channel.',
+    'guide.channelList.clickRow': 'Klik bagian tengah baris untuk membuka grafik statistik penggunaan.',
+    'guide.channelList.clickLogs': 'Klik tombol log di sebelah kanan untuk melihat log channel tersebut.',
+    'guide.channelList.clickResume': 'Klik tombol lanjutkan (hanya muncul pada channel yang terputus) untuk segera memulihkan channel yang terkena circuit breaker.',
+    'guide.channelList.drag': 'Seret handle di sebelah kiri untuk mengatur ulang prioritas dan urutan failover.',
+    'guide.legend.title': 'Legenda status channel',
+    'guide.legend.normal': 'Normal: melayani trafik',
+    'guide.legend.tripped': 'Terputus: circuit breaker aktif karena kegagalan, dilewati sementara',
+    'guide.legend.disabled': 'Nonaktif: dipindah manual ke pool standby',
+    'guide.legend.error': 'Error: health check terakhir gagal',
+    'guide.legend.unknown': 'Tidak diketahui: belum diuji',
+    'guide.switches.title': 'Tombol di toolbar atas',
+    'guide.switches.cb': 'CB — ambang circuit breaker (ukuran window, rasio gagal, kegagalan beruntun); perubahan langsung berlaku.',
+    'guide.switches.fuzzy': 'Fuzzy — penanganan error longgar yang mencoba ulang ke semua channel.',
+    'guide.switches.cch': 'CCH — menghapus header billing cch= (khusus channel Claude).',
+    'guide.connect.title': 'Hubungkan klien Anda',
+    'guide.connect.body': 'Setelah sebuah channel berfungsi, arahkan klien Anda (Claude Code, Codex, dll.) ke gateway ini: gunakan URL gateway sebagai base URL dan PROXY_ACCESS_KEY sebagai API key. Key yang Anda pakai untuk masuk di sini adalah proxy access key tersebut.',
   },
   'zh-CN': {
     'app.auth.verifyingTitle': '正在验证访问权限',
@@ -1756,5 +1864,41 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'update.checkFailed': '检查更新失败',
     'update.checkBtn': '检查更新',
     'update.downloadBtn': '下载更新',
+    'guide.title': '新用户指引',
+    'guide.helpButton': '指引',
+    'guide.prev': '上一步',
+    'guide.next': '下一步',
+    'guide.gotIt': '知道了',
+    'guide.stepIndicator': '第 {current} / {total} 步',
+    'guide.welcome.title': '欢迎使用 CCX',
+    'guide.welcome.body': 'CCX 是一个多上游 AI 代理与协议转换网关。三步即可上手：',
+    'guide.welcome.step1': '在顶部选择一个协议标签',
+    'guide.welcome.step2': '添加渠道并填入 API 密钥',
+    'guide.welcome.step3': '把客户端指向网关即可开始使用',
+    'guide.protocol.title': '顶部切换协议',
+    'guide.protocol.body': '顶部的 Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit 标签各自管理一类渠道。切换标签会同时改变下方的渠道列表以及“添加渠道”按钮创建的渠道类型。请先选择你的客户端所用的协议。',
+    'guide.addChannel.title': '添加渠道',
+    'guide.addChannel.body': '点击左上角的“添加渠道”按钮，为当前协议添加上游。快速模式只需名称、Base URL 和 API 密钥；详细模式则可配置模型映射、能力选项等。',
+    'guide.channelList.title': '看懂渠道列表',
+    'guide.channelList.intro': '每一行就是一个渠道。下面的示例展示了一个正常渠道和一个被熔断的渠道：',
+    'guide.channelList.demoNormalName': 'GPT-4 代理',
+    'guide.channelList.demoTrippedName': 'Claude 中转',
+    'guide.channelList.clickName': '点击渠道名称或 Key 数量徽章，可打开编辑渠道。',
+    'guide.channelList.clickRow': '点击行中间区域，可展开该渠道的使用统计图表。',
+    'guide.channelList.clickLogs': '点击右侧的日志按钮，可查看该渠道的日志。',
+    'guide.channelList.clickResume': '点击恢复按钮（仅熔断渠道显示），可立即恢复被熔断的渠道。',
+    'guide.channelList.drag': '拖动左侧手柄，可调整渠道优先级与故障转移顺序。',
+    'guide.legend.title': '渠道状态图例',
+    'guide.legend.normal': '正常：正在承载流量',
+    'guide.legend.tripped': '熔断：因连续失败被熔断，暂时跳过',
+    'guide.legend.disabled': '禁用：已手动移入待命池',
+    'guide.legend.error': '错误：最近一次健康检查失败',
+    'guide.legend.unknown': '未知：尚未探测',
+    'guide.switches.title': '顶部开关速览',
+    'guide.switches.cb': 'CB —— 熔断阈值（滑动窗口、失败率、连续失败次数），修改立即生效。',
+    'guide.switches.fuzzy': 'Fuzzy —— 模糊处理错误，自动重试所有渠道。',
+    'guide.switches.cch': 'CCH —— 移除 cch= 计费头（仅 Claude 渠道）。',
+    'guide.connect.title': '接入客户端',
+    'guide.connect.body': '当渠道可用后，把客户端（Claude Code、Codex 等）指向本网关：用网关地址作为 Base URL，用 PROXY_ACCESS_KEY 作为 API 密钥。你在这里登录所用的密钥就是该代理访问密钥。',
   },
 }
