@@ -620,9 +620,9 @@ experimental_bearer_token = %q
 	if err := writeTextAtomic(configPath, updated); err != nil {
 		return err
 	}
-	// auth.json: OPENAI_API_KEY = accessKey, auth_mode = "apikey"
+	// auth.json: OPENAI_API_KEY = accessKey, auth_mode = "chatgpt"（插件模式依赖 ChatGPT OAuth）
 	authData["OPENAI_API_KEY"] = accessKey
-	authData["auth_mode"] = "apikey"
+	authData["auth_mode"] = "chatgpt"
 	return writeJSONAtomic(authPath, authData)
 }
 
@@ -723,9 +723,9 @@ func (s *Service) applyCodexThirdParty(provider, baseURL, apiKey string) error {
 name = %q
 base_url = %q
 wire_api = "responses"
-env_key = "OPENAI_API_KEY"
-requires_openai_auth = false
-`, provider, provider, baseURL)
+requires_openai_auth = true
+experimental_bearer_token = %q
+`, provider, provider, baseURL, key)
 	updated := upsertTopLevelTomlString(configContent, "model_provider", provider)
 	updated = restoreTopLevelTomlString(updated, "openai_base_url", nil) // 清理 CCX proxy 残留
 	updated = restoreNamedTomlBlock(updated, "model_providers.ccx", nil)
@@ -735,7 +735,7 @@ requires_openai_auth = false
 		return err
 	}
 	authData["OPENAI_API_KEY"] = key
-	authData["auth_mode"] = "apikey"
+	authData["auth_mode"] = "chatgpt"
 	return writeJSONAtomic(authPath, authData)
 }
 
@@ -1647,7 +1647,7 @@ experimental_bearer_token = %q
 
 	newAuthData := copyJSONMap(authData)
 	newAuthData["OPENAI_API_KEY"] = accessKey
-	newAuthData["auth_mode"] = "apikey"
+	newAuthData["auth_mode"] = "chatgpt"
 
 	return ConfigDiffResult{Files: []FileDiff{
 		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, oldKeyValues, newKeyValues),
@@ -1714,9 +1714,9 @@ func (s *Service) previewApplyCodexThirdParty(provider, baseURL, apiKey string) 
 name = %q
 base_url = %q
 wire_api = "responses"
-env_key = "OPENAI_API_KEY"
-requires_openai_auth = false
-`, provider, provider, baseURL)
+requires_openai_auth = true
+experimental_bearer_token = %q
+`, provider, provider, baseURL, key)
 
 	updatedConfig := upsertTopLevelTomlString(configContent, "model_provider", provider)
 	updatedConfig = restoreTopLevelTomlString(updatedConfig, "openai_base_url", nil) // 清理 CCX proxy 残留
@@ -1724,12 +1724,19 @@ requires_openai_auth = false
 	updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers.openai", nil)
 	updatedConfig = upsertNamedTomlBlock(updatedConfig, "model_providers."+provider, block)
 
+	oldBearerToken := ""
+	if existingBlock, ok := extractNamedTomlBlock(configContent, "model_providers."+provider); ok {
+		oldBearerToken, _ = extractTomlStringField(existingBlock, "experimental_bearer_token")
+	}
+	oldKeyValues := map[string]string{"experimental_bearer_token": oldBearerToken}
+	newKeyValues := map[string]string{"experimental_bearer_token": key}
+
 	newAuthData := copyJSONMap(authData)
 	newAuthData["OPENAI_API_KEY"] = key
-	newAuthData["auth_mode"] = "apikey"
+	newAuthData["auth_mode"] = "chatgpt"
 
 	return ConfigDiffResult{Files: []FileDiff{
-		computeTextDiff(configPath, configContent, updatedConfig),
+		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, oldKeyValues, newKeyValues),
 		computeJSONDiffWithMask(authPath, authData, newAuthData, "OPENAI_API_KEY"),
 	}}, nil
 }
@@ -1763,12 +1770,19 @@ func (s *Service) previewApplyCodexThirdPartyQuick(provider, baseURL, apiKey str
 		updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers."+provider, nil)
 	}
 
+	oldBearerToken := ""
+	if existingBlock, ok := extractNamedTomlBlock(configContent, "model_providers."+provider); ok {
+		oldBearerToken, _ = extractTomlStringField(existingBlock, "experimental_bearer_token")
+	}
+	oldKeyValues := map[string]string{"experimental_bearer_token": oldBearerToken}
+	newKeyValues := map[string]string{}
+
 	newAuthData := copyJSONMap(authData)
 	newAuthData["OPENAI_API_KEY"] = key
 	newAuthData["auth_mode"] = "apikey"
 
 	return ConfigDiffResult{Files: []FileDiff{
-		computeTextDiff(configPath, configContent, updatedConfig),
+		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, oldKeyValues, newKeyValues),
 		computeJSONDiffWithMask(authPath, authData, newAuthData, "OPENAI_API_KEY"),
 	}}, nil
 }

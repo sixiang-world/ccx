@@ -715,12 +715,18 @@ func TestApplyAndRestoreCodex_ThirdPartyCleanup(t *testing.T) {
 	if !strings.Contains(s, `[model_providers.dashscope]`) {
 		t.Error("config.toml should contain dashscope provider block after apply")
 	}
+	if !strings.Contains(s, `experimental_bearer_token = "sk-ds-key"`) {
+		t.Error("config.toml should contain experimental_bearer_token for third-party plugin mode")
+	}
+	if strings.Contains(s, `env_key = "OPENAI_API_KEY"`) {
+		t.Error("config.toml should not contain env_key in third-party plugin mode")
+	}
 	authData, _, _ := readJSONMap(authPath)
 	if authData["OPENAI_API_KEY"] != "sk-ds-key" {
 		t.Errorf("OPENAI_API_KEY = %v, want sk-ds-key", authData["OPENAI_API_KEY"])
 	}
-	if authData["auth_mode"] != "apikey" {
-		t.Errorf("auth_mode = %v, want apikey", authData["auth_mode"])
+	if authData["auth_mode"] != "chatgpt" {
+		t.Errorf("auth_mode = %v, want chatgpt", authData["auth_mode"])
 	}
 
 	// Restore
@@ -1075,8 +1081,8 @@ func TestApplyCodex_PluginMode(t *testing.T) {
 	}
 
 	authData, _, _ := readJSONMap(authPath)
-	if authData["auth_mode"] != "apikey" {
-		t.Errorf("auth_mode = %v, want apikey", authData["auth_mode"])
+	if authData["auth_mode"] != "chatgpt" {
+		t.Errorf("auth_mode = %v, want chatgpt", authData["auth_mode"])
 	}
 	if authData["OPENAI_API_KEY"] != "test-key" {
 		t.Errorf("OPENAI_API_KEY = %v, want test-key", authData["OPENAI_API_KEY"])
