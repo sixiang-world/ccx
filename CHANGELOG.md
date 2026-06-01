@@ -1,10 +1,62 @@
-## [Unreleased]
+## [v2.8.20] - 2026-06-01
 
 ### 新增
 
 - **桌面端 Codex Agent 配置双模式** - Codex 支持两种 CCX 模式：快捷模式（OpenAI provider + CCX 代理，不迁移会话、不支持插件）和插件模式（CCX 原生 provider + `requires_openai_auth = true`，支持插件但切换需会话迁移提示）。UI 下拉框拆分为两个选项，互切时显示会话迁移警告。
+- **Codex 配置改用快捷/插件模式开关** - 桌面端 Codex 配置入口统一改为快捷模式/插件模式开关，明确不同接入路径。
 - **Codex provider 块统一使用 `env_key`** - 将 `[model_providers.xxx]` 块中的 `temp_env_key` 统一替换为官方文档字段 `env_key`。
 - **桌面端 AgentCard 编辑器打开支持多编辑器选择** - 配置文件和认证文件的"用编辑器打开"按钮现在支持多编辑器场景，通过透明 select 覆盖层提供编辑器选择下拉。
+- **渠道中心已保存 key 的 preset 优先排列** - 桌面端渠道中心将已保存 API Key 的 preset 优先展示，便于快速选择常用渠道。
+- **已配置 key 的渠道在渠道中心优先展示** - Web 前端渠道中心根据已配置 Key 状态优先排列渠道。
+- **Codex 渠道模板新增 codex-auto-review 重定向** - 渠道模板新增 codex-auto-review 重定向能力。
+- **新增 WebUI 新用户指引** - WebUI 增加新用户引导说明，帮助首次使用者快速理解渠道配置流程。
+- **OpenAI 直连增加 API Key 勾选框** - 桌面端 OpenAI 直连新增「我有自己的 API Key」勾选框。
+- **新用户指引添加渠道展示模拟表单** - 新用户指引增加渠道展示模拟表单，更直观展示快速模式字段。
+- **Codex 第三方 provider 支持快捷/插件模式切换** - 第三方 Codex provider 支持在快捷模式与插件模式之间切换。
+
+### 修复
+
+- **浏览器直达移除 `ccx_desktop` 参数** - 修复浏览器直达 WebUI 时残留桌面端参数的问题。
+- **默认语言改为中文并增加浏览器语言检测** - 修复默认语言选择逻辑，新增浏览器语言检测。
+- **新用户指引协议切换说明拆分为三段** - 调整新用户指引中协议切换说明的展示结构。
+- **新用户指引简化标签列表** - 将新用户指引标签列表简化为 Claude / Codex / Gemini 等。
+- **新用户指引示例渠道改为 gpt-5.5 中转** - 更新新用户指引中的示例渠道文案。
+- **新用户指引删除 quickHint** - 删除 quickHint，改为说明 CCX 自动识别。
+- **删除新用户指引模拟表单及关联资源** - 删除模拟表单及其关联 i18n/CSS 资源，简化引导内容。
+- **新用户指引添加渠道说明拆分为两段** - 调整添加渠道说明，使内容层次更清晰。
+- **渠道置顶后保持渠道顺序** - 修复渠道置顶后顺序被打乱的问题。
+- **修正 Codex 认证配置模式** - 修复 Codex 认证配置模式写入与展示不一致的问题。
+- **渠道排序以 priority 优先，hasKey 仅作兜底** - 修复渠道排序中 hasKey 权重过高导致 priority 失效的问题。
+- **消除 Codex 非 OpenAI provider 时悬空分隔符** - 修复 Codex 非 OpenAI provider 表单中多余竖线分隔符。
+- **调整 Linux 数据目录到 XDG state** - 修复 Linux 桌面端数据目录位置，改用 XDG state 路径。
+- **掩码 Codex 配置预览密钥** - 修复 Codex 配置预览中密钥未正确脱敏的问题。
+- **修正 Codex `auth_mode` 为 `apikey`** - 修正 Codex 配置中的认证模式字段值。
+- **OpenAI 直连取消勾选 API Key 时清空残留值** - 修复 OpenAI 直连关闭自带 Key 后仍保留旧值的问题。
+- **修正 Codex 配置预览 `auth_mode` 被误掩码** - 修复配置预览中普通字段被误判为密钥的问题。
+- **对齐 Codex 插件模式认证配置** - 修复 Codex 插件模式下认证配置与预期不一致的问题。
+- **JSON 配置 diff 改为字段级掩码** - 修复 JSON 配置 diff 脱敏粒度过粗导致预览不准确的问题。
+- **修正短密钥掩码后 JSON diff 漏报变更** - 修复短密钥脱敏后 JSON diff 无法识别真实变更的问题。
+- **按字段掩码 Codex 配置 diff** - Codex 配置 diff 改为按字段掩码，避免误掩码普通配置项。
+- **OpenAI 直连自带 Key 必须输入** - 修复 OpenAI 直连勾选自带 Key 时允许空值的问题。
+
+### 重构
+
+- **移除左上角 Logo 点击跳转 GitHub 链接** - 移除 UI 左上角 Logo 的 GitHub 跳转行为。
+- **配置预览文件标签改用增删行数统计** - 桌面端配置预览文件标签改为展示增删行数统计。
+
+### 文档
+
+- **更新桌面安装文档** - 更新桌面安装文档，补充 Windows Store 已上架和 Homebrew 安装说明。
+- **排障指南添加各入口 curl 快速验证命令** - 为排障指南补充各协议入口的 curl 快速验证命令。
+- **排障指南首条添加关闭全局代理和 TUN** - 排障指南首条新增关闭全局代理和 TUN 的排查建议。
+
+### 其他
+
+- **修复 go fmt 格式化缩进** - 修正 Go 格式化后的缩进样式。
+- **移除 Claude-Reasoning-Debug 调试日志** - 移除 Claude-Reasoning-Debug 调试日志及 summarizeAssistantReasoningState 函数。
+- **精简新用户指引内容** - 移除新用户指引中的状态图例、开关和接入客户端三节。
+- **补充 desktop type-check 脚本** - 为桌面前端补充 type-check 脚本。
+- **固化 Wails3 CLI 安装版本** - CI 中固定 Wails3 CLI 安装版本，提升构建稳定性。
 
 ## [v2.8.19] - 2026-05-30
 
