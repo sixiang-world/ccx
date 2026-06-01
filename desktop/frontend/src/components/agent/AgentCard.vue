@@ -208,7 +208,7 @@ const openFileInEditor = async (editorPath: string, filePath: string) => {
           <select
             :value="selectedCodexProvider"
             class="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            @change="showCodexOwnKey = false; emit('update:selectedCodexProvider', ($event.target as HTMLSelectElement).value as AgentProvider)"
+            @change="showCodexOwnKey = false; emit('update:codexOpenAIKey', ''); emit('update:selectedCodexProvider', ($event.target as HTMLSelectElement).value as AgentProvider)"
           >
             <option value="ccx">{{ t('agent.provider.localGateway') }}</option>
             <option value="openai">{{ t('agent.provider.openaiDirect') }}</option>
@@ -262,7 +262,7 @@ const openFileInEditor = async (editorPath: string, filePath: string) => {
               type="checkbox"
               class="h-3 w-3 rounded border-input accent-primary cursor-pointer"
               :checked="showCodexOwnKey"
-              @change="showCodexOwnKey = ($event.target as HTMLInputElement).checked"
+              @change="showCodexOwnKey = ($event.target as HTMLInputElement).checked; if (!showCodexOwnKey) emit('update:codexOpenAIKey', '')"
             >
             {{ t('agent.hasOwnApiKey') }}
           </label>
