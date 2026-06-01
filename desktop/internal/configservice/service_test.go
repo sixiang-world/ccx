@@ -686,6 +686,7 @@ base_url = "https://api.opencode.ai/v1"
 func TestApplyAndRestoreCodex_ThirdPartyCleanup(t *testing.T) {
 	svc := newTestService(t)
 	configPath := filepath.Join(svc.homeDir, ".codex", "config.toml")
+	authPath := filepath.Join(svc.homeDir, ".codex", "auth.json")
 	os.MkdirAll(filepath.Dir(configPath), 0o755)
 
 	// 先 Apply 第三方 provider
@@ -706,6 +707,13 @@ func TestApplyAndRestoreCodex_ThirdPartyCleanup(t *testing.T) {
 	}
 	if !strings.Contains(s, `[model_providers.dashscope]`) {
 		t.Error("config.toml should contain dashscope provider block after apply")
+	}
+	authData, _, _ := readJSONMap(authPath)
+	if authData["OPENAI_API_KEY"] != "sk-ds-key" {
+		t.Errorf("OPENAI_API_KEY = %v, want sk-ds-key", authData["OPENAI_API_KEY"])
+	}
+	if authData["auth_mode"] != "chatgpt" {
+		t.Errorf("auth_mode = %v, want chatgpt", authData["auth_mode"])
 	}
 
 	// Restore
@@ -841,8 +849,8 @@ openai_base_url = "http://127.0.0.1:3688/v1"
 	os.WriteFile(configPath, []byte(tomlContent), 0o644)
 	writeJSON(authPath, map[string]any{"OPENAI_API_KEY": "sk-openai-key"})
 
-	// 应用 OpenAI direct
-	err := svc.Apply(ApplyAgentConfigRequest{Platform: PlatformCodex, Provider: ProviderOpenAI}, 0, "sk-openai-key")
+	// 应用 OpenAI direct（apiKey 须通过 req.APIKey 传入）
+	err := svc.Apply(ApplyAgentConfigRequest{Platform: PlatformCodex, Provider: ProviderOpenAI, APIKey: "sk-openai-key"}, 0, "")
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -854,6 +862,76 @@ openai_base_url = "http://127.0.0.1:3688/v1"
 	}
 	if !strings.Contains(s, `model_provider = "openai"`) {
 		t.Error("config.toml should contain model_provider = openai")
+	}
+}
+
+func TestApplyCodexOpenAI_OAuthMode(t *testing.T) {
+	svc := newTestService(t)
+	configPath := filepath.Join(svc.homeDir, ".codex", "config.toml")
+	authPath := filepath.Join(svc.homeDir, ".codex", "auth.json")
+	os.MkdirAll(filepath.Dir(configPath), 0o755)
+
+	// 先写入一个含 openai_base_url 的 config（CCX 代理残留）
+	tomlContent := `model_provider = "openai"
+openai_base_url = "http://127.0.0.1:3688/v1"
+`
+	os.WriteFile(configPath, []byte(tomlContent), 0o644)
+	writeJSON(authPath, map[string]any{"OPENAI_API_KEY": "ccx-proxy-key", "auth_mode": "chatgpt"})
+
+	// 应用 OpenAI direct，不提供 apiKey → 应走 OAuth 模式
+	err := svc.Apply(ApplyAgentConfigRequest{Platform: PlatformCodex, Provider: ProviderOpenAI}, 0, "")
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	// 验证 config.toml 清理了 proxy 残留
+	configContent, _ := os.ReadFile(configPath)
+	s := string(configContent)
+	if strings.Contains(s, "openai_base_url") {
+		t.Error("config.toml should NOT contain openai_base_url after switching to OpenAI direct")
+	}
+	if !strings.Contains(s, `model_provider = "openai"`) {
+		t.Error("config.toml should contain model_provider = openai")
+	}
+
+	// 验证 auth.json：auth_mode = "chatgpt"，OPENAI_API_KEY = nil
+	authContent, _ := os.ReadFile(authPath)
+	var authData map[string]any
+	json.Unmarshal(authContent, &authData)
+	if authData["auth_mode"] != "chatgpt" {
+		t.Errorf("auth.json should have auth_mode = chatgpt, got %v", authData["auth_mode"])
+	}
+	if authData["OPENAI_API_KEY"] != nil {
+		t.Errorf("auth.json should have OPENAI_API_KEY = null, got %v", authData["OPENAI_API_KEY"])
+	}
+}
+
+func TestApplyCodexOpenAI_WithApiKey(t *testing.T) {
+	svc := newTestService(t)
+	configPath := filepath.Join(svc.homeDir, ".codex", "config.toml")
+	authPath := filepath.Join(svc.homeDir, ".codex", "auth.json")
+	os.MkdirAll(filepath.Dir(configPath), 0o755)
+
+	tomlContent := `model_provider = "ccx"
+`
+	os.WriteFile(configPath, []byte(tomlContent), 0o644)
+	writeJSON(authPath, map[string]any{"OPENAI_API_KEY": nil, "auth_mode": "chatgpt"})
+
+	// 应用 OpenAI direct，提供了 apiKey → 应写入 key 并设置 auth_mode = "api"
+	err := svc.Apply(ApplyAgentConfigRequest{Platform: PlatformCodex, Provider: ProviderOpenAI, APIKey: "sk-my-openai-key"}, 0, "")
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	// 验证 auth.json：OPENAI_API_KEY 写入，auth_mode = "api"
+	authContent, _ := os.ReadFile(authPath)
+	var authData map[string]any
+	json.Unmarshal(authContent, &authData)
+	if authData["OPENAI_API_KEY"] != "sk-my-openai-key" {
+		t.Errorf("auth.json should have OPENAI_API_KEY = sk-my-openai-key, got %v", authData["OPENAI_API_KEY"])
+	}
+	if authData["auth_mode"] != "api" {
+		t.Errorf("auth.json should have auth_mode = api, got %v", authData["auth_mode"])
 	}
 }
 
@@ -939,7 +1017,7 @@ requires_openai_auth = true
 experimental_bearer_token = "test-key"
 `
 	os.WriteFile(configPath, []byte(tomlContent), 0o644)
-	writeJSON(authPath, map[string]any{"OPENAI_API_KEY": nil, "auth_mode": "chatgpt"})
+	writeJSON(authPath, map[string]any{"OPENAI_API_KEY": "test-key", "auth_mode": "chatgpt"})
 
 	status, err := svc.GetStatus(PlatformCodex, 3688)
 	if err != nil {
@@ -994,8 +1072,8 @@ func TestApplyCodex_PluginMode(t *testing.T) {
 	if authData["auth_mode"] != "chatgpt" {
 		t.Errorf("auth_mode = %v, want chatgpt", authData["auth_mode"])
 	}
-	if authData["OPENAI_API_KEY"] != nil {
-		t.Errorf("OPENAI_API_KEY = %v, want nil", authData["OPENAI_API_KEY"])
+	if authData["OPENAI_API_KEY"] != "test-key" {
+		t.Errorf("OPENAI_API_KEY = %v, want test-key", authData["OPENAI_API_KEY"])
 	}
 }
 
@@ -1015,7 +1093,7 @@ requires_openai_auth = true
 experimental_bearer_token = "old-key"
 `
 	os.WriteFile(configPath, []byte(tomlContent), 0o644)
-	writeJSON(authPath, map[string]any{"OPENAI_API_KEY": nil, "auth_mode": "chatgpt"})
+	writeJSON(authPath, map[string]any{"OPENAI_API_KEY": "old-key", "auth_mode": "chatgpt"})
 
 	err := svc.Apply(ApplyAgentConfigRequest{Platform: PlatformCodex, Provider: ProviderCCX, Mode: "quick"}, 3688, "new-key")
 	if err != nil {
@@ -1041,8 +1119,8 @@ experimental_bearer_token = "old-key"
 	if authData["OPENAI_API_KEY"] != "new-key" {
 		t.Errorf("OPENAI_API_KEY = %v, want new-key", authData["OPENAI_API_KEY"])
 	}
-	if _, ok := authData["auth_mode"]; ok {
-		t.Error("auth_mode should be removed in quick mode")
+	if authData["auth_mode"] != "chatgpt" {
+		t.Errorf("auth_mode = %v, want chatgpt", authData["auth_mode"])
 	}
 }
 

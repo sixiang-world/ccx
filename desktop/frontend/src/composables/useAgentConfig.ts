@@ -265,7 +265,7 @@ const findSavedKey = (provider: string, planID?: string): string => {
 const canApplyAgent = (platform: AgentPlatform) => {
   if (configLoading.value) return false
   if (platform === 'codex') {
-    // CCX 和 OpenAI 不需要验证，后端会使用代理 key 或 auth.json 中现有的 key
+    // CCX 和 OpenAI 直连都不需要验证 key：CCX 用 proxy key，OpenAI 用 ChatGPT OAuth 登录
     if (selectedCodexProvider.value === 'ccx' || selectedCodexProvider.value === 'openai') {
       return true
     }
@@ -317,7 +317,11 @@ const applyAgent = async (platform: AgentPlatform) => {
       if (selectedCodexProvider.value === 'ccx' || isCodexThirdPartyWithMode(selectedCodexProvider.value)) {
         request.mode = codexMode.value
       }
-      if (selectedCodexProvider.value !== 'ccx') {
+      if (selectedCodexProvider.value === 'openai') {
+        // OpenAI 直连只用用户当前输入的 key，不 fallback 到 saved key
+        // 无 key → 后端走 OAuth 登录模式 (auth_mode="chatgpt")
+        request.apiKey = codexOpenAIKey.value.trim()
+      } else if (selectedCodexProvider.value !== 'ccx') {
         const inputKey = codexOpenAIKey.value.trim()
         request.apiKey = inputKey || savedProviderKeys.value[`codex:${selectedCodexProvider.value}`] || ''
       }
@@ -356,7 +360,10 @@ const showApplyPreview = async (platform: AgentPlatform) => {
     if (selectedCodexProvider.value === 'ccx' || isCodexThirdPartyWithMode(selectedCodexProvider.value)) {
       request.mode = codexMode.value
     }
-    if (selectedCodexProvider.value !== 'ccx') {
+    if (selectedCodexProvider.value === 'openai') {
+      // OpenAI 直连只用用户当前输入的 key，不 fallback 到 saved key
+      request.apiKey = codexOpenAIKey.value.trim()
+    } else if (selectedCodexProvider.value !== 'ccx') {
       const inputKey = codexOpenAIKey.value.trim()
       request.apiKey = inputKey || savedProviderKeys.value[`codex:${selectedCodexProvider.value}`] || ''
     }

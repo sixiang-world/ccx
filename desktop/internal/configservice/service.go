@@ -560,9 +560,9 @@ func (s *Service) applyCodexQuick(port int, accessKey string) error {
 	if err := writeTextAtomic(configPath, updated); err != nil {
 		return err
 	}
-	// auth.json: OPENAI_API_KEY = accessKey, 清理插件模式字段
+	// auth.json: OPENAI_API_KEY = accessKey, auth_mode = "chatgpt"
 	authData["OPENAI_API_KEY"] = accessKey
-	delete(authData, "auth_mode")
+	authData["auth_mode"] = "chatgpt"
 	return writeJSONAtomic(authPath, authData)
 }
 
@@ -619,9 +619,9 @@ experimental_bearer_token = %q
 	if err := writeTextAtomic(configPath, updated); err != nil {
 		return err
 	}
-	// auth.json: auth_mode = "chatgpt", OPENAI_API_KEY = null
+	// auth.json: OPENAI_API_KEY = accessKey, auth_mode = "chatgpt"
+	authData["OPENAI_API_KEY"] = accessKey
 	authData["auth_mode"] = "chatgpt"
-	authData["OPENAI_API_KEY"] = nil
 	return writeJSONAtomic(authPath, authData)
 }
 
@@ -637,30 +637,6 @@ func (s *Service) applyCodexOpenAI(apiKey string) error {
 	if err != nil {
 		return err
 	}
-	key := strings.TrimSpace(apiKey)
-	// 优先级 1: 用户输入的 key
-	if key == "" {
-		// 优先级 2: 之前保存的 OpenAI key
-		key = s.GetSavedProviderKeys()["codex:"+ProviderOpenAI]
-	}
-	// 优先级 3: 从 codex state 中恢复原始的 OpenAI key
-	if key == "" {
-		if state, ok := s.readCodexState(); ok && state.OriginalOpenAIAPIKey != nil && *state.OriginalOpenAIAPIKey != "" {
-			key = *state.OriginalOpenAIAPIKey
-		}
-	}
-	// 优先级 4: auth.json 中现有的 key（可能是 CCX 的 accessKey）
-	if key == "" {
-		if existingKey, ok := authData["OPENAI_API_KEY"].(string); ok && strings.TrimSpace(existingKey) != "" {
-			key = strings.TrimSpace(existingKey)
-		}
-	}
-	if key == "" {
-		return fmt.Errorf("OpenAI API Key 不能为空")
-	}
-	if err := s.saveProviderKey(PlatformCodex, ProviderOpenAI, key); err != nil {
-		return err
-	}
 	updated := upsertTopLevelTomlString(configContent, "model_provider", "openai")
 	updated = restoreTopLevelTomlString(updated, "openai_base_url", nil) // 清理 CCX proxy 残留
 	updated = restoreNamedTomlBlock(updated, "model_providers.ccx", nil)
@@ -669,7 +645,19 @@ func (s *Service) applyCodexOpenAI(apiKey string) error {
 	if err := writeTextAtomic(configPath, updated); err != nil {
 		return err
 	}
-	authData["OPENAI_API_KEY"] = key
+	key := strings.TrimSpace(apiKey)
+	if key != "" {
+		// API Key 模式：写入 key + auth_mode = "api"
+		if err := s.saveProviderKey(PlatformCodex, ProviderOpenAI, key); err != nil {
+			return err
+		}
+		authData["OPENAI_API_KEY"] = key
+		authData["auth_mode"] = "api"
+	} else {
+		// OAuth 登录模式：auth_mode = "chatgpt"，OPENAI_API_KEY = null
+		authData["auth_mode"] = "chatgpt"
+		authData["OPENAI_API_KEY"] = nil
+	}
 	return writeJSONAtomic(authPath, authData)
 }
 
@@ -747,6 +735,7 @@ requires_openai_auth = false
 		return err
 	}
 	authData["OPENAI_API_KEY"] = key
+	authData["auth_mode"] = "chatgpt"
 	return writeJSONAtomic(authPath, authData)
 }
 
@@ -827,7 +816,7 @@ func (s *Service) applyCodexThirdPartyQuick(provider, baseURL, apiKey string) er
 		return err
 	}
 	authData["OPENAI_API_KEY"] = key
-	delete(authData, "auth_mode")
+	authData["auth_mode"] = "chatgpt"
 	return writeJSONAtomic(authPath, authData)
 }
 
@@ -1609,7 +1598,7 @@ func (s *Service) previewApplyCodexQuick(port int, accessKey string) (ConfigDiff
 
 	newAuthData := copyJSONMap(authData)
 	newAuthData["OPENAI_API_KEY"] = accessKey
-	delete(newAuthData, "auth_mode")
+	newAuthData["auth_mode"] = "chatgpt"
 
 	return ConfigDiffResult{Files: []FileDiff{
 		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, nil, nil),
@@ -1643,8 +1632,8 @@ experimental_bearer_token = %q
 	updatedConfig = upsertNamedTomlBlock(updatedConfig, "model_providers.ccx", block)
 
 	newAuthData := copyJSONMap(authData)
+	newAuthData["OPENAI_API_KEY"] = accessKey
 	newAuthData["auth_mode"] = "chatgpt"
-	newAuthData["OPENAI_API_KEY"] = nil
 
 	return ConfigDiffResult{Files: []FileDiff{
 		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, nil, nil),
@@ -1666,33 +1655,29 @@ func (s *Service) previewApplyCodexOpenAI(apiKey string) (ConfigDiffResult, erro
 	}
 
 	key := strings.TrimSpace(apiKey)
-	if key == "" {
-		key = s.GetSavedProviderKeys()["codex:"+ProviderOpenAI]
-	}
-	if key == "" {
-		if state, ok := s.readCodexState(); ok && state.OriginalOpenAIAPIKey != nil && *state.OriginalOpenAIAPIKey != "" {
-			key = *state.OriginalOpenAIAPIKey
-		}
-	}
-	if key == "" {
-		if existingKey, ok := authData["OPENAI_API_KEY"].(string); ok && strings.TrimSpace(existingKey) != "" {
-			key = strings.TrimSpace(existingKey)
-		}
-	}
-	if key == "" {
-		key = "[未配置]"
+	newAuthData := copyJSONMap(authData)
+	if key != "" {
+		// API Key 模式：写入 key + auth_mode = "api"
+		newAuthData["OPENAI_API_KEY"] = key
+		newAuthData["auth_mode"] = "api"
+	} else {
+		// OAuth 登录模式：auth_mode = "chatgpt"，OPENAI_API_KEY = null
+		newAuthData["auth_mode"] = "chatgpt"
+		newAuthData["OPENAI_API_KEY"] = nil
 	}
 
-	oldKey, _ := authData["OPENAI_API_KEY"].(string)
-	oldKeyValues := map[string]string{"OPENAI_API_KEY": oldKey}
-	newKeyValues := map[string]string{"OPENAI_API_KEY": key}
 	updatedConfig := upsertTopLevelTomlString(configContent, "model_provider", "openai")
-	updatedConfig = restoreTopLevelTomlString(updatedConfig, "openai_base_url", nil) // 清理 CCX proxy 残留
+	updatedConfig = restoreTopLevelTomlString(updatedConfig, "openai_base_url", nil)
 	updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers.ccx", nil)
 	updatedConfig = restoreNamedTomlBlock(updatedConfig, "model_providers.openai", nil)
 
-	newAuthData := copyJSONMap(authData)
-	newAuthData["OPENAI_API_KEY"] = key
+	oldKey, _ := authData["OPENAI_API_KEY"].(string)
+	oldKeyValues := map[string]string{"OPENAI_API_KEY": oldKey}
+	newKeyDisplay := key
+	if newKeyDisplay == "" {
+		newKeyDisplay = "[OAuth]"
+	}
+	newKeyValues := map[string]string{"OPENAI_API_KEY": newKeyDisplay}
 
 	return ConfigDiffResult{Files: []FileDiff{
 		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, oldKeyValues, newKeyValues),
@@ -1740,6 +1725,7 @@ requires_openai_auth = false
 
 	newAuthData := copyJSONMap(authData)
 	newAuthData["OPENAI_API_KEY"] = key
+	newAuthData["auth_mode"] = "chatgpt"
 
 	return ConfigDiffResult{Files: []FileDiff{
 		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, oldKeyValues, newKeyValues),
@@ -1782,7 +1768,7 @@ func (s *Service) previewApplyCodexThirdPartyQuick(provider, baseURL, apiKey str
 
 	newAuthData := copyJSONMap(authData)
 	newAuthData["OPENAI_API_KEY"] = key
-	delete(newAuthData, "auth_mode")
+	newAuthData["auth_mode"] = "chatgpt"
 
 	return ConfigDiffResult{Files: []FileDiff{
 		computeTextDiffWithSeparateMasks(configPath, configContent, updatedConfig, oldKeyValues, newKeyValues),
