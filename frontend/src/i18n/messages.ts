@@ -450,7 +450,9 @@ export type MessageKey =
   | 'guide.welcome.step2'
   | 'guide.welcome.step3'
   | 'guide.protocol.title'
-  | 'guide.protocol.body'
+  | 'guide.protocol.body1'
+  | 'guide.protocol.body2'
+  | 'guide.protocol.body3'
   | 'guide.addChannel.title'
   | 'guide.addChannel.body'
   | 'guide.channelList.title'
@@ -914,7 +916,9 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'guide.welcome.step2': 'Add a channel and fill in your API key',
     'guide.welcome.step3': 'Point your client at the gateway and start using it',
     'guide.protocol.title': 'Switch protocol at the top',
-    'guide.protocol.body': 'The tabs at the top — Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit — each manage their own set of channels. Switching a tab changes both the channel list below and what the Add channel button creates. Pick the protocol your client speaks first.',
+    'guide.protocol.body1': 'The tabs at the top — Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit — each manage their own set of channels.',
+    'guide.protocol.body2': 'Switching a tab changes both the channel list below and what the Add channel button creates.',
+    'guide.protocol.body3': 'Pick the protocol your client speaks first.',
     'guide.addChannel.title': 'Add a channel',
     'guide.addChannel.body': 'Click the Add channel button at the top left to add an upstream for the current protocol. Quick mode needs only a name, base URL and API key; detailed mode exposes model mapping, capability options and more.',
     'guide.channelList.title': 'Reading the channel list',
@@ -1377,7 +1381,9 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'guide.welcome.step2': 'Tambahkan channel dan isi API key Anda',
     'guide.welcome.step3': 'Arahkan klien Anda ke gateway lalu mulai gunakan',
     'guide.protocol.title': 'Beralih protokol di bagian atas',
-    'guide.protocol.body': 'Tab di atas — Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit — masing-masing mengelola kumpulan channel sendiri. Mengganti tab mengubah daftar channel di bawah sekaligus apa yang dibuat tombol Tambah channel. Pilih dulu protokol yang dipakai klien Anda.',
+    'guide.protocol.body1': 'Tab di atas — Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit — masing-masing mengelola kumpulan channel sendiri.',
+    'guide.protocol.body2': 'Mengganti tab mengubah daftar channel di bawah sekaligus apa yang dibuat tombol Tambah channel.',
+    'guide.protocol.body3': 'Pilih dulu protokol yang dipakai klien Anda.',
     'guide.addChannel.title': 'Tambah channel',
     'guide.addChannel.body': 'Klik tombol Tambah channel di kiri atas untuk menambah upstream bagi protokol saat ini. Mode cepat hanya butuh nama, base URL, dan API key; mode detail menampilkan pemetaan model, opsi kapabilitas, dan lainnya.',
     'guide.channelList.title': 'Membaca daftar channel',
@@ -1840,7 +1846,9 @@ export const messages: Record<SupportedLocale, Record<MessageKey, string>> = {
     'guide.welcome.step2': '添加渠道并填入 API 密钥',
     'guide.welcome.step3': '把客户端指向网关即可开始使用',
     'guide.protocol.title': '顶部切换协议',
-    'guide.protocol.body': '顶部的 Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit 标签各自管理一类渠道。切换标签会同时改变下方的渠道列表以及“添加渠道”按钮创建的渠道类型。请先选择你的客户端所用的协议。',
+    'guide.protocol.body1': '顶部的 Claude / OpenAI Chat / Images / Codex / Gemini / Cockpit 标签各自管理一类渠道。',
+    'guide.protocol.body2': '切换标签会同时改变下方的渠道列表以及”添加渠道”按钮创建的渠道类型。',
+    'guide.protocol.body3': '请先选择你的客户端所用的协议。',
     'guide.addChannel.title': '添加渠道',
     'guide.addChannel.body': '点击左上角的“添加渠道”按钮，为当前协议添加上游。快速模式只需名称、Base URL 和 API 密钥；详细模式则可配置模型映射、能力选项等。',
     'guide.channelList.title': '看懂渠道列表',

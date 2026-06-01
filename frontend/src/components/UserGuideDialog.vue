@@ -64,7 +64,9 @@
             <span class="demo-sep">/</span>
             <span class="demo-tab">Cockpit</span>
           </div>
-          <p class="guide-section-body">{{ t('guide.protocol.body') }}</p>
+          <p class="guide-section-body">{{ t('guide.protocol.body1') }}</p>
+          <p class="guide-section-body">{{ t('guide.protocol.body2') }}</p>
+          <p class="guide-section-body">{{ t('guide.protocol.body3') }}</p>
         </section>
 
         <!-- 3. 添加渠道 -->
