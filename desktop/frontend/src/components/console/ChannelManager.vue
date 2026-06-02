@@ -296,11 +296,7 @@ onMounted(() => {
           <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
           {{ tf('console.actions.refresh', 'Refresh') }}
         </Button>
-        <Button variant="outline" size="sm" :disabled="isPingingAll" @click="handlePingAll">
-          <Wifi v-if="!isPingingAll" class="h-3.5 w-3.5" />
-          <Loader2 v-else class="h-3.5 w-3.5 animate-spin" />
-          {{ tf('console.pingAll', '批量测速') }}
-        </Button>
+        <!-- 批量测速按钮：桌面端暂不展示，放不下 -->
         <Button size="sm" @click="handleAdd">
           <Plus class="h-3.5 w-3.5" />
           {{ tf('console.addChannel', '添加频道') }}
