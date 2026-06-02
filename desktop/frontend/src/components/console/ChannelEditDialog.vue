@@ -317,8 +317,10 @@ function handleQuickPaste(text: string) {
     existingApiKeys.value = [...new Set([...existingApiKeys.value, ...result.detectedApiKeys])]
   }
   if (result.detectedServiceType && !form.serviceType) form.serviceType = result.detectedServiceType
-  if (!form.name.trim() && result.detectedServiceType) {
-    form.name = `${props.channelType}-${result.detectedServiceType}-channel`
+  if (!form.serviceType) form.serviceType = defaultServiceTypeForChannel()
+  if (!form.name.trim()) {
+    const st = form.serviceType || 'channel'
+    form.name = `${props.channelType}-${st}-${Date.now().toString(36)}`
   }
 }
 
@@ -405,7 +407,7 @@ function shouldSkipEnterSubmit(target: EventTarget | null) {
   return Boolean(interactiveRole)
 }
 
-// Keyboard shortcuts: Esc 取消，Enter 保存（与 Agent 配置卡片一致）
+// Keyboard shortcuts: Esc 取消，创建模式 Cmd+Enter / 编辑模式 Enter 保存
 const handleGlobalKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
     e.preventDefault()
@@ -413,8 +415,11 @@ const handleGlobalKeydown = (e: KeyboardEvent) => {
     return
   }
 
-  if (e.key !== 'Enter' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return
-  if (saving.value || !isValid.value || shouldSkipEnterSubmit(e.target)) return
+  if (e.key !== 'Enter') return
+  if (saving.value || shouldSkipEnterSubmit(e.target)) return
+
+  // 创建模式需要 Cmd/Ctrl+Enter，编辑模式直接 Enter
+  if (!isEditMode.value && !e.metaKey && !e.ctrlKey) return
 
   e.preventDefault()
   void handleSubmit()
@@ -1046,7 +1051,7 @@ function buildCurrentPayload() {
                 ? tf('console.form.save', '保存')
                 : tf('console.form.create', '创建')
               }}
-              <span class="ml-1.5 text-xs opacity-60">Enter</span>
+              <span class="ml-1.5 text-xs opacity-60">{{ isEditMode ? 'Enter' : '⌘ Enter' }}</span>
             </Button>
           </div>
         </div>
