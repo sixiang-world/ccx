@@ -408,7 +408,7 @@ function shouldSkipEnterSubmit(target: EventTarget | null) {
   return Boolean(interactiveRole)
 }
 
-// Keyboard shortcuts: Esc 取消，创建模式 Cmd+Enter / 编辑模式 Enter 保存
+// Keyboard shortcuts: Esc 取消，创建模式 Cmd/Ctrl+Enter / 编辑模式 Enter 保存
 const handleGlobalKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
     e.preventDefault()
@@ -417,13 +417,23 @@ const handleGlobalKeydown = (e: KeyboardEvent) => {
   }
 
   if (e.key !== 'Enter') return
-  if (saving.value || shouldSkipEnterSubmit(e.target)) return
+  if (saving.value) return
 
-  // 创建模式需要 Cmd/Ctrl+Enter，编辑模式直接 Enter
-  if (!isEditMode.value && !e.metaKey && !e.ctrlKey) return
+  // 编辑模式：直接 Enter 保存（textarea 内不拦截）
+  if (isEditMode.value && !e.shiftKey) {
+    const el = e.target instanceof Element ? e.target : null
+    if (el?.closest('button, [role="combobox"], [role="listbox"], [role="option"], [role="switch"], [role="checkbox"]')) return
+    e.preventDefault()
+    void handleSubmit()
+    return
+  }
 
-  e.preventDefault()
-  void handleSubmit()
+  // 创建模式：需要 Cmd/Ctrl+Enter 保存（textarea 内也生效）
+  if (!isEditMode.value && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+    e.preventDefault()
+    void handleSubmit()
+    return
+  }
 }
 
 // 组件挂载即注册快捷键（新建和编辑模式都需要）
