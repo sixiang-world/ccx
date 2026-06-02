@@ -128,13 +128,8 @@ func extractContentText(content interface{}) string {
 					texts = append(texts, t)
 				}
 			case "input_image":
-				url, _ := m["image_url"].(string)
-				if url == "" {
-					if urlObj, ok := m["image_url"].(map[string]interface{}); ok {
-						url, _ = urlObj["url"].(string)
-					}
-				}
-				texts = append(texts, fmt.Sprintf("[Image: %s]", url))
+				// Skip base64 image data - only output placeholder to avoid polluting transcript
+				texts = append(texts, "[Image]")
 			default:
 				if t, ok := m["text"].(string); ok && t != "" {
 					texts = append(texts, t)
