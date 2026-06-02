@@ -8,6 +8,13 @@ import { Globe, Sparkles, X } from 'lucide-vue-next'
 import { useStatus } from '@/composables/useStatus'
 import { useLanguage } from '@/composables/useLanguage'
 import { useConsoleChannels } from '@/composables/useConsoleChannels'
+import {
+  channelSelectionPath,
+  consoleSelectionChannelType,
+  consoleSelectionSection,
+  isManagedChannelType,
+  type ConsoleSelection,
+} from '@/composables/useConsoleSelection'
 import { OpenWebUIInBrowser } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
 import ChannelManager from '@/components/console/ChannelManager.vue'
 import ChannelTab from '@/components/channel/ChannelTab.vue'
@@ -15,10 +22,14 @@ import ConversationDashboard from '@/components/console/ConversationDashboard.vu
 import type { ManagedChannelType } from '@/utils/channel-type-api'
 
 const props = withDefaults(defineProps<{
-  initialSection?: 'channels' | 'conversations'
+  selection?: ConsoleSelection
 }>(), {
-  initialSection: 'channels',
+  selection: '/channels/messages',
 })
+
+const emit = defineEmits<{
+  'update:selection': [selection: ConsoleSelection]
+}>()
 
 const { status } = useStatus()
 const { t, tf } = useLanguage()
@@ -28,22 +39,41 @@ const { activeTab, refreshChannels, refreshError } = useConsoleChannels()
 const protocolTabs: { value: ManagedChannelType; label: string }[] = [
   { value: 'messages', label: 'Messages' },
   { value: 'chat', label: 'Chat' },
+  { value: 'images', label: 'Images' },
   { value: 'responses', label: 'Responses' },
   { value: 'gemini', label: 'Gemini' },
-  { value: 'images', label: 'Images' },
 ]
 
 // 管理控制台的顶级 tab：频道管理 vs 会话管理
-const consoleTab = ref<'channels' | 'conversations'>(props.initialSection)
+const consoleTab = ref<'channels' | 'conversations'>(consoleSelectionSection(props.selection))
 const showQuickAdd = ref(false)
 
-const isManagedChannelType = (value: string): value is ManagedChannelType => {
-  return protocolTabs.some(tab => tab.value === value)
+const applySelection = (selection: ConsoleSelection) => {
+  const section = consoleSelectionSection(selection)
+  consoleTab.value = section
+  if (section === 'channels') {
+    activeTab.value = consoleSelectionChannelType(selection)
+  }
+}
+
+const updateConsoleTab = (value: string | number) => {
+  const next = String(value) === 'conversations' ? 'conversations' : 'channels'
+  consoleTab.value = next
+  emit('update:selection', next === 'conversations' ? '/conversations' : channelSelectionPath(activeTab.value))
+}
+
+const updateProtocolTab = (value: string | number) => {
+  const next = String(value)
+  if (!isManagedChannelType(next)) return
+  activeTab.value = next
+  emit('update:selection', channelSelectionPath(next))
 }
 
 const handlePresetCreated = async (target: string) => {
   if (isManagedChannelType(target)) {
+    consoleTab.value = 'channels'
     activeTab.value = target
+    emit('update:selection', channelSelectionPath(target))
   }
   showQuickAdd.value = false
   await refreshChannels()
@@ -58,13 +88,14 @@ const openInBrowser = async () => {
 }
 
 onMounted(() => {
+  applySelection(props.selection)
   if (status.value.running) {
     refreshChannels()
   }
 })
 
-watch(() => props.initialSection, (section) => {
-  consoleTab.value = section
+watch(() => props.selection, (selection) => {
+  applySelection(selection)
 })
 
 watch(() => status.value.running, (running) => {
@@ -91,8 +122,12 @@ watch(() => status.value.running, (running) => {
     <!-- 管理控制台主体 -->
     <div v-else class="flex-1 flex flex-col min-h-0">
       <!-- 顶级 Tab：频道管理 / 会话管理 -->
-      <Tabs v-model="consoleTab" class="flex-1 flex flex-col min-h-0">
-        <div v-if="initialSection !== 'channels'" class="flex items-center justify-between shrink-0 mb-4">
+      <Tabs
+        :model-value="consoleTab"
+        class="flex-1 flex flex-col min-h-0"
+        @update:model-value="updateConsoleTab"
+      >
+        <div class="flex items-center justify-between shrink-0 mb-4">
           <TabsList>
             <TabsTrigger value="channels">
               {{ tf('console.channelsTab', 'Channels') }}
@@ -136,8 +171,8 @@ watch(() => status.value.running, (running) => {
             <!-- 协议子 Tab -->
             <Tabs
               :model-value="activeTab"
-              @update:model-value="(v: string | number) => { activeTab = String(v) as ManagedChannelType }"
               class="flex-1 flex flex-col min-h-0"
+              @update:model-value="updateProtocolTab"
             >
               <TabsList class="shrink-0 mb-3 border border-border bg-card/80 p-1 rounded-none">
                 <TabsTrigger

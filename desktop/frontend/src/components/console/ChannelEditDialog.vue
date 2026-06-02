@@ -7,7 +7,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, X, ChevronDown, ChevronUp, RotateCcw } from 'lucide-vue-next'
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ClipboardPaste,
+  Loader2,
+  RotateCcw,
+  Wand2,
+  X,
+} from 'lucide-vue-next'
 import { useConsoleChannels } from '@/composables/useConsoleChannels'
 import { useLanguage } from '@/composables/useLanguage'
 import { buildChannelPayload } from '@/utils/channel-payload'
@@ -34,6 +44,7 @@ const restoringKey = ref('')
 const error = ref('')
 const showAdvanced = ref(false)
 const showProtocolOptions = ref(false)
+const quickInput = ref('')
 
 const reasoningParamStyleOptions = [
   { label: 'reasoning.effort', value: 'reasoning' },
@@ -88,6 +99,11 @@ const form = reactive({
 const disabledApiKeys = computed<DisabledKeyInfo[]>(() => props.channel?.disabledApiKeys ?? [])
 const historicalApiKeys = computed(() => props.channel?.historicalApiKeys ?? [])
 
+const quickDetection = computed(() => parseQuickInput(quickInput.value, form.serviceType || undefined))
+const detectedBaseUrls = computed(() => quickDetection.value.detectedBaseUrls)
+const detectedApiKeys = computed(() => quickDetection.value.detectedApiKeys)
+const quickHasDetections = computed(() => detectedBaseUrls.value.length > 0 || detectedApiKeys.value.length > 0 || !!quickDetection.value.detectedServiceType)
+
 function resetForm() {
   form.name = ''
   form.description = ''
@@ -123,6 +139,7 @@ function resetForm() {
   form.codexNativeToolPassthrough = false
   form.codexToolCompat = false
   form.stripCodexClientTools = false
+  quickInput.value = ''
   error.value = ''
   showAdvanced.value = false
   showProtocolOptions.value = false
@@ -179,7 +196,7 @@ watch(() => props.channel, (ch) => {
 
 const errors = computed(() => {
   const errs: Record<string, string> = {}
-  if (!form.name.trim()) errs.name = tf('console.form.nameRequired', '频道名称必填')
+  if (!form.name.trim()) errs.name = tf('console.form.nameRequired', '渠道名称必填')
   if (!form.serviceType) errs.serviceType = tf('console.form.serviceTypeRequired', '请选择服务类型')
   if (!form.baseUrl.trim() && !form.baseUrlsText.trim()) errs.baseUrl = tf('console.form.baseUrlRequired', '至少需要一个 Base URL')
   if (String(form.requestTimeoutMs).trim()) {
@@ -215,11 +232,30 @@ function parseLines(text: string) {
     .filter(Boolean)
 }
 
+function mergeLineText(currentText: string, additions: string[]) {
+  const merged = [...parseLines(currentText)]
+  for (const addition of additions.map(item => item.trim()).filter(Boolean)) {
+    if (!merged.includes(addition)) merged.push(addition)
+  }
+  return merged.join('\n')
+}
+
+function applyQuickInput() {
+  const result = quickDetection.value
+  if (result.detectedServiceType) form.serviceType = result.detectedServiceType
+  if (result.detectedBaseUrl) form.baseUrl = result.detectedBaseUrl
+  if (result.detectedBaseUrls.length > 1) form.baseUrlsText = result.detectedBaseUrls.join('\n')
+  if (result.detectedApiKeys.length) form.apiKeysText = mergeLineText(form.apiKeysText, result.detectedApiKeys)
+  if (!form.name.trim() && result.detectedServiceType) {
+    form.name = `${props.channelType}-${result.detectedServiceType}-channel`
+  }
+}
+
 function handleQuickPaste(text: string) {
   const result = parseQuickInput(text, form.serviceType || undefined)
   if (result.detectedBaseUrl) form.baseUrl = result.detectedBaseUrl
   if (result.detectedBaseUrls.length > 1) form.baseUrlsText = result.detectedBaseUrls.join('\n')
-  if (result.detectedApiKeys.length) form.apiKeysText = result.detectedApiKeys.join('\n')
+  if (result.detectedApiKeys.length) form.apiKeysText = mergeLineText(form.apiKeysText, result.detectedApiKeys)
   if (result.detectedServiceType && !form.serviceType) form.serviceType = result.detectedServiceType
 }
 
@@ -317,18 +353,24 @@ function onKeyDown(e: KeyboardEvent) {
       >
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="emit('close')" />
 
-        <div class="relative z-10 flex max-h-[88vh] w-[92vw] max-w-5xl flex-col border border-border bg-card shadow-2xl">
-          <div class="flex shrink-0 items-center justify-between border-b border-border p-4">
-            <div>
+        <div class="relative z-10 flex max-h-[90vh] w-[94vw] max-w-6xl flex-col border border-border bg-card shadow-2xl">
+          <div class="flex shrink-0 items-start justify-between border-b border-border p-4">
+            <div class="space-y-1">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-primary">
                 {{ channelType }} CHANNEL
               </div>
-              <h3 class="text-base font-semibold">
+              <h3 class="text-lg font-semibold">
                 {{ isEditMode
-                  ? tf('console.form.editChannel', '编辑频道')
-                  : tf('console.form.addChannel', '添加频道')
+                  ? tf('console.form.editChannel', '编辑渠道')
+                  : tf('console.form.addChannel', '添加渠道')
                 }}
               </h3>
+              <p class="text-xs text-muted-foreground">
+                {{ isEditMode
+                  ? tf('addChannel.editSubtitle', '修改渠道配置信息')
+                  : tf('addChannel.fullSubtitle', '配置渠道、密钥、模型与高级协议选项')
+                }}
+              </p>
             </div>
             <Button variant="ghost" size="icon-sm" @click="emit('close')">
               <X class="h-4 w-4" />
@@ -340,6 +382,63 @@ function onKeyDown(e: KeyboardEvent) {
               <div v-if="error" class="lg:col-span-2 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 {{ error }}
               </div>
+
+              <section v-if="!isEditMode" class="space-y-3 border border-primary/20 bg-primary/5 p-4 lg:col-span-2">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <h4 class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                      <ClipboardPaste class="h-3.5 w-3.5" />
+                      {{ tf('addChannel.quickMode', '快速粘贴') }}
+                    </h4>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                      {{ tf('addChannel.quickHint', '粘贴 Base URL、API Key 或完整配置片段，自动识别并填入表单。') }}
+                    </p>
+                  </div>
+                  <Button type="button" size="sm" :disabled="!quickHasDetections" @click="applyQuickInput">
+                    <Wand2 class="h-3.5 w-3.5" />
+                    {{ tf('addChannel.applyDetected', '应用识别结果') }}
+                  </Button>
+                </div>
+                <Textarea
+                  v-model="quickInput"
+                  rows="4"
+                  class="font-mono text-xs"
+                  placeholder="https://api.example.com/v1&#10;sk-..."
+                  @paste="handleQuickPaste(($event.clipboardData?.getData('text/plain') || ''))"
+                />
+                <div class="grid gap-2 md:grid-cols-3">
+                  <div class="border border-border bg-background/70 p-2 text-xs">
+                    <div class="mb-1 flex items-center gap-1.5 font-semibold">
+                      <CheckCircle2 v-if="detectedBaseUrls.length" class="h-3.5 w-3.5 text-emerald-500" />
+                      <AlertCircle v-else class="h-3.5 w-3.5 text-muted-foreground" />
+                      Base URLs
+                    </div>
+                    <p class="truncate text-muted-foreground">
+                      {{ detectedBaseUrls.length ? detectedBaseUrls.join(' · ') : tf('addChannel.noneDetected', '未识别') }}
+                    </p>
+                  </div>
+                  <div class="border border-border bg-background/70 p-2 text-xs">
+                    <div class="mb-1 flex items-center gap-1.5 font-semibold">
+                      <CheckCircle2 v-if="detectedApiKeys.length" class="h-3.5 w-3.5 text-emerald-500" />
+                      <AlertCircle v-else class="h-3.5 w-3.5 text-muted-foreground" />
+                      API Keys
+                    </div>
+                    <p class="text-muted-foreground">
+                      {{ detectedApiKeys.length ? `${detectedApiKeys.length} ${tf('console.keys.active', 'active keys')}` : tf('addChannel.noneDetected', '未识别') }}
+                    </p>
+                  </div>
+                  <div class="border border-border bg-background/70 p-2 text-xs">
+                    <div class="mb-1 flex items-center gap-1.5 font-semibold">
+                      <CheckCircle2 v-if="quickDetection.detectedServiceType" class="h-3.5 w-3.5 text-emerald-500" />
+                      <AlertCircle v-else class="h-3.5 w-3.5 text-muted-foreground" />
+                      Service Type
+                    </div>
+                    <p class="text-muted-foreground">
+                      {{ quickDetection.detectedServiceType || tf('addChannel.noneDetected', '未识别') }}
+                    </p>
+                  </div>
+                </div>
+              </section>
 
               <section class="space-y-3 border border-border bg-background/40 p-4">
                 <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

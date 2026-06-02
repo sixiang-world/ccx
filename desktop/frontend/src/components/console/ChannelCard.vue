@@ -212,12 +212,26 @@ async function copyChannelInfo() {
           class="h-2 w-2 shrink-0 rounded-full shadow-[0_0_8px_currentColor]"
           :class="statusConfig.dot"
         />
-        <span class="truncate text-sm font-semibold text-foreground">
+        <button
+          type="button"
+          class="min-w-0 truncate text-left text-sm font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          @click.stop="emit('edit')"
+          @keydown.enter.stop="emit('edit')"
+          @keydown.space.prevent.stop="emit('edit')"
+        >
           {{ channel.name }}
-        </span>
+        </button>
         <Badge class="shrink-0 border text-[10px] uppercase" :class="serviceTypeClass">
           {{ channel.serviceType }}
         </Badge>
+        <button
+          type="button"
+          class="inline-flex shrink-0 items-center gap-1 border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+          @click.stop="emit('edit')"
+        >
+          <Key class="h-3 w-3" />
+          {{ keyCount }} keys
+        </button>
         <span
           v-if="isPromoted"
           class="inline-flex shrink-0 items-center gap-1 border border-purple-500/25 bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300"

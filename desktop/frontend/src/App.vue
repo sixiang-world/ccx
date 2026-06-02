@@ -12,12 +12,18 @@ import { useWailsEvents } from '@/composables/useWailsEvents'
 import { useSetup } from '@/composables/useSetup'
 import { useLanguage } from '@/composables/useLanguage'
 import { useTheme } from '@/composables/useTheme'
+import {
+  channelSelectionPath,
+  useConsoleSelection,
+  type ConsoleSelection,
+} from '@/composables/useConsoleSelection'
 import type { TabValue } from '@/types'
 
 const activeTab = ref<TabValue>('status')
 const { status, actionError, syncStatus } = useStatus()
 const { t, initializeLanguage } = useLanguage()
 const { init: initTheme } = useTheme()
+const { consoleSelection, setConsoleSelection } = useConsoleSelection()
 
 useWailsEvents(activeTab, actionError, syncStatus)
 
@@ -40,6 +46,17 @@ watch(pendingTab, (tab) => {
 
 const switchToWeb = () => {
   activeTab.value = 'web'
+}
+
+const consoleTabSelection = computed<ConsoleSelection>(() => {
+  if (activeTab.value === 'channels' && consoleSelection.value === '/conversations') {
+    return channelSelectionPath('messages')
+  }
+  return consoleSelection.value
+})
+
+const handleConsoleSelectionUpdate = (selection: ConsoleSelection) => {
+  setConsoleSelection(selection)
 }
 
 // 选项卡标题映射
@@ -109,7 +126,10 @@ const tabTitles = computed<Record<TabValue, string>>(() => ({
             <AgentTab />
           </div>
           <div v-show="activeTab === 'channels' || activeTab === 'web'" class="h-full">
-            <ConsoleTab :initial-section="activeTab === 'web' ? 'conversations' : 'channels'" />
+            <ConsoleTab
+              :selection="consoleTabSelection"
+              @update:selection="handleConsoleSelectionUpdate"
+            />
           </div>
           <div v-show="activeTab === 'env'" class="h-full">
             <EnvTab />
