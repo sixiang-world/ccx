@@ -739,6 +739,14 @@ function applyCodexResponsesPreset(name: string) {
 const fetchingModels = ref(false)
 const targetModelOptions = ref<string[]>([])
 const fetchedModelsError = ref('')
+const hasTriedFetchModels = ref(false)
+
+// 切换渠道时重置拉取状态（独立于 resetForm，避免与早于本 ref 定义的 props.channel watch 产生 TDZ）
+watch(() => props.channel?.index, () => {
+  targetModelOptions.value = []
+  fetchedModelsError.value = ''
+  hasTriedFetchModels.value = false
+})
 
 // ── Source 模型预置列表（对齐 WebUI allSourceModelOptions） ──
 const sourceModelOptions = computed(() => {
@@ -757,6 +765,24 @@ const sourceModelOptions = computed(() => {
   // messages (Claude)
   return ['opus', 'sonnet', 'haiku']
 })
+
+// ── Target 模型预置列表（未拉取真实模型前的候选 fallback） ──
+const targetModelPresets = computed(() => {
+  if (props.channelType === 'images') {
+    return ['gpt-image-2', 'gpt-image-1', 'dall-e-3', 'dall-e-2']
+  }
+  if (props.channelType === 'gemini' || form.serviceType === 'gemini') {
+    return ['gemini-3-pro-preview', 'gemini-3-flash-preview', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
+  }
+  if (form.serviceType === 'claude') {
+    return ['claude-opus-4-1', 'claude-sonnet-4-5', 'claude-haiku-4-5', 'mimo-v2.5-pro', 'mimo-v2.5', 'deepseek-v4-pro', 'deepseek-v4-flash']
+  }
+  // openai / responses 等 OpenAI 兼容上游
+  return ['gpt-5.5', 'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.2', 'deepseek-v4-pro', 'deepseek-v4-flash', 'mimo-v2.5-pro', 'mimo-v2.5']
+})
+
+// 拉取到真实模型则优先，否则用预置候选；datalist 始终有内容
+const targetModelDatalist = computed(() => targetModelOptions.value.length ? targetModelOptions.value : targetModelPresets.value)
 
 const commonSupportedModelFilters = ['claude-*', 'gpt-5*', 'gpt-image-2', 'grok-4*', 'gemini-3*', '!*image*']
 const selectedSupportedModelSet = computed(() => new Set(parseLines(form.supportedModelsText)))
@@ -810,6 +836,14 @@ async function fetchTargetModels() {
   } finally {
     fetchingModels.value = false
   }
+}
+
+// target 框首次聚焦时自动拉取真实模型（仅编辑模式、配置齐全、未拉取过）
+function handleTargetFocus() {
+  if (hasTriedFetchModels.value || fetchingModels.value) return
+  if (!props.channel || !form.baseUrl.trim() || getSubmitApiKeys().length === 0) return
+  hasTriedFetchModels.value = true
+  void fetchTargetModels()
 }
 
 function getModelMappingAsObject(): Record<string, string> {
@@ -1189,9 +1223,9 @@ function buildCurrentPayload() {
                         <Input v-model="row.source" class="h-7 flex-1 font-mono text-xs" placeholder="source-model" :list="`source-models-${index}`" />
                         <datalist :id="`source-models-${index}`"><option v-for="m in sourceModelOptions" :key="m" :value="m" /></datalist>
                         <ArrowRight class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <Input v-model="row.target" class="h-7 flex-1 font-mono text-xs" placeholder="target-model" :list="targetModelOptions.length ? `target-models-${index}` : undefined" />
-                        <datalist v-if="targetModelOptions.length" :id="`target-models-${index}`">
-                          <option v-for="m in targetModelOptions" :key="m" :value="m" />
+                        <Input v-model="row.target" class="h-7 flex-1 font-mono text-xs" placeholder="target-model" :list="`target-models-${index}`" @focus="handleTargetFocus" />
+                        <datalist :id="`target-models-${index}`">
+                          <option v-for="m in targetModelDatalist" :key="m" :value="m" />
                         </datalist>
                         <Select v-if="supportsOpenAIAdvanced" :model-value="toSelectValue(row.reasoning)" @update:model-value="row.reasoning = fromSelectValue($event) as ReasoningEffort | ''">
                           <SelectTrigger class="h-7 w-28 text-xs"><SelectValue :placeholder="tf('console.form.reasoningEffort', '思考强度')" /></SelectTrigger>
@@ -1218,9 +1252,9 @@ function buildCurrentPayload() {
                         <Input v-model="newModelMapping.source" class="h-7 flex-1 font-mono text-xs" placeholder="source" list="source-models-new" @keydown.enter.prevent="addModelMappingRow" />
                         <datalist id="source-models-new"><option v-for="m in sourceModelOptions" :key="m" :value="m" /></datalist>
                         <ArrowRight class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <Input v-model="newModelMapping.target" class="h-7 flex-1 font-mono text-xs" placeholder="target" :list="targetModelOptions.length ? 'target-models-new' : undefined" @keydown.enter.prevent="addModelMappingRow" />
-                        <datalist v-if="targetModelOptions.length" id="target-models-new">
-                          <option v-for="m in targetModelOptions" :key="m" :value="m" />
+                        <Input v-model="newModelMapping.target" class="h-7 flex-1 font-mono text-xs" placeholder="target" list="target-models-new" @focus="handleTargetFocus" @keydown.enter.prevent="addModelMappingRow" />
+                        <datalist id="target-models-new">
+                          <option v-for="m in targetModelDatalist" :key="m" :value="m" />
                         </datalist>
                         <Select v-if="supportsOpenAIAdvanced" :model-value="toSelectValue(newModelMapping.reasoning)" @update:model-value="newModelMapping.reasoning = fromSelectValue($event) as ReasoningEffort | ''">
                           <SelectTrigger class="h-7 w-28 text-xs"><SelectValue :placeholder="tf('console.form.reasoningEffort', '思考强度')" /></SelectTrigger>
@@ -1262,9 +1296,9 @@ function buildCurrentPayload() {
                   <!-- Vision fallback model（仅当有模型级 noVision 标记时显示，对齐 WebUI） -->
                   <div v-if="getNoVisionModelsFromRows().length > 0" class="space-y-1.5">
                     <Label>{{ tf('console.form.visionFallbackModel', 'Vision fallback model') }}</Label>
-                    <Input v-model="form.visionFallbackModel" class="h-7 text-xs" placeholder="mimo-v2.5" :list="targetModelOptions.length ? 'vision-fallback-models' : undefined" />
-                    <datalist v-if="targetModelOptions.length" id="vision-fallback-models">
-                      <option v-for="m in targetModelOptions" :key="m" :value="m" />
+                    <Input v-model="form.visionFallbackModel" class="h-7 text-xs" placeholder="mimo-v2.5" list="vision-fallback-models" @focus="handleTargetFocus" />
+                    <datalist id="vision-fallback-models">
+                      <option v-for="m in targetModelDatalist" :key="m" :value="m" />
                     </datalist>
                   </div>
                 </section>
