@@ -105,7 +105,7 @@ func DeleteUpstream(cfgManager *config.ConfigManager, channelScheduler *schedule
 			return
 		}
 
-		channelScheduler.GetChannelLogStore(scheduler.ChannelKindChat).RemoveAndShift(id)
+		channelScheduler.DeleteChannelLogs(removed, scheduler.ChannelKindChat)
 		channelScheduler.DeleteChannelMetrics(removed, scheduler.ChannelKindChat)
 
 		c.JSON(200, gin.H{"message": "Chat upstream deleted successfully"})

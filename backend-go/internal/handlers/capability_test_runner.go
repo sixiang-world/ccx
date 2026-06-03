@@ -10,6 +10,7 @@ import (
 	"github.com/BenedictKing/ccx/internal/config"
 	"github.com/BenedictKing/ccx/internal/handlers/common"
 	"github.com/BenedictKing/ccx/internal/metrics"
+	"github.com/BenedictKing/ccx/internal/scheduler"
 )
 
 // ============== 核心测试逻辑 ==============
@@ -655,9 +656,11 @@ func executeModelTest(ctx context.Context, channel *config.UpstreamConfig, proto
 	modelResult.Latency = time.Since(startTime).Milliseconds()
 	modelResult.TestedAt = time.Now().Format(time.RFC3339Nano)
 	baseURL := req.URL.String()
+	metricsKey := metrics.GenerateMetricsIdentityKey(baseURL, apiKey, scheduler.NormalizedMetricsServiceType(scheduler.ChannelKind(channelKind), channel.ServiceType))
 	recordCapabilityTestLog := func(success bool, statusCode int, errorInfo string) {
 		common.RecordChannelLogWithSource(
 			channelLogStore,
+			metricsKey,
 			channelID,
 			model,
 			"",

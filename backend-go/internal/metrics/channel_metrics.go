@@ -424,7 +424,9 @@ func GenerateMetricsIdentityKey(baseURL, apiKey, serviceType string) string {
 	return generateMetricsKey(utils.MetricsIdentityBaseURL(baseURL, serviceType), apiKey)
 }
 
-func (m *MetricsManager) metricsLookupKeys(baseURL, apiKey, serviceType string) []string {
+// GenerateMetricsLookupKeys 生成用于查询同一指标身份的所有兼容键。
+// 第一个键是当前规范身份键；后续键覆盖历史 baseURL 归一化规则产生的兼容键。
+func GenerateMetricsLookupKeys(baseURL, apiKey, serviceType string) []string {
 	seen := make(map[string]struct{}, 4)
 	keys := make([]string, 0, 4)
 	add := func(metricsKey string) {
@@ -438,11 +440,15 @@ func (m *MetricsManager) metricsLookupKeys(baseURL, apiKey, serviceType string) 
 		keys = append(keys, metricsKey)
 	}
 
-	add(m.metricsIdentityKey(baseURL, apiKey, serviceType))
+	add(GenerateMetricsIdentityKey(baseURL, apiKey, serviceType))
 	for _, variant := range utils.EquivalentBaseURLVariants(baseURL, serviceType) {
 		add(generateMetricsKey(variant, apiKey))
 	}
 	return keys
+}
+
+func (m *MetricsManager) metricsLookupKeys(baseURL, apiKey, serviceType string) []string {
+	return GenerateMetricsLookupKeys(baseURL, apiKey, serviceType)
 }
 
 func (m *MetricsManager) getIdentityMetricsLocked(baseURL, apiKey, serviceType string) *KeyMetrics {

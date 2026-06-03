@@ -198,18 +198,21 @@ func TryUpstreamWithAllKeys(
 			// 记录请求开始
 			channelScheduler.RecordRequestStart(currentBaseURL, apiKey, metricsServiceType, kind)
 
+			// 计算本次尝试的 metricsKey（与统计同源的身份指纹）
+			metricsKey := metrics.GenerateMetricsIdentityKey(currentBaseURL, apiKey, metricsServiceType)
+
 			// 创建 pending 状态日志
-			logRequestID := CreatePendingLog(channelLogStore, channelIndex, redirectedModel, originalModel, apiKey, currentBaseURL, apiType, operation, metrics.RequestSourceProxy)
+			logRequestID := CreatePendingLog(channelLogStore, metricsKey, channelIndex, redirectedModel, originalModel, apiKey, currentBaseURL, apiType, operation, metrics.RequestSourceProxy)
 
 			// TCP 建连开始即计数：将活跃度统计提前到发起上游请求之前
 			requestID := metricsManager.RecordRequestConnected(currentBaseURL, apiKey, metricsServiceType, redirectedModel)
 
 			lifecycleTrace := &RequestLifecycleTrace{
 				OnConnected: func() {
-					UpdateLogStatus(channelLogStore, channelIndex, logRequestID, metrics.StatusConnecting)
+					UpdateLogStatus(channelLogStore, metricsKey, logRequestID, metrics.StatusConnecting)
 				},
 				OnFirstResponseByte: func() {
-					UpdateLogStatus(channelLogStore, channelIndex, logRequestID, metrics.StatusFirstByte)
+					UpdateLogStatus(channelLogStore, metricsKey, logRequestID, metrics.StatusFirstByte)
 				},
 			}
 			resp, err := SendRequestWithLifecycleTrace(req, upstream, envCfg, isStream, apiType, lifecycleTrace)
@@ -221,7 +224,7 @@ func TryUpstreamWithAllKeys(
 					metricsManager.RecordRequestFinalizeClientCancel(currentBaseURL, apiKey, metricsServiceType, requestID)
 					channelScheduler.RecordRequestEnd(currentBaseURL, apiKey, metricsServiceType, kind)
 					// 完成日志记录（客户端取消）
-					CompleteLog(channelLogStore, channelIndex, logRequestID, 0, false, "client canceled", attempt > 0 || urlIdx > 0)
+					CompleteLog(channelLogStore, metricsKey, logRequestID, 0, false, "client canceled", attempt > 0 || urlIdx > 0)
 					log.Printf("[%s-Cancel] 请求已取消（SendRequest 阶段）", apiType)
 					return true, "", 0, nil, nil, err
 				}
@@ -235,7 +238,7 @@ func TryUpstreamWithAllKeys(
 				}
 				// 记录渠道日志
 				// 完成日志记录
-				CompleteLog(channelLogStore, channelIndex, logRequestID, 0, false, err.Error(), attempt > 0 || urlIdx > 0)
+				CompleteLog(channelLogStore, metricsKey, logRequestID, 0, false, err.Error(), attempt > 0 || urlIdx > 0)
 				log.Printf("[%s-Key] 警告: API密钥失败: %v", apiType, err)
 				continue
 			}
@@ -283,7 +286,7 @@ func TryUpstreamWithAllKeys(
 					}
 
 					// 记录渠道日志
-					CompleteLog(channelLogStore, channelIndex, logRequestID, resp.StatusCode, false, string(respBodyBytes), attempt > 0 || urlIdx > 0)
+					CompleteLog(channelLogStore, metricsKey, logRequestID, resp.StatusCode, false, string(respBodyBytes), attempt > 0 || urlIdx > 0)
 
 					if isQuotaRelated {
 						deprioritizeCandidates[apiKey] = true
@@ -296,7 +299,7 @@ func TryUpstreamWithAllKeys(
 				metricsManager.RecordRequestFinalizeFailureWithClass(currentBaseURL, apiKey, metricsServiceType, requestID, metrics.FailureClassNonRetryable)
 				channelScheduler.RecordRequestEnd(currentBaseURL, apiKey, metricsServiceType, kind)
 				// 记录渠道日志
-				CompleteLog(channelLogStore, channelIndex, logRequestID, clientStatusCode, false, string(respBodyBytes), attempt > 0 || urlIdx > 0)
+				CompleteLog(channelLogStore, metricsKey, logRequestID, clientStatusCode, false, string(respBodyBytes), attempt > 0 || urlIdx > 0)
 				c.Data(clientStatusCode, "application/json", respBodyBytes)
 				return true, "", 0, nil, nil, nil
 			}
@@ -322,7 +325,7 @@ func TryUpstreamWithAllKeys(
 					channelScheduler.RecordRequestEnd(currentBaseURL, apiKey, metricsServiceType, kind)
 					log.Printf("[%s-Cancel] 请求已取消，停止渠道 failover", apiType)
 					// 完成日志记录（客户端取消）
-					CompleteLog(channelLogStore, channelIndex, logRequestID, http.StatusOK, false, "client canceled", attempt > 0 || urlIdx > 0)
+					CompleteLog(channelLogStore, metricsKey, logRequestID, http.StatusOK, false, "client canceled", attempt > 0 || urlIdx > 0)
 				} else if errors.Is(err, ErrEmptyStreamResponse) || errors.Is(err, ErrInvalidResponseBody) || errors.Is(err, ErrEmptyNonStreamResponse) {
 					// 空响应（流式 / 非流式）或无效响应体（如 HTML）：Header 未发送，可安全 failover
 					failedKeys[apiKey] = true
@@ -333,7 +336,7 @@ func TryUpstreamWithAllKeys(
 						markURLFailure(currentBaseURL)
 					}
 					// 记录渠道日志
-					CompleteLog(channelLogStore, channelIndex, logRequestID, http.StatusOK, false, err.Error(), attempt > 0 || urlIdx > 0)
+					CompleteLog(channelLogStore, metricsKey, logRequestID, http.StatusOK, false, err.Error(), attempt > 0 || urlIdx > 0)
 					log.Printf("[%s-InvalidResponse] 上游返回无效响应 (Key: %s): %v，尝试下一个密钥", apiType, utils.MaskAPIKey(apiKey), err)
 					continue
 				} else if blErr, ok := err.(*ErrBlacklistKey); ok {
@@ -351,7 +354,7 @@ func TryUpstreamWithAllKeys(
 					if markURLFailure != nil {
 						markURLFailure(currentBaseURL)
 					}
-					CompleteLog(channelLogStore, channelIndex, logRequestID, http.StatusOK, false, fmt.Sprintf("key blacklisted: %s - %s", blErr.Reason, blErr.Message), attempt > 0 || urlIdx > 0)
+					CompleteLog(channelLogStore, metricsKey, logRequestID, http.StatusOK, false, fmt.Sprintf("key blacklisted: %s - %s", blErr.Reason, blErr.Message), attempt > 0 || urlIdx > 0)
 					log.Printf("[%s-Blacklist] SSE 流内错误触发拉黑 (Key: %s, 原因: %s)，尝试下一个密钥", apiType, utils.MaskAPIKey(apiKey), blErr.Reason)
 					continue
 				} else {
@@ -360,7 +363,7 @@ func TryUpstreamWithAllKeys(
 					metricsManager.RecordRequestFinalizeFailureWithClass(currentBaseURL, apiKey, metricsServiceType, requestID, metrics.FailureClassRetryable)
 					channelScheduler.RecordRequestEnd(currentBaseURL, apiKey, metricsServiceType, kind)
 					// 记录渠道日志
-					CompleteLog(channelLogStore, channelIndex, logRequestID, http.StatusOK, false, err.Error(), attempt > 0 || urlIdx > 0)
+					CompleteLog(channelLogStore, metricsKey, logRequestID, http.StatusOK, false, err.Error(), attempt > 0 || urlIdx > 0)
 					log.Printf("[%s-Key] 警告: 响应处理失败: %v", apiType, err)
 				}
 				return true, "", 0, nil, usage, err
@@ -373,7 +376,7 @@ func TryUpstreamWithAllKeys(
 				delete(probeAcquired, probeKey)
 			}
 			// 记录渠道日志
-			CompleteLog(channelLogStore, channelIndex, logRequestID, http.StatusOK, true, "", attempt > 0 || urlIdx > 0)
+			CompleteLog(channelLogStore, metricsKey, logRequestID, http.StatusOK, true, "", attempt > 0 || urlIdx > 0)
 			return true, apiKey, originalIdx, nil, usage, nil
 		}
 

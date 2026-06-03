@@ -52,8 +52,10 @@ func TestDeleteUpstream_PreservesRemainingChannelLogs(t *testing.T) {
 
 	sch := scheduler.NewChannelScheduler(cm, messagesMetrics, responsesMetrics, geminiMetrics, chatMetrics, imagesMetrics, traceAffinity, nil)
 	logStore := sch.GetChannelLogStore(scheduler.ChannelKindResponses)
-	logStore.Record(0, &metrics.ChannelLog{Model: "deleted-channel"})
-	logStore.Record(1, &metrics.ChannelLog{Model: "remaining-channel"})
+	keyA := metrics.GenerateMetricsIdentityKey("https://shared.example.com", "sk-a", "responses")
+	keyB := metrics.GenerateMetricsIdentityKey("https://shared.example.com", "sk-b", "responses")
+	logStore.Record(keyA, &metrics.ChannelLog{RequestID: "r1", Model: "deleted-channel"})
+	logStore.Record(keyB, &metrics.ChannelLog{RequestID: "r2", Model: "remaining-channel"})
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -67,11 +69,11 @@ func TestDeleteUpstream_PreservesRemainingChannelLogs(t *testing.T) {
 		t.Fatalf("status = %d, want 200, body = %s", w.Code, w.Body.String())
 	}
 
-	remainingLogs := logStore.Get(0)
+	if got := logStore.Get(keyA); got != nil {
+		t.Fatalf("deleted channel logs should be nil, got %v", got)
+	}
+	remainingLogs := logStore.Get(keyB)
 	if len(remainingLogs) != 1 || remainingLogs[0].Model != "remaining-channel" {
 		t.Fatalf("remaining logs = %#v, want remaining-channel", remainingLogs)
-	}
-	if got := logStore.Get(1); got != nil {
-		t.Fatalf("channel 1 logs = %#v, want nil", got)
 	}
 }

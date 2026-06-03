@@ -977,6 +977,53 @@ func (s *ChannelScheduler) DeleteChannelMetrics(upstream *config.UpstreamConfig,
 	}
 }
 
+// DeleteChannelLogs 删除渠道的独占日志数据（内存态）。
+// 与 DeleteChannelMetrics 口径一致：仅删除不再被其他存活渠道引用的 metricsKey 对应的日志桶。
+// 前置条件：调用此方法前，被删除的渠道应已从 config 中移除。
+func (s *ChannelScheduler) DeleteChannelLogs(upstream *config.UpstreamConfig, kind ChannelKind) {
+	if upstream == nil {
+		return
+	}
+
+	prefix := kindSchedulerLogPrefix(kind)
+
+	if s.isUpstreamInConfig(upstream, kind) {
+		log.Printf("[%s-Delete] 警告: 渠道 %s 仍在配置中，删除日志可能不完整（应先从配置中移除）", prefix, upstream.Name)
+	}
+
+	deletedBaseURLs := upstream.GetAllBaseURLs()
+	deletedKeys := append([]string{}, upstream.APIKeys...)
+	deletedKeys = append(deletedKeys, upstream.HistoricalAPIKeys...)
+
+	usedMetricsKeys := s.collectUsedMetricsKeys(kind)
+
+	exclusiveKeysSet := make(map[string]struct{})
+	serviceType := NormalizedMetricsServiceType(kind, upstream.ServiceType)
+
+	for _, baseURL := range deletedBaseURLs {
+		for _, apiKey := range deletedKeys {
+			for _, metricsKey := range metricsLookupKeys(baseURL, apiKey, serviceType) {
+				if !usedMetricsKeys[metricsKey] {
+					exclusiveKeysSet[metricsKey] = struct{}{}
+				}
+			}
+		}
+	}
+
+	exclusiveMetricsKeys := make([]string, 0, len(exclusiveKeysSet))
+	for key := range exclusiveKeysSet {
+		exclusiveMetricsKeys = append(exclusiveMetricsKeys, key)
+	}
+
+	channelLogStore := s.GetChannelLogStore(kind)
+	if channelLogStore != nil && len(exclusiveMetricsKeys) > 0 {
+		channelLogStore.Remove(exclusiveMetricsKeys)
+		log.Printf("[%s-Delete] 渠道 %s 的 %d 个独占日志桶已清理", prefix, upstream.Name, len(exclusiveMetricsKeys))
+	} else {
+		log.Printf("[%s-Delete] 渠道 %s 的日志数据被其他渠道共享，已保留", prefix, upstream.Name)
+	}
+}
+
 // collectUsedMetricsKeys 收集当前配置中所有渠道仍在使用的 identity metricsKey。
 // 注意：调用此方法前，被删除的渠道应已从 config 中移除。
 func (s *ChannelScheduler) collectUsedMetricsKeys(kind ChannelKind) map[string]bool {

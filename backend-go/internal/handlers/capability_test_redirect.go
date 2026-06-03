@@ -269,9 +269,11 @@ func executeRedirectModelTest(ctx context.Context, channel *config.UpstreamConfi
 	result.TestedAt = time.Now().Format(time.RFC3339Nano)
 
 	baseURL := req.URL.String()
+	metricsKey := metrics.GenerateMetricsIdentityKey(baseURL, apiKey, protocol)
 	recordLog := func(success bool, statusCode int, errorInfo string) {
 		common.RecordChannelLogWithSource(
 			channelLogStore,
+			metricsKey,
 			channelID,
 			actualModel, // 渠道日志记录重定向后的模型
 			"",

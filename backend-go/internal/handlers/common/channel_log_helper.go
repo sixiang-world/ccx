@@ -21,12 +21,13 @@ func GenerateRequestID() string {
 // CreatePendingLog 创建 pending 状态的日志条目（请求开始时调用）
 func CreatePendingLog(
 	channelLogStore *metrics.ChannelLogStore,
+	metricsKey string,
 	channelIndex int,
 	model, originalModel string,
 	apiKey, baseURL, interfaceType, operation string,
 	requestSource string,
 ) string {
-	if channelLogStore == nil {
+	if channelLogStore == nil || metricsKey == "" {
 		return ""
 	}
 	if requestSource == "" {
@@ -36,9 +37,9 @@ func CreatePendingLog(
 	requestID := GenerateRequestID()
 	now := time.Now()
 
-	channelLogStore.Record(channelIndex, &metrics.ChannelLog{
+	channelLogStore.Record(metricsKey, &metrics.ChannelLog{
 		RequestID:     requestID,
-		ChannelIndex:  channelIndex, // 记录创建时的渠道索引
+		ChannelIndex:  channelIndex, // 记录创建时的渠道索引，便于内部排查
 		Timestamp:     now,
 		StartTime:     now,
 		Model:         model,
@@ -62,16 +63,16 @@ func CreatePendingLog(
 // UpdateLogStatus 更新日志状态（连接建立、首字节、流式传输等）
 func UpdateLogStatus(
 	channelLogStore *metrics.ChannelLogStore,
-	channelIndex int,
+	metricsKey string,
 	requestID string,
 	status string,
 ) {
-	if channelLogStore == nil || requestID == "" {
+	if channelLogStore == nil || metricsKey == "" || requestID == "" {
 		return
 	}
 
 	now := time.Now()
-	channelLogStore.Update(channelIndex, requestID, func(log *metrics.ChannelLog) {
+	channelLogStore.Update(metricsKey, requestID, func(log *metrics.ChannelLog) {
 		log.Status = status
 		switch status {
 		case metrics.StatusConnecting:
@@ -89,14 +90,14 @@ func UpdateLogStatus(
 // CompleteLog 完成日志记录（请求结束时调用）
 func CompleteLog(
 	channelLogStore *metrics.ChannelLogStore,
-	channelIndex int,
+	metricsKey string,
 	requestID string,
 	statusCode int,
 	success bool,
 	errorInfo string,
 	isRetry bool,
 ) {
-	if channelLogStore == nil || requestID == "" {
+	if channelLogStore == nil || metricsKey == "" || requestID == "" {
 		return
 	}
 
@@ -106,7 +107,7 @@ func CompleteLog(
 
 	status := getStatusFromResult(success, errorInfo)
 	now := time.Now()
-	updateStatus, actualChannelIndex := channelLogStore.Update(channelIndex, requestID, func(log *metrics.ChannelLog) {
+	updateStatus, actualMetricsKey := channelLogStore.Update(metricsKey, requestID, func(log *metrics.ChannelLog) {
 		log.StatusCode = statusCode
 		log.Success = success
 		log.ErrorInfo = errorInfo
@@ -117,19 +118,18 @@ func CompleteLog(
 	})
 
 	// 仅在确认是环形缓冲淘汰时补写终态日志；若渠道已删除则不补写，避免污染其他渠道。
-	if updateStatus == metrics.UpdateMissingEvicted && actualChannelIndex >= 0 {
-		channelLogStore.Record(actualChannelIndex, &metrics.ChannelLog{
-			RequestID:    requestID,
-			ChannelIndex: actualChannelIndex,
-			Timestamp:    now,
-			StatusCode:   statusCode,
-			Success:      success,
-			ErrorInfo:    errorInfo,
-			IsRetry:      isRetry,
-			Status:       status,
-			StartTime:    now,
-			CompletedAt:  &now,
-			DurationMs:   0,
+	if updateStatus == metrics.UpdateMissingEvicted && actualMetricsKey != "" {
+		channelLogStore.Record(actualMetricsKey, &metrics.ChannelLog{
+			RequestID:   requestID,
+			Timestamp:   now,
+			StatusCode:  statusCode,
+			Success:     success,
+			ErrorInfo:   errorInfo,
+			IsRetry:     isRetry,
+			Status:      status,
+			StartTime:   now,
+			CompletedAt: &now,
+			DurationMs:  0,
 		})
 	}
 }
@@ -149,6 +149,7 @@ func getStatusFromResult(success bool, errorInfo string) string {
 // 注意：此函数用于兼容旧代码，新代码应使用 CreatePendingLog + UpdateLogStatus + CompleteLog 组合
 func RecordChannelLog(
 	channelLogStore *metrics.ChannelLogStore,
+	metricsKey string,
 	channelIndex int,
 	model, originalModel string,
 	statusCode int,
@@ -159,6 +160,7 @@ func RecordChannelLog(
 ) {
 	RecordChannelLogWithSource(
 		channelLogStore,
+		metricsKey,
 		channelIndex,
 		model,
 		originalModel,
@@ -178,6 +180,7 @@ func RecordChannelLog(
 // 注意：此函数用于兼容旧代码，新代码应使用 CreatePendingLog + UpdateLogStatus + CompleteLog 组合
 func RecordChannelLogWithSource(
 	channelLogStore *metrics.ChannelLogStore,
+	metricsKey string,
 	channelIndex int,
 	model, originalModel string,
 	statusCode int,
@@ -187,7 +190,7 @@ func RecordChannelLogWithSource(
 	isRetry bool,
 	requestSource string,
 ) {
-	if channelLogStore == nil {
+	if channelLogStore == nil || metricsKey == "" {
 		return
 	}
 	if len(errorInfo) > 200 {
@@ -208,9 +211,9 @@ func RecordChannelLogWithSource(
 		status = metrics.StatusFailed
 	}
 
-	channelLogStore.Record(channelIndex, &metrics.ChannelLog{
+	channelLogStore.Record(metricsKey, &metrics.ChannelLog{
 		RequestID:     requestID,
-		ChannelIndex:  channelIndex, // 记录创建时的渠道索引
+		ChannelIndex:  channelIndex, // 记录创建时的渠道索引，便于内部排查
 		Timestamp:     now,
 		StartTime:     startTime,
 		Model:         model,

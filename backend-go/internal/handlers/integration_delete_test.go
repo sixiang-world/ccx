@@ -20,6 +20,7 @@ import (
 func TestGetChannelLogs_AfterChannelDeletion(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	// ch-a 和 ch-b 共享 baseURL，但使用不同的 key（不同 metricsKey 桶）
 	cfg := config.Config{
 		Upstream: []config.UpstreamConfig{
 			{Name: "ch-a", BaseURL: "https://shared.example.com", APIKeys: []string{"sk-a"}},
@@ -61,31 +62,39 @@ func TestGetChannelLogs_AfterChannelDeletion(t *testing.T) {
 
 	logStore := sch.GetChannelLogStore(scheduler.ChannelKindMessages)
 
-	// 为两个渠道记录日志
-	logStore.Record(0, &metrics.ChannelLog{Model: "model-a", BaseURL: "https://shared.example.com", KeyMask: "***a"})
-	logStore.Record(1, &metrics.ChannelLog{Model: "model-b", BaseURL: "https://shared.example.com", KeyMask: "***b"})
+	// 用不同的 metricsKey 为两个渠道记录日志（与 stats 同源的 hash）
+	keyA := metrics.GenerateMetricsIdentityKey("https://shared.example.com", "sk-a", "claude")
+	keyB := metrics.GenerateMetricsIdentityKey("https://shared.example.com", "sk-b", "claude")
 
-	// 验证删除前 channel 1 日志存在
-	logsBefore := logStore.Get(1)
+	logStore.Record(keyA, &metrics.ChannelLog{RequestID: "r1", Model: "model-a", BaseURL: "https://shared.example.com", KeyMask: "***a"})
+	logStore.Record(keyB, &metrics.ChannelLog{RequestID: "r2", Model: "model-b", BaseURL: "https://shared.example.com", KeyMask: "***b"})
+
+	// 验证删除前 ch-b 日志存在
+	logsBefore := logStore.Get(keyB)
 	if len(logsBefore) != 1 {
-		t.Fatalf("删除前 channel 1 日志数 = %d, want 1", len(logsBefore))
+		t.Fatalf("删除前 ch-b 日志数 = %d, want 1", len(logsBefore))
 	}
 
-	// 执行 RemoveAndShift 模拟删除 channel 0
-	logStore.RemoveAndShift(0)
-
-	// 验证删除后原 channel 1 的日志现在在 index 0
-	logs := logStore.Get(0)
-	if len(logs) != 1 || logs[0].Model != "model-b" {
-		t.Fatalf("删除后 channel 0 日志 = %#v, want model-b", logs)
+	// 模拟删除 ch-a：先从配置移除，再调 DeleteChannelLogs
+	removed, err := cfgManager.RemoveUpstream(0)
+	if err != nil {
+		t.Fatalf("删除渠道失败: %v", err)
 	}
-	if logStore.Get(1) != nil {
-		t.Fatalf("删除后 channel 1 应为 nil")
+	sch.DeleteChannelLogs(removed, scheduler.ChannelKindMessages)
+
+	// ch-a 的日志应被清理（它是独占 key）
+	if got := logStore.Get(keyA); got != nil {
+		t.Fatalf("删除后 ch-a 日志应为 nil, got %v", got)
 	}
 
-	// 验证通过 API 查询
+	// ch-b 的日志应保留
+	if got := logStore.Get(keyB); len(got) != 1 || got[0].RequestID != "r2" {
+		t.Fatalf("删除后 ch-b 日志 = %v, want [r2]", got)
+	}
+
+	// 通过 API 查询 ch-b（index 现在是 0，因为 ch-a 被移除）
 	r := gin.New()
-	r.GET("/messages/channels/:id/logs", GetChannelLogs(logStore))
+	r.GET("/messages/channels/:id/logs", GetChannelLogs(logStore, cfgManager, scheduler.ChannelKindMessages))
 
 	req := httptest.NewRequest(http.MethodGet, "/messages/channels/0/logs", nil)
 	w := httptest.NewRecorder()
@@ -105,8 +114,8 @@ func TestGetChannelLogs_AfterChannelDeletion(t *testing.T) {
 	if resp.ChannelIndex != 0 {
 		t.Fatalf("channelIndex = %d, want 0", resp.ChannelIndex)
 	}
-	if len(resp.Logs) != 1 || resp.Logs[0].Model != "model-b" {
-		t.Fatalf("logs = %#v, want model-b", resp.Logs)
+	if len(resp.Logs) != 1 || resp.Logs[0].RequestID != "r2" {
+		t.Fatalf("logs = %#v, want [r2]", resp.Logs)
 	}
 }
 
@@ -161,7 +170,7 @@ func TestGetChannelDashboard_AfterChannelDeletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("删除渠道失败: %v", err)
 	}
-	sch.GetChannelLogStore(scheduler.ChannelKindMessages).RemoveAndShift(0)
+	sch.DeleteChannelLogs(removed, scheduler.ChannelKindMessages)
 	sch.DeleteChannelMetrics(removed, scheduler.ChannelKindMessages)
 
 	// 请求 dashboard

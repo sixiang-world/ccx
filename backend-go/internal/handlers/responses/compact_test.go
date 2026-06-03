@@ -88,7 +88,8 @@ func TestCompactHandler_SingleChannelFailureRecordsMetricsAndLogs(t *testing.T) 
 		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusUnauthorized, w.Body.String())
 	}
 
-	logs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(0)
+	metricsKey := metrics.GenerateMetricsIdentityKey(upstream.URL, "sk-test", "responses")
+	logs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(metricsKey)
 	if len(logs) != 1 {
 		t.Fatalf("logs count = %d, want 1", len(logs))
 	}
@@ -159,12 +160,14 @@ func TestCompactHandler_MultiChannelRespectsSupportedModels(t *testing.T) {
 		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	skippedLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(0)
+	metricsSkippedKey := metrics.GenerateMetricsIdentityKey(skippedUpstream.URL, "sk-skip", "responses")
+	skippedLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(metricsSkippedKey)
 	if len(skippedLogs) != 0 {
 		t.Fatalf("skipped channel logs count = %d, want 0", len(skippedLogs))
 	}
 
-	selectedLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(1)
+	metricsSelectedKey := metrics.GenerateMetricsIdentityKey(selectedUpstream.URL, "sk-allow", "responses")
+	selectedLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(metricsSelectedKey)
 	if len(selectedLogs) != 1 {
 		t.Fatalf("selected channel logs count = %d, want 1", len(selectedLogs))
 	}
@@ -242,7 +245,8 @@ func TestCompactHandler_MultiChannelFailoverRecordsFailedChannelLogs(t *testing.
 		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	failedLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(0)
+	failedMetricsKey := metrics.GenerateMetricsIdentityKey(failedUpstream.URL, "sk-fail", "responses")
+	failedLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(failedMetricsKey)
 	if len(failedLogs) != 1 {
 		t.Fatalf("failed channel logs count = %d, want 1", len(failedLogs))
 	}
@@ -253,7 +257,8 @@ func TestCompactHandler_MultiChannelFailoverRecordsFailedChannelLogs(t *testing.
 		t.Fatalf("failed channel status = %d, want %d", failedLogs[0].StatusCode, http.StatusUnauthorized)
 	}
 
-	successLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(1)
+	successMetricsKey := metrics.GenerateMetricsIdentityKey(successUpstream.URL, "sk-ok", "responses")
+	successLogs := sch.GetChannelLogStore(scheduler.ChannelKindResponses).Get(successMetricsKey)
 	if len(successLogs) != 1 {
 		t.Fatalf("success channel logs count = %d, want 1", len(successLogs))
 	}

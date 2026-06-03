@@ -113,7 +113,7 @@ func DeleteUpstream(cfgManager *config.ConfigManager, channelScheduler *schedule
 			return
 		}
 
-		channelScheduler.GetChannelLogStore(scheduler.ChannelKindImages).RemoveAndShift(id)
+		channelScheduler.DeleteChannelLogs(removed, scheduler.ChannelKindImages)
 		channelScheduler.DeleteChannelMetrics(removed, scheduler.ChannelKindImages)
 
 		c.JSON(200, gin.H{"message": "Images upstream deleted successfully"})

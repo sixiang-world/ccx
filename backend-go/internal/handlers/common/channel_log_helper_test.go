@@ -13,6 +13,7 @@ func TestRecordChannelLog_TruncatesAndMasks(t *testing.T) {
 
 	RecordChannelLog(
 		store,
+		"test-metrics-key",
 		3,
 		"model-a",
 		"model-orig",
@@ -26,7 +27,7 @@ func TestRecordChannelLog_TruncatesAndMasks(t *testing.T) {
 		true,
 	)
 
-	logs := store.Get(3)
+	logs := store.Get("test-metrics-key")
 	if len(logs) != 1 {
 		t.Fatalf("logs count = %d, want 1", len(logs))
 	}
@@ -72,6 +73,7 @@ func TestRecordChannelLogWithSource_UsesExplicitSource(t *testing.T) {
 
 	RecordChannelLogWithSource(
 		store,
+		"test-metrics-key-2",
 		1,
 		"model-b",
 		"",
@@ -86,7 +88,7 @@ func TestRecordChannelLogWithSource_UsesExplicitSource(t *testing.T) {
 		metrics.RequestSourceCapabilityTest,
 	)
 
-	logs := store.Get(1)
+	logs := store.Get("test-metrics-key-2")
 	if len(logs) != 1 {
 		t.Fatalf("logs count = %d, want 1", len(logs))
 	}
@@ -97,11 +99,11 @@ func TestRecordChannelLogWithSource_UsesExplicitSource(t *testing.T) {
 
 func TestCompleteLog_MapsClientCanceledToCancelledStatus(t *testing.T) {
 	store := metrics.NewChannelLogStore()
-	requestID := CreatePendingLog(store, 0, "model-a", "", "sk-test-secret", "https://example.com", "Responses", "edits", metrics.RequestSourceProxy)
+	requestID := CreatePendingLog(store, "test-metrics-key-3", 0, "model-a", "", "sk-test-secret", "https://example.com", "Responses", "edits", metrics.RequestSourceProxy)
 
-	CompleteLog(store, 0, requestID, 200, false, "client canceled", false)
+	CompleteLog(store, "test-metrics-key-3", requestID, 200, false, "client canceled", false)
 
-	logs := store.Get(0)
+	logs := store.Get("test-metrics-key-3")
 	if len(logs) != 1 {
 		t.Fatalf("logs count = %d, want 1", len(logs))
 	}
@@ -118,11 +120,11 @@ func TestCompleteLog_MapsClientCanceledToCancelledStatus(t *testing.T) {
 
 func TestCompleteLog_LeavesRealFailuresAsFailed(t *testing.T) {
 	store := metrics.NewChannelLogStore()
-	requestID := CreatePendingLog(store, 0, "model-a", "", "sk-test-secret", "https://example.com", "Responses", "", metrics.RequestSourceProxy)
+	requestID := CreatePendingLog(store, "test-metrics-key-4", 0, "model-a", "", "sk-test-secret", "https://example.com", "Responses", "", metrics.RequestSourceProxy)
 
-	CompleteLog(store, 0, requestID, 502, false, "upstream timeout", false)
+	CompleteLog(store, "test-metrics-key-4", requestID, 502, false, "upstream timeout", false)
 
-	logs := store.Get(0)
+	logs := store.Get("test-metrics-key-4")
 	if len(logs) != 1 {
 		t.Fatalf("logs count = %d, want 1", len(logs))
 	}

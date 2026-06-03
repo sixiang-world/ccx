@@ -3,12 +3,20 @@ package handlers
 import (
 	"strconv"
 
+	"github.com/BenedictKing/ccx/internal/config"
 	"github.com/BenedictKing/ccx/internal/metrics"
+	"github.com/BenedictKing/ccx/internal/scheduler"
 	"github.com/gin-gonic/gin"
 )
 
 // GetChannelLogs 获取渠道请求日志
-func GetChannelLogs(channelLogStore *metrics.ChannelLogStore) gin.HandlerFunc {
+// 路由参数 :id 仍为渠道在配置中的数组下标（与前端保持一致），
+// 后端按该渠道的所有 baseURL × (APIKeys ∪ HistoricalAPIKeys) 反查合并日志桶。
+func GetChannelLogs(
+	channelLogStore *metrics.ChannelLogStore,
+	cfgManager *config.ConfigManager,
+	kind scheduler.ChannelKind,
+) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
 		channelIndex, err := strconv.Atoi(idStr)
@@ -17,14 +25,83 @@ func GetChannelLogs(channelLogStore *metrics.ChannelLogStore) gin.HandlerFunc {
 			return
 		}
 
-		logs := channelLogStore.Get(channelIndex)
+		upstream := getUpstreamByKindAndIndex(cfgManager, kind, channelIndex)
+		if upstream == nil {
+			c.JSON(200, gin.H{
+				"channelIndex": channelIndex,
+				"logs":         make([]*metrics.ChannelLog, 0),
+			})
+			return
+		}
+
+		normalizedServiceType := scheduler.NormalizedMetricsServiceType(kind, upstream.ServiceType)
+		metricsKeys := channelMetricsKeys(upstream, normalizedServiceType)
+
+		logs := channelLogStore.GetMerged(metricsKeys)
 		if logs == nil {
 			logs = make([]*metrics.ChannelLog, 0)
 		}
 
 		c.JSON(200, gin.H{
 			"channelIndex": channelIndex,
+			"channelName":  upstream.Name,
 			"logs":         logs,
 		})
 	}
+}
+
+func getUpstreamByKindAndIndex(cfgManager *config.ConfigManager, kind scheduler.ChannelKind, index int) *config.UpstreamConfig {
+	cfg := cfgManager.GetConfig()
+
+	var upstreams []config.UpstreamConfig
+	switch kind {
+	case scheduler.ChannelKindResponses:
+		upstreams = cfg.ResponsesUpstream
+	case scheduler.ChannelKindGemini:
+		upstreams = cfg.GeminiUpstream
+	case scheduler.ChannelKindChat:
+		upstreams = cfg.ChatUpstream
+	case scheduler.ChannelKindImages:
+		upstreams = cfg.ImagesUpstream
+	default:
+		upstreams = cfg.Upstream
+	}
+
+	if index < 0 || index >= len(upstreams) {
+		return nil
+	}
+	upstream := upstreams[index]
+	return &upstream
+}
+
+// channelMetricsKeys 枚举渠道所有 baseURL × (APIKeys ∪ HistoricalAPIKeys) 对应的 metricsKeys，
+// 与统计查询口径一致（含 legacy baseURL 等价变体）。
+func channelMetricsKeys(upstream *config.UpstreamConfig, normalizedServiceType string) []string {
+	if upstream == nil {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var keys []string
+	add := func(metricsKey string) {
+		if metricsKey == "" {
+			return
+		}
+		if _, exists := seen[metricsKey]; exists {
+			return
+		}
+		seen[metricsKey] = struct{}{}
+		keys = append(keys, metricsKey)
+	}
+
+	allAPIKeys := append([]string{}, upstream.APIKeys...)
+	allAPIKeys = append(allAPIKeys, upstream.HistoricalAPIKeys...)
+
+	for _, baseURL := range upstream.GetAllBaseURLs() {
+		for _, apiKey := range allAPIKeys {
+			for _, metricsKey := range metrics.GenerateMetricsLookupKeys(baseURL, apiKey, normalizedServiceType) {
+				add(metricsKey)
+			}
+		}
+	}
+	return keys
 }

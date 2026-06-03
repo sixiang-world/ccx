@@ -326,12 +326,13 @@ func TestExecuteModelTest_RecordsCapabilityLogOnSuccess(t *testing.T) {
 	defer cfgManager.Close()
 
 	cfg := cfgManager.GetConfig()
+	metricsKey := metrics.GenerateMetricsIdentityKey(server.URL+"/v1/messages", "test-key", "claude")
 	result := executeModelTest(context.Background(), &cfg.Upstream[0], "messages", "claude-test", 5*time.Second, job.JobID, cfgManager, 0, "messages", "test-key", store)
 	if !result.Success {
 		t.Fatalf("result.Success=false, want true")
 	}
 
-	logs := store.Get(0)
+	logs := store.Get(metricsKey)
 	if len(logs) != 1 {
 		t.Fatalf("logs count=%d, want 1", len(logs))
 	}
@@ -440,12 +441,13 @@ func TestExecuteModelTest_RecordsCapabilityLogOnFailure(t *testing.T) {
 	defer cfgManager.Close()
 
 	cfg := cfgManager.GetConfig()
+	metricsKey := metrics.GenerateMetricsIdentityKey(server.URL+"/v1/messages", "test-key", "claude")
 	result := executeModelTest(context.Background(), &cfg.Upstream[0], "messages", "claude-test", 5*time.Second, job.JobID, cfgManager, 0, "messages", "test-key", store)
 	if result.Success {
 		t.Fatalf("result.Success=true, want false")
 	}
 
-	logs := store.Get(0)
+	logs := store.Get(metricsKey)
 	if len(logs) != 1 {
 		t.Fatalf("logs count=%d, want 1", len(logs))
 	}
@@ -510,7 +512,8 @@ func TestExecuteModelTest_TruncatesLargeFailureBody(t *testing.T) {
 		t.Fatalf("result.Error len=%d, want 200", len(*result.Error))
 	}
 
-	logs := store.Get(0)
+	metricsKey := metrics.GenerateMetricsIdentityKey(server.URL+"/v1/messages", "test-key", "claude")
+	logs := store.Get(metricsKey)
 	if len(logs) != 1 {
 		t.Fatalf("logs count=%d, want 1", len(logs))
 	}

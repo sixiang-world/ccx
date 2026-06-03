@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sort"
 	"sync"
 	"time"
 )
@@ -8,7 +9,8 @@ import (
 // ChannelLog 单次上游请求日志
 type ChannelLog struct {
 	RequestID     string    `json:"requestId"` // 请求唯一标识
-	ChannelIndex  int       `json:"-"`         // 创建时的渠道索引（不序列化，仅用于内部验证）
+	ChannelIndex  int       `json:"-"`         // 创建时的渠道索引（不序列化，仅用于内部排查）
+	MetricsKey    string    `json:"-"`         // 指标身份键（不序列化，仅用于日志分桶）
 	Timestamp     time.Time `json:"timestamp"`
 	Model         string    `json:"model"`                   // 实际使用的模型（重定向后）
 	OriginalModel string    `json:"originalModel,omitempty"` // 原始请求模型（仅当重定向时有值）
@@ -50,103 +52,142 @@ func isTerminalStatus(status string) bool {
 	return status == StatusCompleted || status == StatusFailed || status == StatusCancelled
 }
 
-// ChannelLogStore 渠道日志存储（内存环形缓冲区）
+// ChannelLogStore 渠道日志存储（内存环形缓冲区）。
+// 分桶键与指标统计保持一致：metricsKey = identity(baseURL, apiKey, serviceType)。
 type ChannelLogStore struct {
 	mu               sync.RWMutex
-	logs             map[int][]*ChannelLog // key: channelIndex
-	requestLocations map[string]int        // requestID -> current channelIndex；仅跟踪在途请求
+	logs             map[string][]*ChannelLog // key: metricsKey
+	requestLocations map[string]string        // requestID -> current metricsKey；仅跟踪在途请求
 }
 
 func NewChannelLogStore() *ChannelLogStore {
 	return &ChannelLogStore{
-		logs:             make(map[int][]*ChannelLog),
-		requestLocations: make(map[string]int),
+		logs:             make(map[string][]*ChannelLog),
+		requestLocations: make(map[string]string),
 	}
 }
 
-func (s *ChannelLogStore) Record(channelIndex int, log *ChannelLog) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if log != nil && log.RequestID != "" {
-		log.ChannelIndex = channelIndex
-		if !isTerminalStatus(log.Status) {
-			s.requestLocations[log.RequestID] = channelIndex
-		} else {
-			delete(s.requestLocations, log.RequestID)
-		}
-	}
-	s.logs[channelIndex] = append(s.logs[channelIndex], log)
-	if len(s.logs[channelIndex]) > maxChannelLogs {
-		s.logs[channelIndex] = s.logs[channelIndex][len(s.logs[channelIndex])-maxChannelLogs:]
-	}
-}
-
-// RemoveAndShift 删除指定渠道日志，并将其后的渠道日志索引前移一位，保持与删除后的渠道切片索引一致。
-func (s *ChannelLogStore) RemoveAndShift(channelIndex int) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if len(s.logs) == 0 && len(s.requestLocations) == 0 {
+func (s *ChannelLogStore) Record(metricsKey string, log *ChannelLog) {
+	if metricsKey == "" {
 		return
 	}
 
-	// 先修正所有在途请求的索引：
-	// - 指向被删除渠道的请求直接移除（包括已被环形缓冲淘汰但仍在途的请求）
-	// - 指向其后渠道的请求索引前移一位
-	for requestID, idx := range s.requestLocations {
-		switch {
-		case idx == channelIndex:
-			delete(s.requestLocations, requestID)
-		case idx > channelIndex:
-			s.requestLocations[requestID] = idx - 1
-		}
-	}
-
-	if len(s.logs) == 0 {
-		return
-	}
-
-	shifted := make(map[int][]*ChannelLog, len(s.logs))
-	for idx, logs := range s.logs {
-		switch {
-		case idx == channelIndex:
-			continue
-		case idx > channelIndex:
-			for _, log := range logs {
-				if log != nil {
-					log.ChannelIndex = idx - 1
-				}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if log != nil {
+		log.MetricsKey = metricsKey
+		if log.RequestID != "" {
+			if !isTerminalStatus(log.Status) {
+				s.requestLocations[log.RequestID] = metricsKey
+			} else {
+				delete(s.requestLocations, log.RequestID)
 			}
-			shifted[idx-1] = logs
-		default:
-			shifted[idx] = logs
 		}
 	}
+	s.logs[metricsKey] = append(s.logs[metricsKey], log)
+	if len(s.logs[metricsKey]) > maxChannelLogs {
+		s.logs[metricsKey] = s.logs[metricsKey][len(s.logs[metricsKey])-maxChannelLogs:]
+	}
+}
 
-	s.logs = shifted
+// Remove 删除指定 metricsKey 集合对应的日志桶与在途请求位置。
+func (s *ChannelLogStore) Remove(metricsKeys []string) {
+	if len(metricsKeys) == 0 {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	removeSet := make(map[string]struct{}, len(metricsKeys))
+	for _, metricsKey := range metricsKeys {
+		if metricsKey == "" {
+			continue
+		}
+		removeSet[metricsKey] = struct{}{}
+		delete(s.logs, metricsKey)
+	}
+	if len(removeSet) == 0 || len(s.requestLocations) == 0 {
+		return
+	}
+	for requestID, metricsKey := range s.requestLocations {
+		if _, shouldRemove := removeSet[metricsKey]; shouldRemove {
+			delete(s.requestLocations, requestID)
+		}
+	}
 }
 
 // ClearAll 清除所有渠道日志，仅用于需要整体重置日志缓存的场景。
 func (s *ChannelLogStore) ClearAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.logs = make(map[int][]*ChannelLog)
-	s.requestLocations = make(map[string]int)
+	s.logs = make(map[string][]*ChannelLog)
+	s.requestLocations = make(map[string]string)
 }
 
-func (s *ChannelLogStore) Get(channelIndex int) []*ChannelLog {
+func (s *ChannelLogStore) Get(metricsKey string) []*ChannelLog {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	src := s.logs[channelIndex]
+	return copyLogsNewestFirst(s.logs[metricsKey], maxChannelLogs)
+}
+
+func (s *ChannelLogStore) GetMerged(metricsKeys []string) []*ChannelLog {
+	if len(metricsKeys) == 0 {
+		return nil
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	seen := make(map[string]struct{}, len(metricsKeys))
+	merged := make([]*ChannelLog, 0)
+	for _, metricsKey := range metricsKeys {
+		if metricsKey == "" {
+			continue
+		}
+		if _, exists := seen[metricsKey]; exists {
+			continue
+		}
+		seen[metricsKey] = struct{}{}
+		for _, logEntry := range s.logs[metricsKey] {
+			if logEntry == nil {
+				continue
+			}
+			logCopy := *logEntry
+			merged = append(merged, &logCopy)
+		}
+	}
+	if len(merged) == 0 {
+		return nil
+	}
+
+	sort.SliceStable(merged, func(i, j int) bool {
+		return merged[i].Timestamp.After(merged[j].Timestamp)
+	})
+	if len(merged) > maxChannelLogs {
+		merged = merged[:maxChannelLogs]
+	}
+	return merged
+}
+
+func copyLogsNewestFirst(src []*ChannelLog, limit int) []*ChannelLog {
 	if len(src) == 0 {
 		return nil
 	}
-	// 返回深拷贝，按时间倒序（最新在前），避免并发修改问题
-	result := make([]*ChannelLog, len(src))
-	for i, j := 0, len(src)-1; j >= 0; i, j = i+1, j-1 {
-		// 深拷贝每个日志对象
-		logCopy := *src[j]
-		result[i] = &logCopy
+	if limit <= 0 || limit > len(src) {
+		limit = len(src)
+	}
+
+	result := make([]*ChannelLog, 0, limit)
+	for i := len(src) - 1; i >= 0 && len(result) < limit; i-- {
+		if src[i] == nil {
+			continue
+		}
+		logCopy := *src[i]
+		result = append(result, &logCopy)
+	}
+	if len(result) == 0 {
+		return nil
 	}
 	return result
 }
@@ -160,38 +201,41 @@ const (
 	UpdateMissingDeleted
 )
 
-// Update 更新指定请求日志（通过 RequestID 匹配）
-// 优先使用在途请求索引定位；若请求已不在途，则区分为淘汰或删除。
-// 返回值为 (状态, 当前实际渠道索引)。
-func (s *ChannelLogStore) Update(channelIndex int, requestID string, updateFn func(*ChannelLog)) (UpdateStatus, int) {
+// Update 更新指定请求日志（通过 RequestID 匹配）。
+// 优先使用在途请求 metricsKey 定位；若请求已不在途，则区分为淘汰或删除。
+// 返回值为 (状态, 当前实际 metricsKey)。
+func (s *ChannelLogStore) Update(metricsKey string, requestID string, updateFn func(*ChannelLog)) (UpdateStatus, string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if requestID == "" {
-		return UpdateMissingDeleted, -1
+		return UpdateMissingDeleted, ""
 	}
 
-	actualIndex, tracking := s.requestLocations[requestID]
+	actualMetricsKey, tracking := s.requestLocations[requestID]
 	if !tracking {
-		return UpdateMissingDeleted, -1
+		return UpdateMissingDeleted, ""
+	}
+	if actualMetricsKey == "" {
+		actualMetricsKey = metricsKey
 	}
 
-	logs, ok := s.logs[actualIndex]
+	logs, ok := s.logs[actualMetricsKey]
 	if !ok {
 		delete(s.requestLocations, requestID)
-		return UpdateMissingDeleted, -1
+		return UpdateMissingDeleted, ""
 	}
 
 	for i := range logs {
-		if logs[i].RequestID == requestID {
+		if logs[i] != nil && logs[i].RequestID == requestID {
 			updateFn(logs[i])
 			if isTerminalStatus(logs[i].Status) {
 				delete(s.requestLocations, requestID)
 			}
-			return UpdateFound, actualIndex
+			return UpdateFound, actualMetricsKey
 		}
 	}
 
 	// 仍被标记为在途，但已不在缓冲区中，说明是环形缓冲淘汰。
-	return UpdateMissingEvicted, actualIndex
+	return UpdateMissingEvicted, actualMetricsKey
 }
