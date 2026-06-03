@@ -416,7 +416,7 @@ async function handleSubmit() {
   await persistCurrentDraft({ notifyParent: true, close: true })
 }
 
-// Keyboard shortcuts: Esc 取消，创建模式 Cmd/Ctrl+Enter / 编辑模式 Enter 保存
+// Keyboard shortcuts: Esc 取消，Cmd/Ctrl+Enter 保存（编辑/创建一致，避免多行文本内 Enter 误触发）
 const handleGlobalKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
     e.preventDefault()
@@ -427,20 +427,10 @@ const handleGlobalKeydown = (e: KeyboardEvent) => {
   if (e.key !== 'Enter') return
   if (saving.value) return
 
-  // 编辑模式：直接 Enter 保存（textarea 内不拦截）
-  if (isEditMode.value && !e.shiftKey) {
-    const el = e.target instanceof Element ? e.target : null
-    if (el?.closest('button, [role="combobox"], [role="listbox"], [role="option"], [role="switch"], [role="checkbox"]')) return
+  // 统一 Cmd/Ctrl+Enter 保存（textarea 内也生效），普通 Enter 保留换行/原生行为
+  if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
     e.preventDefault()
     void handleSubmit()
-    return
-  }
-
-  // 创建模式：需要 Cmd/Ctrl+Enter 保存（textarea 内也生效）
-  if (!isEditMode.value && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
-    e.preventDefault()
-    void handleSubmit()
-    return
   }
 }
 
@@ -1402,7 +1392,7 @@ function buildCurrentPayload() {
                 ? tf('console.form.save', '保存')
                 : tf('console.form.create', '创建')
               }}
-              <span class="ml-1.5 text-xs opacity-60">{{ isEditMode ? 'Enter' : isMac ? '⌘ Enter' : 'Ctrl+Enter' }}</span>
+              <span class="ml-1.5 text-xs opacity-60">{{ isMac ? '⌘ Enter' : 'Ctrl+Enter' }}</span>
             </Button>
           </div>
         </div>
