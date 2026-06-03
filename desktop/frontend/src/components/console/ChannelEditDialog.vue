@@ -1338,8 +1338,8 @@ function buildCurrentPayload() {
                     <div class="space-y-2">
                       <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Vision</div>
                       <div class="grid gap-3 md:grid-cols-2">
-                        <div class="flex items-start gap-2">
-                          <Switch v-model="form.noVision" class="mt-0.5" />
+                        <div class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.noVision" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.noVision', '禁用视觉') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.noVisionHint', '启用后，包含图片的请求将跳过此渠道并 failover 到下一个渠道') }}</p>
@@ -1353,38 +1353,40 @@ function buildCurrentPayload() {
                     <div class="space-y-2" v-if="form.serviceType === 'claude' || form.serviceType === 'gemini' || supportsOpenAIAdvanced">
                       <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Reasoning / Thinking</div>
                       <div class="grid gap-3 md:grid-cols-2">
-                        <div v-if="form.serviceType === 'claude' && channelType !== 'images'" class="flex items-start gap-2">
-                          <Switch v-model="form.passbackReasoningContent" class="mt-0.5" />
+                        <div v-if="form.serviceType === 'claude' && channelType !== 'images'" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.passbackReasoningContent" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.passbackReasoning', '回传推理内容') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.passbackReasoningHint', '将 thinking 块转为 reasoning_content 回传，兼容 mimo 等要求 OpenAI 风格 reasoning_content 的 Claude 协议上游') }}</p>
                           </div>
                         </div>
-                        <div v-if="form.serviceType === 'claude' && channelType !== 'images'" class="flex items-start gap-2">
-                          <Switch v-model="form.passbackThinkingBlocks" class="mt-0.5" />
+                        <div v-if="form.serviceType === 'claude' && channelType !== 'images'" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.passbackThinkingBlocks" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.passbackThinking', '回传思考块') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.passbackThinkingHint', '将真实 reasoning_content 投影为 Claude 的 content[].thinking，兼容 DeepSeek/GLM 等严格 thinking mode 上游') }}</p>
                           </div>
                         </div>
-                        <div v-if="form.serviceType === 'gemini' && ['gemini','messages','chat','responses'].includes(channelType)" class="flex items-start gap-2">
-                          <Switch v-model="form.stripThoughtSignature" class="mt-0.5" />
+                        <div v-if="form.serviceType === 'gemini' && ['gemini','messages','chat','responses'].includes(channelType)" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.stripThoughtSignature" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.stripThoughtSignature', '移除思考签名') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.stripThoughtSignatureHint', '移除 functionCall 的 thought_signature 字段，兼容不支持该字段的旧版 Gemini API') }}</p>
                           </div>
                         </div>
-                        <div v-if="form.serviceType === 'gemini' && ['gemini','messages'].includes(channelType)" class="flex items-start gap-2">
-                          <Switch v-model="form.injectDummyThoughtSignature" class="mt-0.5" />
+                        <div v-if="form.serviceType === 'gemini' && ['gemini','messages'].includes(channelType)" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.injectDummyThoughtSignature" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.injectDummySignature', '注入假思考签名') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.injectDummySignatureHint', '为 functionCall 注入 dummy signature，兼容需要该字段的第三方 API（官方 API 请关闭）') }}</p>
                           </div>
                         </div>
-                        <div v-if="supportsOpenAIAdvanced" class="space-y-1">
-                          <Label class="text-[10px]">{{ tf('console.form.reasoningParamStyle', '思考方式') }}</Label>
-                          <Select v-model="form.reasoningParamStyle"><SelectTrigger class="h-7"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="item in reasoningParamStyleOptions" :key="item.value" :value="item.value">{{ item.label }}</SelectItem></SelectContent></Select>
-                          <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.reasoningParamStyleHint', '选择 OpenAI 风格上游请求使用 reasoning.effort 还是 reasoning_effort。') }}</p>
+                        <div v-if="supportsOpenAIAdvanced" class="flex items-center justify-between gap-3">
+                          <div class="min-w-0 space-y-0.5">
+                            <Label class="text-xs">{{ tf('console.form.reasoningParamStyle', '思考方式') }}</Label>
+                            <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.reasoningParamStyleHint', '选择 OpenAI 风格上游请求使用 reasoning.effort 还是 reasoning_effort。') }}</p>
+                          </div>
+                          <Select v-model="form.reasoningParamStyle"><SelectTrigger class="h-8 w-40 shrink-0 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="item in reasoningParamStyleOptions" :key="item.value" :value="item.value">{{ item.label }}</SelectItem></SelectContent></Select>
                         </div>
                       </div>
                     </div>
@@ -1393,15 +1395,15 @@ function buildCurrentPayload() {
                     <div class="space-y-2" v-if="channelType === 'responses'">
                       <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Codex / Responses</div>
                       <div class="grid gap-3 md:grid-cols-2">
-                        <div class="flex items-start gap-2">
-                          <Switch v-model="form.codexNativeToolPassthrough" class="mt-0.5" />
+                        <div class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.codexNativeToolPassthrough" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.codexNativeTools', 'Codex 原生工具透传') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.codexNativeToolsHint', '透传模式下将 Codex 原生工具（apply_patch、namespace 等）转换为 OpenAI function 格式，使上游模型可调用。') }}</p>
                           </div>
                         </div>
-                        <div class="flex items-start gap-2">
-                          <Switch v-model="form.codexToolCompat" class="mt-0.5" />
+                        <div class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.codexToolCompat" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.codexCompat', 'Codex 工具兼容') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.codexCompatHint', '启用 Codex CLI 兼容：Responses 透传上游会剥离客户端专属工具，Chat/Claude/Gemini 上游会转换为 function 代理工具。') }}</p>
@@ -1414,29 +1416,29 @@ function buildCurrentPayload() {
                     <div class="space-y-2">
                       <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Compatibility / Normalization</div>
                       <div class="grid gap-3 md:grid-cols-2">
-                        <div v-if="form.serviceType === 'claude' && channelType === 'messages'" class="flex items-start gap-2">
-                          <Switch v-model="form.stripEmptyTextBlocks" class="mt-0.5" />
+                        <div v-if="form.serviceType === 'claude' && channelType === 'messages'" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.stripEmptyTextBlocks" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.stripEmptyBlocks', '移除空文本块') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.stripEmptyBlocksHint', '转发前移除裸空 text content block，兼容严格拒绝 Claude Code tool_use 占位块的 Claude 协议上游') }}</p>
                           </div>
                         </div>
-                        <div v-if="form.serviceType === 'claude' && channelType === 'messages'" class="flex items-start gap-2">
-                          <Switch v-model="form.normalizeSystemRoleToTopLevel" class="mt-0.5" />
+                        <div v-if="form.serviceType === 'claude' && channelType === 'messages'" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.normalizeSystemRoleToTopLevel" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.normalizeSystem', '规范化系统角色') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.normalizeSystemHint', '针对 Opus 4.8 等新客户端将 system 作为消息 role 发送的情况：转发前抽回顶层 system 字段，兼容仅支持 user/assistant role 的旧 Claude 上游') }}</p>
                           </div>
                         </div>
-                        <div v-if="['messages','responses'].includes(channelType)" class="flex items-start gap-2">
-                          <Switch v-model="form.normalizeMetadataUserId" class="mt-0.5" />
+                        <div v-if="['messages','responses'].includes(channelType)" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.normalizeMetadataUserId" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.normalizeUserId', '规范化用户 ID') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.normalizeUserIdHint', '自动将 JSON 对象格式的 user_id 转换为扁平字符串，确保上游兼容性。') }}</p>
                           </div>
                         </div>
-                        <div v-if="channelType === 'chat' || (channelType === 'responses' && form.serviceType === 'openai')" class="flex items-start gap-2">
-                          <Switch v-model="form.normalizeNonstandardChatRoles" class="mt-0.5" />
+                        <div v-if="channelType === 'chat' || (channelType === 'responses' && form.serviceType === 'openai')" class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.normalizeNonstandardChatRoles" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.normalizeChatRoles', '规范化 Chat 角色') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.normalizeChatRolesHint', '将 developer 等非标准 role 统一转为 user 后转发给上游。国内模型通常不支持非标准 role，建议开启。') }}</p>
@@ -1449,22 +1451,22 @@ function buildCurrentPayload() {
                     <div class="space-y-2">
                       <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Runtime</div>
                       <div class="grid gap-3 md:grid-cols-2">
-                        <div class="flex items-start gap-2">
-                          <Switch v-model="form.lowQuality" class="mt-0.5" />
+                        <div class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.lowQuality" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.lowQuality', '低质量标记') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.lowQualityHint', '启用后强制本地估算 token 数量，偏差超过 5% 时使用本地值') }}</p>
                           </div>
                         </div>
-                        <div class="flex items-start gap-2">
-                          <Switch v-model="form.autoBlacklistBalance" class="mt-0.5" />
+                        <div class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.autoBlacklistBalance" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.autoBlacklist', '自动黑名单') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.autoBlacklistHint', '当上游返回余额不足时，自动将该 Key 移入拉黑列表。') }}</p>
                           </div>
                         </div>
-                        <div class="flex items-start gap-2">
-                          <Switch v-model="form.insecureSkipVerify" class="mt-0.5" />
+                        <div class="flex flex-row-reverse items-center justify-between gap-3">
+                          <Switch v-model="form.insecureSkipVerify" class="shrink-0" />
                           <div class="min-w-0 space-y-0.5">
                             <Label class="text-xs">{{ tf('console.form.insecureSkipVerify', '跳过 TLS 验证') }}</Label>
                             <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.insecureSkipVerifyHint', '仅在自签名或域名不匹配时临时启用，生产环境请关闭') }}</p>
