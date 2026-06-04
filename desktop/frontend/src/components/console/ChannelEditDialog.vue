@@ -825,12 +825,16 @@ async function fetchTargetModels() {
     }
 
     const typeApi = getChannelTypeApi(props.channelType as ManagedChannelType)
-    const models = await typeApi.getChannelModels(props.channel.index, {
+    const keys = getSubmitApiKeys()
+    const resp = await typeApi.getChannelModels(props.channel.index, {
+      key: keys[0],
       baseUrl: form.baseUrl,
       proxyUrl: form.proxyUrl,
       insecureSkipVerify: form.insecureSkipVerify,
     })
-    targetModelOptions.value = [...new Set<string>((models as any[]).map((m: any) => m.id || m.name || String(m)).filter(Boolean))].sort()
+    // 上游原始响应：Claude/OpenAI 返回 { data: [...] }，部分返回裸数组
+    const list: any[] = Array.isArray(resp) ? resp : (resp?.data ?? [])
+    targetModelOptions.value = [...new Set<string>(list.map((m: any) => m.id || m.name || String(m)).filter(Boolean))].sort()
   } catch (e) {
     fetchedModelsError.value = e instanceof Error ? e.message : String(e)
   } finally {
