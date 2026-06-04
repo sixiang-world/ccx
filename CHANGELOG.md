@@ -1,8 +1,8 @@
-## [Unreleased]
+## [v2.8.21] - 2026-06-04
 
 ### 修复
 
-- **messages 渠道 system 角色归一化跨上游生效** - 将 `normalizeSystemRoleToTopLevel` 抽取逻辑上移到 messages 上游分发前统一执行，使 claude/openai/gemini/responses 上游均可兼容 Opus 4.8 等新客户端发送的 `role: system` 消息；WebUI 与桌面端 messages 渠道不再按上游类型隐藏该开关，并补充 handler 回归测试。
+- **messages**: system 角色归一化对所有上游生效
 
 ## [v2.8.20] - 2026-06-01
 
