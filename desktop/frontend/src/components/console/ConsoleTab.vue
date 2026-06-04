@@ -36,10 +36,10 @@ const { activeTab, refreshChannels, refreshError } = useConsoleChannels()
 
 // 子 Tab 定义
 const protocolTabs: { value: ManagedChannelType; label: string }[] = [
-  { value: 'messages', label: 'Messages' },
-  { value: 'chat', label: 'Chat' },
+  { value: 'messages', label: 'Claude' },
+  { value: 'chat', label: 'OpenAI Chat' },
   { value: 'images', label: 'Images' },
-  { value: 'responses', label: 'Responses' },
+  { value: 'responses', label: 'Codex' },
   { value: 'gemini', label: 'Gemini' },
 ]
 

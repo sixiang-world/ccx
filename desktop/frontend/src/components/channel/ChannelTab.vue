@@ -164,7 +164,7 @@ const capabilityBadges = computed(() => {
     preset.directAgent && t('channel.badgeDirectAgent'),
     preset.nativeMessages && t('channel.badgeNativeMessages'),
     preset.chatCompatible && 'OpenAI Chat',
-    preset.responsesCompatible && 'Responses',
+    preset.responsesCompatible && 'Codex',
   ].filter(Boolean) as string[]
 })
 

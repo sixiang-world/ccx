@@ -97,7 +97,7 @@ function getProtocolColor(proto: string): string {
 }
 
 function getProtocolDisplayName(proto: string): string {
-  const map: Record<string, string> = { messages: 'Messages', chat: 'Chat', responses: 'Responses', gemini: 'Gemini' }
+  const map: Record<string, string> = { messages: 'Claude', chat: 'OpenAI Chat', responses: 'Codex', gemini: 'Gemini' }
   if (proto.includes('->')) {
     const parts = proto.split('->')
     return `${map[parts[0]] ?? parts[0]} → ${map[parts[1]] ?? parts[1]}`
