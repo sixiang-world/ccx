@@ -1053,7 +1053,7 @@ function buildCurrentPayload() {
                   <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {{ tf('console.form.basicInfo', '基础信息') }}
                   </h4>
-                  <div class="grid grid-cols-2 gap-3">
+                  <div class="grid grid-cols-[2fr_1fr] gap-3">
                     <div class="space-y-1.5">
                       <Label>{{ tf('console.form.name', '名称') }} *</Label>
                       <Input v-model="form.name" :class="{ 'border-destructive': errors.name }" />
@@ -1062,7 +1062,7 @@ function buildCurrentPayload() {
                     <div class="space-y-1.5">
                       <Label>{{ tf('console.form.serviceType', '服务类型') }} *</Label>
                       <Select v-model="form.serviceType">
-                        <SelectTrigger :class="{ 'border-destructive': errors.serviceType }">
+                        <SelectTrigger :class="['w-full', { 'border-destructive': errors.serviceType }]">
                           <SelectValue :placeholder="tf('console.form.selectServiceType', '选择服务类型')" />
                         </SelectTrigger>
                         <SelectContent>
