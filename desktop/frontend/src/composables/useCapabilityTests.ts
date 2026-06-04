@@ -99,7 +99,7 @@ export function useCapabilityTests() {
     )
     activeJob.value = job
     if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
-      stopAllPolling()
+      stopPoller(jobId)
     }
     return job
   }
