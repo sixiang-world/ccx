@@ -746,6 +746,26 @@ func TestShouldBlacklistKey_BalanceMessages(t *testing.T) {
 				Message:         "No active subscription found for this group",
 			},
 		},
+		{
+			name:       "403 account balance is negative should blacklist as insufficient balance",
+			statusCode: 403,
+			body:       `{"error":{"message":"account balance is negative, please recharge first","type":"forbidden_error"},"type":"error"}`,
+			want: BlacklistResult{
+				ShouldBlacklist: true,
+				Reason:          "insufficient_balance",
+				Message:         "account balance is negative, please recharge first",
+			},
+		},
+		{
+			name:       "403 subscription expired should blacklist as insufficient balance",
+			statusCode: 403,
+			body:       `{"error":{"code":"","message":"您的套餐已过期，请续费后继续使用 (request id: 202606040135546143661918268d9d6tMVNpobz)","type":"new_api_error"}}`,
+			want: BlacklistResult{
+				ShouldBlacklist: true,
+				Reason:          "insufficient_balance",
+				Message:         "您的套餐已过期，请续费后继续使用 (request id: 202606040135546143661918268d9d6tMVNpobz)",
+			},
+		},
 	}
 
 	for _, tt := range tests {

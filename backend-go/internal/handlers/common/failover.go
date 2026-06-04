@@ -803,6 +803,7 @@ func isInsufficientBalanceMessage(msg string) bool {
 		"insufficient credits",
 		"insufficient funds",
 		"balance too low",
+		"balance is negative",
 		"no balance",
 		"out of credits",
 		"quota exhausted",
@@ -827,6 +828,8 @@ func isInsufficientBalanceMessage(msg string) bool {
 		"令牌额度已用尽",
 		"预扣费额度失败",
 		"需要预扣费额度",
+		"套餐已过期",
+		"请续费后继续使用",
 	}
 	for _, keyword := range keywords {
 		if strings.Contains(msgLower, keyword) {
