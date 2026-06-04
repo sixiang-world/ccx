@@ -552,7 +552,7 @@ const modelMappingPresets: Record<string, { mapping: ModelMappingPresetEntry[]; 
     mapping: [
       { source: 'opus', target: 'gpt-5.5', reasoning: 'xhigh' },
       { source: 'sonnet', target: 'gpt-5.4', reasoning: 'xhigh' },
-      { source: 'haiku', target: 'gpt-5.3-codex', reasoning: 'high' },
+      { source: 'haiku', target: 'gpt-5.4-mini', reasoning: 'high' },
     ],
     fastMode: true,
     textVerbosity: 'medium',
@@ -561,25 +561,7 @@ const modelMappingPresets: Record<string, { mapping: ModelMappingPresetEntry[]; 
     mapping: [
       { source: 'opus', target: 'gpt-5.4', reasoning: 'xhigh' },
       { source: 'sonnet', target: 'gpt-5.4', reasoning: 'xhigh' },
-      { source: 'haiku', target: 'gpt-5.3-codex', reasoning: 'high' },
-    ],
-    fastMode: true,
-    textVerbosity: 'medium',
-  },
-  'gpt-5.3-codex': {
-    mapping: [
-      { source: 'opus', target: 'gpt-5.3-codex', reasoning: 'xhigh' },
-      { source: 'sonnet', target: 'gpt-5.3-codex', reasoning: 'xhigh' },
-      { source: 'haiku', target: 'gpt-5.3-codex', reasoning: 'high' },
-    ],
-    fastMode: true,
-    textVerbosity: 'medium',
-  },
-  'gpt-5.2-codex': {
-    mapping: [
-      { source: 'opus', target: 'gpt-5.2', reasoning: 'xhigh' },
-      { source: 'sonnet', target: 'gpt-5.2-codex', reasoning: 'xhigh' },
-      { source: 'haiku', target: 'gpt-5.2-codex', reasoning: 'high' },
+      { source: 'haiku', target: 'gpt-5.4-mini', reasoning: 'high' },
     ],
     fastMode: true,
     textVerbosity: 'medium',
@@ -751,7 +733,7 @@ watch(() => props.channel?.index, () => {
 // ── Source 模型预置列表（对齐 WebUI allSourceModelOptions） ──
 const sourceModelOptions = computed(() => {
   if (props.channelType === 'chat') {
-    return ['codex', 'gpt', 'mini', 'gpt-5', 'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.2']
+    return ['codex', 'gpt', 'mini', 'gpt-5', 'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini']
   }
   if (props.channelType === 'images') {
     return ['gpt-image-2', 'gpt-image-1', 'dall-e-3', 'dall-e-2']
@@ -760,7 +742,7 @@ const sourceModelOptions = computed(() => {
     return ['gemini-3.5-flash', 'gemini-3.1-pro-preview', 'gemini-3-pro-preview', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2']
   }
   if (props.channelType === 'responses') {
-    return ['codex', 'codex-auto-review', 'gpt-5', 'gpt', 'mini', 'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.2']
+    return ['codex', 'codex-auto-review', 'gpt-5', 'gpt', 'mini', 'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini']
   }
   // messages (Claude)
   return ['opus', 'sonnet', 'haiku']
@@ -778,7 +760,7 @@ const targetModelPresets = computed(() => {
     return ['claude-opus-4-1', 'claude-sonnet-4-5', 'claude-haiku-4-5', 'mimo-v2.5-pro', 'mimo-v2.5', 'deepseek-v4-pro', 'deepseek-v4-flash']
   }
   // openai / responses 等 OpenAI 兼容上游
-  return ['gpt-5.5', 'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.2', 'deepseek-v4-pro', 'deepseek-v4-flash', 'mimo-v2.5-pro', 'mimo-v2.5']
+  return ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'deepseek-v4-pro', 'deepseek-v4-flash', 'mimo-v2.5-pro', 'mimo-v2.5']
 })
 
 // 拉取到真实模型则优先，否则用预置候选；datalist 始终有内容
