@@ -576,6 +576,7 @@ export type MessageKey =
   | 'capability.noResults'
   | 'capability.models'
   | 'capability.duration'
+  | 'capability.snapshotUpdated'
   | 'console.logs.title'
   | 'console.logs.time'
   | 'console.logs.model'
@@ -1159,6 +1160,7 @@ export const messages: Record<SupportedLocale, Messages> = {
     'capability.noResults': 'No results yet',
     'capability.models': 'models',
     'capability.duration': 'Duration',
+    'capability.snapshotUpdated': 'Updated',
     'console.logs.title': 'Channel logs',
     'console.logs.time': 'Time',
     'console.logs.model': 'Model',
@@ -1739,6 +1741,7 @@ export const messages: Record<SupportedLocale, Messages> = {
     'capability.noResults': '尚未进行能力测试',
     'capability.models': '模型',
     'capability.duration': '总耗时',
+    'capability.snapshotUpdated': '更新时间',
     'console.logs.title': '频道日志',
     'console.logs.time': '时间',
     'console.logs.model': '模型',

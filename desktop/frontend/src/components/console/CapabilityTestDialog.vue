@@ -50,7 +50,7 @@ const rpmValue = ref(10)
 // 加载 snapshot
 watch(() => props.open, async (isOpen) => {
   if (isOpen) {
-    await fetchSnapshot(props.channelType, props.channelId)
+    await fetchSnapshot(props.channelType, props.channelId, props.channelType)
   } else {
     reset()
   }
@@ -183,7 +183,7 @@ async function handleCancel() {
       await cancelTest(props.channelType, props.channelId, ref.jobId)
     }
   }
-  await fetchSnapshot(props.channelType, props.channelId)
+  // cancelTest 内部已重取 snapshot
 }
 
 async function handleRetryModel(protocol: string, model: string) {
@@ -271,6 +271,10 @@ onBeforeUnmount(() => {
 
                 <span v-if="progress?.totalModels && isActive" class="text-[10px] text-muted-foreground">
                   {{ progress?.completedModels || 0 }}/{{ progress?.totalModels || 0 }} {{ tf('capability.models', '模型') }}
+                </span>
+
+                <span v-if="currentJob?.snapshotUpdatedAt" class="text-[10px] text-muted-foreground">
+                  {{ tf('capability.snapshotUpdated', '更新时间') }}: {{ currentJob.snapshotUpdatedAt }}
                 </span>
 
                 <Button v-if="state === 'pending' || state === 'running'" variant="destructive" size="sm" :disabled="cancelling" @click="handleCancel">

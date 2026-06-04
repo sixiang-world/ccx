@@ -19,11 +19,8 @@ const loading = ref(false)
 const polling = ref(false)
 const cancelling = ref(false)
 const error = ref('')
-let pollTimer: ReturnType<typeof setInterval> | undefined
-// 轮询参数缓存
-let pollChannelType = ''
-let pollChannelId = 0
-let pollJobId = ''
+const pollers = new Map<string, ReturnType<typeof setInterval>>()
+const POLL_INTERVAL = 1000
 
 export function useCapabilityTests() {
   const api = useAdminApi()
@@ -38,7 +35,7 @@ export function useCapabilityTests() {
   async function startTest(
     channelType: string,
     channelId: number,
-    options?: { targetProtocols?: string[]; models?: string[]; rpm?: number },
+    options?: { targetProtocols?: string[]; models?: string[]; rpm?: number; previousJobId?: string; sourceTab?: string },
   ) {
     loading.value = true
     clearError()
@@ -50,6 +47,15 @@ export function useCapabilityTests() {
       activeJob.value = resp.job || null
       if (resp.jobId) {
         startPolling(channelType, channelId, resp.jobId)
+      }
+      // 也为协议子 job 启动轮询
+      const job = resp.job
+      if (job?.protocolJobRefs) {
+        for (const [, ref] of Object.entries(job.protocolJobRefs)) {
+          if (ref.jobId && ref.jobId !== resp.jobId) {
+            startPolling(channelType, channelId, ref.jobId)
+          }
+        }
       }
       return resp
     } catch (e) {
@@ -72,14 +78,16 @@ export function useCapabilityTests() {
       targetProtocols: [protocol],
       models,
       rpm,
+      sourceTab: channelType,
     })
   }
 
-  async function fetchSnapshot(channelType: string, channelId: number) {
+  async function fetchSnapshot(channelType: string, channelId: number, sourceTab?: string) {
     try {
-      snapshot.value = await api.get<CapabilitySnapshot>(
-        `/api/${channelType}/channels/${channelId}/capability-snapshot`,
-      )
+      const url = sourceTab
+        ? `/api/${channelType}/channels/${channelId}/capability-snapshot?sourceTab=${sourceTab}`
+        : `/api/${channelType}/channels/${channelId}/capability-snapshot`
+      snapshot.value = await api.get<CapabilitySnapshot>(url)
     } catch {
       // snapshot 可能不存在，静默
     }
@@ -91,35 +99,40 @@ export function useCapabilityTests() {
     )
     activeJob.value = job
     if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
-      stopPolling()
+      stopAllPolling()
     }
     return job
   }
 
-  // ── 轮询 ──
+  // ── 轮询（支持多 job 并发） ──
 
   function startPolling(channelType: string, channelId: number, jobId: string) {
-    stopPolling()
-    pollChannelType = channelType
-    pollChannelId = channelId
-    pollJobId = jobId
+    if (pollers.has(jobId)) return
     polling.value = true
-    pollTimer = setInterval(async () => {
+    const timer = setInterval(async () => {
       try {
-        await fetchJobStatus(pollChannelType, pollChannelId, pollJobId)
+        await fetchJobStatus(channelType, channelId, jobId)
       } catch (e) {
-        stopPolling()
+        stopPoller(jobId)
         error.value = e instanceof Error ? e.message : String(e)
       }
-    }, 2000)
+    }, POLL_INTERVAL)
+    pollers.set(jobId, timer)
   }
 
-  function stopPolling() {
-    polling.value = false
-    if (pollTimer) {
-      clearInterval(pollTimer)
-      pollTimer = undefined
+  function stopPoller(jobId: string) {
+    const timer = pollers.get(jobId)
+    if (timer) {
+      clearInterval(timer)
+      pollers.delete(jobId)
     }
+    if (pollers.size === 0) polling.value = false
+  }
+
+  function stopAllPolling() {
+    for (const timer of pollers.values()) clearInterval(timer)
+    pollers.clear()
+    polling.value = false
   }
 
   // ── 取消 ──
@@ -128,10 +141,21 @@ export function useCapabilityTests() {
     cancelling.value = true
     try {
       await api.del(`/api/${channelType}/channels/${channelId}/capability-test/${jobId}`)
-      stopPolling()
-      if (activeJob.value) {
-        activeJob.value.status = 'cancelled'
-        activeJob.value.lifecycle = 'cancelled'
+      stopAllPolling()
+      // 重取快照
+      await fetchSnapshot(channelType, channelId, channelType)
+      // 检查是否有其他活跃 job 需要继续轮询
+      if (snapshot.value?.protocolJobRefs) {
+        for (const [, ref] of Object.entries(snapshot.value.protocolJobRefs)) {
+          if (ref.jobId && ref.jobId !== jobId) {
+            const job = await api.get<CapabilityTestJob>(
+              `/api/${channelType}/channels/${channelId}/capability-test/${ref.jobId}`,
+            )
+            if (job.status === 'running' || job.status === 'queued') {
+              startPolling(channelType, channelId, ref.jobId)
+            }
+          }
+        }
       }
     } finally {
       cancelling.value = false
@@ -162,6 +186,11 @@ export function useCapabilityTests() {
       { protocol, model },
     )
     startPolling(channelType, channelId, jobId)
+    // 也为子 job 启动轮询
+    if (activeJob.value?.protocolJobRefs?.[protocol]?.jobId) {
+      const subJobId = activeJob.value.protocolJobRefs[protocol].jobId
+      if (subJobId !== jobId) startPolling(channelType, channelId, subJobId)
+    }
   }
 
   // ── Copy to Tab ──
@@ -200,7 +229,7 @@ export function useCapabilityTests() {
   // ── Reset ──
 
   function reset() {
-    stopPolling()
+    stopAllPolling()
     activeJob.value = null
     snapshot.value = null
     error.value = ''
