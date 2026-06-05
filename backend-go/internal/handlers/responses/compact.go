@@ -354,25 +354,27 @@ func tryCompactWithKey(
 
 	resp, err := common.SendRequest(req, upstream, envCfg, false, "Responses")
 	if err != nil {
-		return false, &compactError{status: 502, body: []byte(`{"error":"上游请求失败"}`), shouldFailover: true, err: err}
+		log.Printf("[Compact-Local] 原生 compact 请求失败，回退本地 compact: %v", err)
+		return tryLocalCompactWithKey(c, upstream, apiKey, bodyBytes, envCfg, cfgManager, sessionManager)
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	respBody = utils.DecompressGzipIfNeeded(resp, respBody)
 
-	// 判断是否需要故障转移
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// 原生 compact 不支持时回退到本地 compact
-		if isNativeCompactUnsupported(resp.StatusCode) {
-			log.Printf("[Compact-Local] 原生 compact 不支持，回退本地 compact: status=%d", resp.StatusCode)
-			return tryLocalCompactWithKey(c, upstream, apiKey, bodyBytes, envCfg, cfgManager, sessionManager)
+		log.Printf("[Compact-Local] 原生 compact 失败，回退本地 compact: status=%d", resp.StatusCode)
+		localSuccess, localErr := tryLocalCompactWithKey(c, upstream, apiKey, bodyBytes, envCfg, cfgManager, sessionManager)
+		if localSuccess || localErr != nil {
+			return localSuccess, localErr
 		}
+
 		shouldFailover, _ := common.ShouldRetryWithNextKey(resp.StatusCode, respBody, cfgManager.GetFuzzyModeEnabled(), "Responses")
 		return false, &compactError{status: resp.StatusCode, body: respBody, shouldFailover: shouldFailover}
 	}
 
-	// 成功
+	// 成功。原生 compact 返回也规范化为单个 message item，避免 reasoning item 破坏 Codex compaction v2 解析。
+	respBody = normalizeCompactResponseBody(respBody)
 	utils.ForwardResponseHeaders(resp.Header, c.Writer)
 	c.Data(resp.StatusCode, "application/json", respBody)
 	return true, nil

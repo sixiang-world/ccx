@@ -157,18 +157,6 @@ func TestNeedsLocalCompact(t *testing.T) {
 	}
 }
 
-func TestIsNativeCompactUnsupported(t *testing.T) {
-	if !isNativeCompactUnsupported(404) {
-		t.Error("404 should be unsupported")
-	}
-	if !isNativeCompactUnsupported(405) {
-		t.Error("405 should be unsupported")
-	}
-	if isNativeCompactUnsupported(401) {
-		t.Error("401 should not be unsupported")
-	}
-}
-
 func TestLocalCompact_OpenAIUpstream(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -273,5 +261,76 @@ func TestGetSessionByResponseID(t *testing.T) {
 	}
 	if found.ID != sess.ID {
 		t.Fatalf("session ID = %q, want %q", found.ID, sess.ID)
+	}
+}
+
+func TestNormalizeCompactOutputKeepsOnlyAssistantMessage(t *testing.T) {
+	output := []types.ResponsesItem{
+		{
+			Type: "reasoning",
+			Summary: []interface{}{map[string]interface{}{
+				"type": "summary_text",
+				"text": "internal reasoning",
+			}},
+		},
+		{
+			ID:      "msg_1",
+			Type:    "message",
+			Role:    "assistant",
+			Status:  "completed",
+			Content: []types.ContentBlock{{Type: "output_text", Text: "compacted summary"}},
+		},
+	}
+
+	result := normalizeCompactOutput(output)
+
+	if len(result) != 1 {
+		t.Fatalf("期望 1 个 output item，实际 %d 个", len(result))
+	}
+	if result[0].Type != "message" {
+		t.Fatalf("期望 message item，实际 %s", result[0].Type)
+	}
+	if text := extractContentText(result[0].Content); text != "compacted summary" {
+		t.Fatalf("期望只保留 message 文本，实际 %q", text)
+	}
+}
+
+func TestNormalizeCompactResponseBodyKeepsOnlyMessageOutput(t *testing.T) {
+	body := []byte(`{
+		"id":"resp_1",
+		"status":"completed",
+		"output":[
+			{"type":"reasoning","summary":[{"type":"summary_text","text":"internal reasoning"}]},
+			{"id":"msg_1","type":"message","role":"assistant","content":[{"type":"output_text","text":"compacted summary"}]}
+		],
+		"usage":{"output_tokens_details":{"reasoning_tokens":12}}
+	}`)
+
+	normalized := normalizeCompactResponseBody(body)
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal(normalized, &payload); err != nil {
+		t.Fatalf("normalized JSON 解析失败: %v", err)
+	}
+	output, ok := payload["output"].([]interface{})
+	if !ok {
+		t.Fatalf("output 类型错误: %T", payload["output"])
+	}
+	if len(output) != 1 {
+		t.Fatalf("期望 1 个 output item，实际 %d 个", len(output))
+	}
+	item, ok := output[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("output[0] 类型错误: %T", output[0])
+	}
+	if item["type"] != "message" {
+		t.Fatalf("期望 message item，实际 %v", item["type"])
+	}
+	if text := extractContentText(item["content"]); text != "compacted summary" {
+		t.Fatalf("期望只保留 message 文本，实际 %q", text)
+	}
+	usage, ok := payload["usage"].(map[string]interface{})
+	if !ok || usage["output_tokens_details"] == nil {
+		t.Fatal("期望保留 usage.output_tokens_details")
 	}
 }

@@ -48,10 +48,6 @@ func needsLocalCompact(upstream *config.UpstreamConfig) bool {
 	return upstream.ServiceType != "responses"
 }
 
-func isNativeCompactUnsupported(status int) bool {
-	return status == 404 || status == 405 || status == 501
-}
-
 // PLACEHOLDER_FORMAT_TRANSCRIPT
 
 func formatItemsAsTranscript(items []types.ResponsesItem) string {
@@ -323,6 +319,10 @@ func handleLocalCompactNonStream(
 		responsesResp.PreviousID = originalReq.PreviousResponseID
 	}
 
+	// Compact 响应必须是单个 message item。
+	// Codex compaction v2 期望恰好一个输出 item；reasoning 不应混入用户可见文本。
+	responsesResp.Output = normalizeCompactOutput(responsesResp.Output)
+
 	// 写回 session
 	writeCompactedSession(responsesResp, originalReq, sessionManager)
 
@@ -449,6 +449,72 @@ func collectStreamSummary(event string, buf *strings.Builder, responseID *string
 }
 
 // PLACEHOLDER_SESSION_WRITE
+
+// normalizeCompactOutput 将 compact 输出规范化为 Codex 可解析的单个 message item。
+// reasoning 不应混入用户可见文本，usage 中的 reasoning_tokens 可继续保留。
+func normalizeCompactOutput(output []types.ResponsesItem) []types.ResponsesItem {
+	if len(output) <= 1 {
+		return output
+	}
+
+	for _, item := range output {
+		if item.Type == "message" && item.Role == "assistant" && extractContentText(item.Content) != "" {
+			return []types.ResponsesItem{item}
+		}
+	}
+
+	for _, item := range output {
+		if item.Type == "message" && extractContentText(item.Content) != "" {
+			return []types.ResponsesItem{item}
+		}
+	}
+
+	return output
+}
+
+func normalizeCompactResponseBody(respBody []byte) []byte {
+	var payload map[string]interface{}
+	if err := json.Unmarshal(respBody, &payload); err != nil {
+		return respBody
+	}
+
+	output, ok := payload["output"].([]interface{})
+	if !ok || len(output) <= 1 {
+		return respBody
+	}
+
+	if item := findCompactMessageItem(output, true); item != nil {
+		payload["output"] = []interface{}{item}
+		if normalized, err := utils.MarshalJSONNoEscape(payload); err == nil {
+			return normalized
+		}
+	}
+
+	if item := findCompactMessageItem(output, false); item != nil {
+		payload["output"] = []interface{}{item}
+		if normalized, err := utils.MarshalJSONNoEscape(payload); err == nil {
+			return normalized
+		}
+	}
+
+	return respBody
+}
+
+func findCompactMessageItem(output []interface{}, requireAssistant bool) interface{} {
+	for _, item := range output {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok || itemMap["type"] != "message" {
+			continue
+		}
+		if requireAssistant && itemMap["role"] != "assistant" {
+			continue
+		}
+		if extractContentText(itemMap["content"]) != "" {
+			return item
+		}
+	}
+	return nil
+}
 
 func writeCompactedSession(resp *types.ResponsesResponse, originalReq types.ResponsesRequest, sessionManager *session.SessionManager) {
 	if sessionManager == nil {
