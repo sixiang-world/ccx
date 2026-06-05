@@ -22,19 +22,21 @@ const form = reactive({
   windowSize: 10,
   failureThreshold: 0.5,
   consecutiveFailuresThreshold: 3,
+  streamFirstContentTimeoutMs: 30000,
+  streamInactivityTimeoutMs: 5000,
 })
 
 const presets = [
-  { key: 'gentle', labelKey: 'env.runtimeCbPresetGentle' as const, windowSize: 20, failureThreshold: 0.70, consecutiveFailuresThreshold: 5 },
-  { key: 'balanced', labelKey: 'env.runtimeCbPresetBalanced' as const, windowSize: 10, failureThreshold: 0.50, consecutiveFailuresThreshold: 3 },
-  { key: 'aggressive', labelKey: 'env.runtimeCbPresetAggressive' as const, windowSize: 5, failureThreshold: 0.30, consecutiveFailuresThreshold: 2 },
-  { key: 'custom', labelKey: 'env.runtimeCbPresetCustom' as const, windowSize: 10, failureThreshold: 0.50, consecutiveFailuresThreshold: 3 },
+  { key: 'gentle', labelKey: 'env.runtimeCbPresetGentle' as const, windowSize: 20, failureThreshold: 0.70, consecutiveFailuresThreshold: 5, streamFirstContentTimeoutMs: 60000, streamInactivityTimeoutMs: 10000 },
+  { key: 'balanced', labelKey: 'env.runtimeCbPresetBalanced' as const, windowSize: 10, failureThreshold: 0.50, consecutiveFailuresThreshold: 3, streamFirstContentTimeoutMs: 30000, streamInactivityTimeoutMs: 5000 },
+  { key: 'aggressive', labelKey: 'env.runtimeCbPresetAggressive' as const, windowSize: 5, failureThreshold: 0.30, consecutiveFailuresThreshold: 2, streamFirstContentTimeoutMs: 10000, streamInactivityTimeoutMs: 3000 },
+  { key: 'custom', labelKey: 'env.runtimeCbPresetCustom' as const, windowSize: 10, failureThreshold: 0.50, consecutiveFailuresThreshold: 3, streamFirstContentTimeoutMs: 30000, streamInactivityTimeoutMs: 5000 },
 ]
 
 const matchPreset = () => {
   for (const p of presets) {
     if (p.key === 'custom') continue
-    if (form.windowSize === p.windowSize && form.failureThreshold === p.failureThreshold && form.consecutiveFailuresThreshold === p.consecutiveFailuresThreshold) {
+    if (form.windowSize === p.windowSize && form.failureThreshold === p.failureThreshold && form.consecutiveFailuresThreshold === p.consecutiveFailuresThreshold && form.streamFirstContentTimeoutMs === p.streamFirstContentTimeoutMs && form.streamInactivityTimeoutMs === p.streamInactivityTimeoutMs) {
       activePreset.value = p.key
       return
     }
@@ -47,6 +49,8 @@ const applyPreset = (preset: typeof presets[number]) => {
   form.windowSize = preset.windowSize
   form.failureThreshold = preset.failureThreshold
   form.consecutiveFailuresThreshold = preset.consecutiveFailuresThreshold
+  form.streamFirstContentTimeoutMs = preset.streamFirstContentTimeoutMs
+  form.streamInactivityTimeoutMs = preset.streamInactivityTimeoutMs
   activePreset.value = preset.key
 }
 
@@ -58,6 +62,10 @@ const onSliderChange = (field: string, event: Event) => {
     form.windowSize = val
   } else if (field === 'consecutiveFailuresThreshold') {
     form.consecutiveFailuresThreshold = val
+  } else if (field === 'streamFirstContentTimeoutMs') {
+    form.streamFirstContentTimeoutMs = val
+  } else if (field === 'streamInactivityTimeoutMs') {
+    form.streamInactivityTimeoutMs = val
   }
   matchPreset()
 }
@@ -102,6 +110,8 @@ const fetchConfig = async () => {
     form.windowSize = data.windowSize ?? 10
     form.failureThreshold = data.failureThreshold ?? 0.5
     form.consecutiveFailuresThreshold = data.consecutiveFailuresThreshold ?? 3
+    form.streamFirstContentTimeoutMs = data.streamFirstContentTimeoutMs ?? 30000
+    form.streamInactivityTimeoutMs = data.streamInactivityTimeoutMs ?? 5000
     matchPreset()
   } catch (e) {
     showMessage(t('env.runtimeCbLoadFailed', { error: e instanceof Error ? e.message : String(e) }), 'error')
@@ -128,6 +138,8 @@ const saveConfig = async () => {
         windowSize: form.windowSize,
         failureThreshold: form.failureThreshold,
         consecutiveFailuresThreshold: form.consecutiveFailuresThreshold,
+        streamFirstContentTimeoutMs: form.streamFirstContentTimeoutMs,
+        streamInactivityTimeoutMs: form.streamInactivityTimeoutMs,
       }),
     })
     if (!resp.ok) {
@@ -243,6 +255,49 @@ onMounted(() => {
             @input="onSliderChange('consecutiveFailuresThreshold', $event)"
           />
           <div class="flex justify-between text-xs text-muted-foreground"><span>1</span><span>100</span></div>
+        </div>
+      </div>
+
+      <!-- Sliders - 流式健康检测超时 -->
+      <div class="flex mb-4">
+        <!-- 首字等待超时 -->
+        <div class="flex-1 px-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs text-muted-foreground">{{ t('env.runtimeCbStreamFirstContentTimeout') }}</span>
+            <span class="text-xs font-medium">{{ form.streamFirstContentTimeoutMs === 0 ? 'off' : (form.streamFirstContentTimeoutMs / 1000) + 's' }}</span>
+          </div>
+          <input
+            type="range"
+            :value="form.streamFirstContentTimeoutMs"
+            :min="0"
+            :max="300000"
+            step="1000"
+            class="cb-slider w-full"
+            :disabled="!status.running"
+            @input="onSliderChange('streamFirstContentTimeoutMs', $event)"
+          />
+          <div class="flex justify-between text-xs text-muted-foreground"><span>off</span><span>300s</span></div>
+        </div>
+
+        <div class="w-px bg-border mx-1 self-stretch" />
+
+        <!-- 首字后断流超时 -->
+        <div class="flex-1 px-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs text-muted-foreground">{{ t('env.runtimeCbStreamInactivityTimeout') }}</span>
+            <span class="text-xs font-medium">{{ form.streamInactivityTimeoutMs === 0 ? 'off' : (form.streamInactivityTimeoutMs / 1000) + 's' }}</span>
+          </div>
+          <input
+            type="range"
+            :value="form.streamInactivityTimeoutMs"
+            :min="0"
+            :max="60000"
+            step="1000"
+            class="cb-slider w-full"
+            :disabled="!status.running"
+            @input="onSliderChange('streamInactivityTimeoutMs', $event)"
+          />
+          <div class="flex justify-between text-xs text-muted-foreground"><span>off</span><span>60s</span></div>
         </div>
       </div>
 

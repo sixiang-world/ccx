@@ -331,6 +331,10 @@ export type MessageKey =
   | 'env.runtimeCbFailureThresholdDesc'
   | 'env.runtimeCbConsecutiveFailures'
   | 'env.runtimeCbConsecutiveFailuresDesc'
+  | 'env.runtimeCbStreamFirstContentTimeout'
+  | 'env.runtimeCbStreamFirstContentTimeoutDesc'
+  | 'env.runtimeCbStreamInactivityTimeout'
+  | 'env.runtimeCbStreamInactivityTimeoutDesc'
   | 'env.runtimeCbPresetGentle'
   | 'env.runtimeCbPresetBalanced'
   | 'env.runtimeCbPresetAggressive'
@@ -915,6 +919,10 @@ export const messages: Record<SupportedLocale, Messages> = {
     'env.runtimeCbFailureThresholdDesc': 'Triggers circuit break when exceeded (0.01-1.0)',
     'env.runtimeCbConsecutiveFailures': 'Consecutive Failures Threshold',
     'env.runtimeCbConsecutiveFailuresDesc': 'Triggers circuit break on N consecutive retryable failures (1-100)',
+    'env.runtimeCbStreamFirstContentTimeout': 'First Content Timeout',
+    'env.runtimeCbStreamFirstContentTimeoutDesc': 'Wait for first valid content after HTTP 200 (0=disabled, 1000-300000ms)',
+    'env.runtimeCbStreamInactivityTimeout': 'Inactivity Timeout',
+    'env.runtimeCbStreamInactivityTimeoutDesc': 'Wait for subsequent activity after first content (0=disabled, 1000-60000ms)',
     'env.runtimeCbPresetGentle': 'Gentle',
     'env.runtimeCbPresetBalanced': 'Balanced',
     'env.runtimeCbPresetAggressive': 'Aggressive',
@@ -1496,6 +1504,10 @@ export const messages: Record<SupportedLocale, Messages> = {
     'env.runtimeCbFailureThresholdDesc': '超过此值触发熔断（0.01-1.0）',
     'env.runtimeCbConsecutiveFailures': '连续失败阈值',
     'env.runtimeCbConsecutiveFailuresDesc': '连续可重试失败次数达此值触发熔断（1-100）',
+    'env.runtimeCbStreamFirstContentTimeout': '首字等待超时',
+    'env.runtimeCbStreamFirstContentTimeoutDesc': 'HTTP 200 后等待首个有效内容的时间（0=禁用, 1000-300000ms）',
+    'env.runtimeCbStreamInactivityTimeout': '首字后断流超时',
+    'env.runtimeCbStreamInactivityTimeoutDesc': '首字后等待后续活动的时间（0=禁用, 1000-60000ms）',
     'env.runtimeCbPresetGentle': '温和',
     'env.runtimeCbPresetBalanced': '均衡',
     'env.runtimeCbPresetAggressive': '激进',
