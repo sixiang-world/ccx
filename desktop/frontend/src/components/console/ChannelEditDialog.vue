@@ -1155,7 +1155,7 @@ function buildCurrentPayload() {
                         </div>
                         <div v-if="item.disabledAt" class="text-[10px] text-muted-foreground">{{ item.disabledAt }}</div>
                       </div>
-                      <Button size="sm" variant="outline" :disabled="restoringKey === item.key" @click="handleDisabledKeyRestore(item.key)">
+                      <Button type="button" size="sm" variant="outline" :disabled="restoringKey === item.key" @click="handleDisabledKeyRestore(item.key)">
                         <Loader2 v-if="restoringKey === item.key" class="h-3 w-3 animate-spin" />
                         <RotateCcw v-else class="h-3 w-3" />
                         {{ tf('console.form.restoreKey', 'Restore') }}
