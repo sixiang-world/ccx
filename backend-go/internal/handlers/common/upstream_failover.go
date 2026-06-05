@@ -333,8 +333,8 @@ func TryUpstreamWithAllKeys(
 					log.Printf("[%s-Cancel] 请求已取消，停止渠道 failover", apiType)
 					// 完成日志记录（客户端取消）
 					CompleteLog(channelLogStore, metricsKey, logRequestID, http.StatusOK, false, "client canceled", attempt > 0 || urlIdx > 0)
-				} else if errors.Is(err, ErrEmptyStreamResponse) || errors.Is(err, ErrInvalidResponseBody) || errors.Is(err, ErrEmptyNonStreamResponse) {
-					// 空响应（流式 / 非流式）或无效响应体（如 HTML）：Header 未发送，可安全 failover
+				} else if errors.Is(err, ErrEmptyStreamResponse) || errors.Is(err, ErrInvalidResponseBody) || errors.Is(err, ErrEmptyNonStreamResponse) || errors.Is(err, ErrStreamFirstContentTimeout) || errors.Is(err, ErrStreamStalled) {
+					// 空响应（流式 / 非流式）或无效响应体（如 HTML）或流式首字超时/断流：Header 未发送，可安全 failover
 					failedKeys[apiKey] = true
 					cfgManager.MarkKeyAsFailed(apiKey, apiType)
 					metricsManager.RecordRequestFinalizeFailureWithClass(currentBaseURL, apiKey, metricsServiceType, requestID, metrics.FailureClassRetryable)

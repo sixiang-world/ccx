@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/BenedictKing/ccx/internal/config"
+	"github.com/BenedictKing/ccx/internal/metrics"
 	"github.com/BenedictKing/ccx/internal/providers"
 	"github.com/BenedictKing/ccx/internal/types"
 	"github.com/BenedictKing/ccx/internal/utils"
@@ -22,6 +23,40 @@ import (
 // ErrEmptyStreamResponse 上游返回 HTTP 200 但流式响应内容为空或几乎为空
 // 空响应定义：OutputTokens == 0 或 OutputTokens == 1 且内容仅为 "{"
 var ErrEmptyStreamResponse = errors.New("upstream returned empty stream response")
+
+// ErrStreamFirstContentTimeout 上游返回 HTTP 200 后，在指定时间内没有首个有效内容
+// Header 未发送，可安全 failover 到下一个 Key/BaseURL/渠道
+var ErrStreamFirstContentTimeout = errors.New("stream first content timeout")
+
+// ErrStreamStalled 上游返回首个有效内容后，在指定时间内没有后续活动（断流）
+// Header 未发送，可安全 failover 到下一个 Key/BaseURL/渠道
+var ErrStreamStalled = errors.New("stream stalled after first content")
+
+// StreamPreflightTimeouts 流式预检测超时参数
+type StreamPreflightTimeouts struct {
+	FirstContentTimeoutMs int // 阶段A：首个有效内容等待超时（ms，0=禁用）
+	InactivityTimeoutMs   int // 阶段B：首字后连续性确认窗口（ms，0=禁用则首字后立即放行）
+}
+
+// ResolveStreamTimeout 解析流式超时参数：渠道覆盖 > 全局默认
+func ResolveStreamTimeout(channelValue int, globalValue int) int {
+	switch {
+	case channelValue == -1:
+		return 0 // 本渠道禁用
+	case channelValue > 0:
+		return channelValue // 覆盖全局
+	default:
+		return globalValue // 0=继承全局
+	}
+}
+
+// ResolveStreamPreflightTimeouts 根据渠道覆盖和全局配置解析有效超时参数
+func ResolveStreamPreflightTimeouts(upstream *config.UpstreamConfig, global metrics.CircuitBreakerParams) StreamPreflightTimeouts {
+	return StreamPreflightTimeouts{
+		FirstContentTimeoutMs: ResolveStreamTimeout(upstream.StreamFirstContentTimeoutMs, global.StreamFirstContentTimeoutMs),
+		InactivityTimeoutMs:   ResolveStreamTimeout(upstream.StreamInactivityTimeoutMs, global.StreamInactivityTimeoutMs),
+	}
+}
 
 // ErrInvalidResponseBody 上游返回 HTTP 200 但响应体不是合法 JSON（如返回 HTML 错误页面）
 // Header 未发送，可安全 failover 到下一个 Key/BaseURL/渠道
@@ -63,19 +98,32 @@ type StreamToolCallState struct {
 
 // PreflightStreamEvents 在发送 HTTP Header 之前预检测流式响应是否为空
 // 缓冲事件并检查实际输出内容，避免发送 200 后无法撤销
-func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error) *StreamPreflightResult {
+//
+// 两阶段检测：
+//   - 阶段A：等待首个有效内容，超时返回 ErrStreamFirstContentTimeout
+//   - 阶段B：首个有效内容后等待后续活动，超时返回 ErrStreamStalled
+//
+// timeouts 参数控制超时行为，0 表示禁用对应阶段。
+func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeouts StreamPreflightTimeouts) *StreamPreflightResult {
 	result := &StreamPreflightResult{}
 	var textBuf bytes.Buffer
 	var thinkingBuf bytes.Buffer
 	toolTracker := NewStreamToolCallTracker()
 	hasNonTextContent := false // tool_use / server_tool_use 等非文本语义内容
+	hasFirstContent := false   // 已收到首个有效内容（进入阶段B）
 	seenEvent := false
 	seenMessageStop := false
 	seenUsageOnlyEvent := false
 	seenUnknownDataType := false
 	unknownEventType := ""
-	timeout := time.NewTimer(30 * time.Second)
-	defer timeout.Stop()
+
+	// 阶段A：首个有效内容等待超时
+	firstContentTimeout := time.NewTimer(time.Duration(max(timeouts.FirstContentTimeoutMs, 0)) * time.Millisecond)
+	defer firstContentTimeout.Stop()
+
+	// 阶段B：首字后不活动超时（初始为 nil，阶段B 时激活）
+	var inactivityTimer *time.Timer
+	inactivityChan := (<-chan time.Time)(nil)
 
 	for {
 		select {
@@ -112,7 +160,20 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error) *Strea
 			// 检测非文本 content block（tool_use / thinking）。tool_use 需等参数完整后再放行。
 			if !hasNonTextContent && hasNonTextContentBlock(event) && !toolTracker.HasPendingToolCall() {
 				hasNonTextContent = true
-				return result // 有效内容，立即放行
+				// 非文本内容：视为首个有效内容，进入阶段B
+				if !hasFirstContent {
+					hasFirstContent = true
+					firstContentTimeout.Stop()
+					if timeouts.InactivityTimeoutMs > 0 {
+						inactivityTimer = time.NewTimer(time.Duration(timeouts.InactivityTimeoutMs) * time.Millisecond)
+						inactivityChan = inactivityTimer.C
+						defer inactivityTimer.Stop()
+					}
+					// 如果禁用阶段B，直接放行
+					if timeouts.InactivityTimeoutMs <= 0 {
+						return result
+					}
+				}
 			}
 
 			seenMessageStop = seenMessageStop || IsMessageStopEvent(event)
@@ -132,8 +193,34 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error) *Strea
 
 			// 检查是否有有效内容（非空且不是仅 "{"）
 			if !isEmptyStreamContent(textBuf.String(), thinkingBuf.String()) {
-				// 非空响应，放行
-				return result
+				if !hasFirstContent {
+					// 阶段A→阶段B：首次检测到有效文本内容
+					hasFirstContent = true
+					firstContentTimeout.Stop()
+					if timeouts.InactivityTimeoutMs > 0 {
+						inactivityTimer = time.NewTimer(time.Duration(timeouts.InactivityTimeoutMs) * time.Millisecond)
+						inactivityChan = inactivityTimer.C
+						defer inactivityTimer.Stop()
+					}
+					// 如果禁用阶段B，直接放行（兼容旧行为）
+					if timeouts.InactivityTimeoutMs <= 0 {
+						return result
+					}
+				} else {
+					// 阶段B中收到第二个有效内容事件：健康流，放行
+					return result
+				}
+			}
+
+			// 阶段B中重置不活动定时器（收到任何事件都重置）
+			if hasFirstContent && inactivityTimer != nil {
+				if !inactivityTimer.Stop() {
+					select {
+					case <-inactivityTimer.C:
+					default:
+					}
+				}
+				inactivityTimer.Reset(time.Duration(timeouts.InactivityTimeoutMs) * time.Millisecond)
 			}
 
 			// 检查是否为 message_stop 事件（流正常结束）
@@ -159,8 +246,22 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error) *Strea
 				return result
 			}
 
-		case <-timeout.C:
-			// 超时：保守放行
+		case <-firstContentTimeout.C:
+			// 阶段A超时：首个有效内容等待超时
+			if timeouts.FirstContentTimeoutMs > 0 {
+				result.HasError = true
+				result.Error = ErrStreamFirstContentTimeout
+				result.Diagnostic = fmt.Sprintf("stream first content timeout after %dms", timeouts.FirstContentTimeoutMs)
+				return result
+			}
+			// 超时被禁用（0），保守放行
+			return result
+
+		case <-inactivityChan:
+			// 阶段B超时：首字后断流
+			result.HasError = true
+			result.Error = ErrStreamStalled
+			result.Diagnostic = fmt.Sprintf("stream stalled: no activity for %dms after first content", timeouts.InactivityTimeoutMs)
 			return result
 		}
 	}
@@ -1144,6 +1245,8 @@ func IsClientDisconnectError(err error) bool {
 //
 // 流程：provider.HandleStreamResponse → PreflightStreamEvents（预检测）
 //   - 空响应 → return nil, ErrEmptyStreamResponse（Header 未发送，可安全重试）
+//   - 首字超时 → return nil, ErrStreamFirstContentTimeout（Header 未发送，可安全重试）
+//   - 首字后断流 → return nil, ErrStreamStalled（Header 未发送，可安全重试）
 //   - 非空   → SetupStreamHeaders → 回放缓冲事件 → ProcessStreamEvents
 func HandleStreamResponse(
 	c *gin.Context,
@@ -1154,6 +1257,7 @@ func HandleStreamResponse(
 	upstream *config.UpstreamConfig,
 	requestBody []byte,
 	requestModel string,
+	timeouts StreamPreflightTimeouts,
 ) (*types.Usage, error) {
 	defer resp.Body.Close()
 
@@ -1164,11 +1268,16 @@ func HandleStreamResponse(
 	}
 
 	// 预检测：在发送 HTTP Header 之前缓冲事件并检查是否为空响应
-	preflight := PreflightStreamEvents(eventChan, errChan)
+	preflight := PreflightStreamEvents(eventChan, errChan, timeouts)
 
 	// 流错误：排空 channel 后返回错误
 	if preflight.HasError {
 		drainChannels(eventChan, errChan)
+		if errors.Is(preflight.Error, ErrStreamFirstContentTimeout) {
+			log.Printf("[Messages-FirstContentTimeout] 流式首字超时: %dms，触发重试", timeouts.FirstContentTimeoutMs)
+		} else if errors.Is(preflight.Error, ErrStreamStalled) {
+			log.Printf("[Messages-StreamStalled] 流式断流: 首字后 %dms 无活动，触发重试", timeouts.InactivityTimeoutMs)
+		}
 		return nil, preflight.Error
 	}
 

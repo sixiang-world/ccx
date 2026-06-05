@@ -243,6 +243,12 @@ func (cm *ConfigManager) UpdateChatUpstream(index int, updates UpstreamUpdate) (
 		}
 		upstream.RequestTimeoutMs = *updates.RequestTimeoutMs
 	}
+	if updates.StreamFirstContentTimeoutMs != nil {
+		upstream.StreamFirstContentTimeoutMs = *updates.StreamFirstContentTimeoutMs
+	}
+	if updates.StreamInactivityTimeoutMs != nil {
+		upstream.StreamInactivityTimeoutMs = *updates.StreamInactivityTimeoutMs
+	}
 	if updates.SupportedModels != nil {
 		upstream.SupportedModels = updates.SupportedModels
 	}

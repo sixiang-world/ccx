@@ -65,6 +65,9 @@ type UpstreamConfig struct {
 	ProxyURL string `json:"proxyUrl,omitempty"` // HTTP/HTTPS/SOCKS5 代理地址
 	// 渠道级请求超时
 	RequestTimeoutMs int `json:"requestTimeoutMs,omitempty"` // 非流式上游请求超时时间（毫秒，0=继承全局 REQUEST_TIMEOUT）
+	// 流式健康检测渠道覆盖（0=继承全局，-1=禁用，正数=覆盖全局）
+	StreamFirstContentTimeoutMs int `json:"streamFirstContentTimeoutMs,omitempty"` // HTTP 200 后首个有效内容等待超时
+	StreamInactivityTimeoutMs   int `json:"streamInactivityTimeoutMs,omitempty"`   // 首字后连续性确认窗口
 	// 模型白名单
 	SupportedModels []string `json:"supportedModels,omitempty"` // 支持的模型白名单（空=全部）；支持精确匹配，以及 prefix* / *suffix / *contains* 形式的包含与排除规则（排除用 ! 前缀）
 	// 路由前缀
@@ -168,6 +171,9 @@ type UpstreamUpdate struct {
 	ProxyURL *string `json:"proxyUrl"`
 	// 渠道级请求超时
 	RequestTimeoutMs *int `json:"requestTimeoutMs"`
+	// 流式健康检测渠道覆盖（0=继承全局，-1=禁用，正数=覆盖全局）
+	StreamFirstContentTimeoutMs *int `json:"streamFirstContentTimeoutMs"`
+	StreamInactivityTimeoutMs   *int `json:"streamInactivityTimeoutMs"`
 	// 模型白名单
 	SupportedModels []string `json:"supportedModels"` // 支持的模型白名单（空=全部）；支持精确匹配，以及 prefix* / *suffix / *contains* 形式的包含与排除规则（排除用 ! 前缀）
 	// 路由前缀
@@ -184,6 +190,9 @@ type CircuitBreakerConfig struct {
 	WindowSize                   *int     `json:"windowSize,omitempty"`
 	FailureThreshold             *float64 `json:"failureThreshold,omitempty"`
 	ConsecutiveFailuresThreshold *int     `json:"consecutiveFailuresThreshold,omitempty"`
+	// 流式健康检测全局默认参数
+	StreamFirstContentTimeoutMs *int `json:"streamFirstContentTimeoutMs,omitempty"` // HTTP 200 后首个有效内容等待超时（ms，0=禁用，nil=使用默认 30000）
+	StreamInactivityTimeoutMs   *int `json:"streamInactivityTimeoutMs,omitempty"`   // 首字后连续性确认窗口（ms，0=禁用，nil=使用默认 5000）
 }
 
 type Config struct {
@@ -638,6 +647,28 @@ func (cm *ConfigManager) SetCircuitBreakerConfig(update CircuitBreakerConfig) er
 			v = 100
 		}
 		cb.ConsecutiveFailuresThreshold = &v
+	}
+	if update.StreamFirstContentTimeoutMs != nil {
+		v := *update.StreamFirstContentTimeoutMs
+		if v != 0 {
+			if v < 1000 {
+				v = 1000
+			} else if v > 300000 {
+				v = 300000
+			}
+		}
+		cb.StreamFirstContentTimeoutMs = &v
+	}
+	if update.StreamInactivityTimeoutMs != nil {
+		v := *update.StreamInactivityTimeoutMs
+		if v != 0 {
+			if v < 1000 {
+				v = 1000
+			} else if v > 60000 {
+				v = 60000
+			}
+		}
+		cb.StreamInactivityTimeoutMs = &v
 	}
 
 	if err := cm.saveConfigLocked(cm.config); err != nil {

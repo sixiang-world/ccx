@@ -67,6 +67,9 @@ const (
 	defaultHalfOpenSuccessThreshold              int           = 1
 	defaultCircuitBackoffBase                    time.Duration = 30 * time.Second
 	defaultCircuitBackoffMax                     time.Duration = 10 * time.Minute
+	// 流式健康检测默认参数
+	defaultStreamFirstContentTimeoutMs = 30000 // HTTP 200 后首个有效内容等待超时（30秒）
+	defaultStreamInactivityTimeoutMs   = 5000  // 首字后连续性确认窗口（5秒）
 )
 
 // RequestRecord 带时间戳的请求记录（扩展版，支持 Token、Cache 和失败分类数据）。
@@ -162,6 +165,10 @@ type MetricsManager struct {
 	stopCh                       chan struct{} // 用于停止清理 goroutine
 	nextRequestID                uint64        // 单进程递增请求ID（用于 pendingHistoryIdx）
 
+	// 流式健康检测参数
+	streamFirstContentTimeoutMs int // HTTP 200 后首个有效内容等待超时（ms，0=禁用）
+	streamInactivityTimeoutMs   int // 首字后连续性确认窗口（ms，0=禁用）
+
 	// 持久化存储（可选）
 	store   PersistenceStore
 	apiType string // "messages"、"responses"、"gemini" 或 "chat"
@@ -214,6 +221,8 @@ func NewMetricsManagerWithConfig(windowSize int, failureThreshold float64) *Metr
 		circuitBackoffBase:           defaultCircuitBackoffBase,
 		circuitBackoffMax:            defaultCircuitBackoffMax,
 		halfOpenSuccessTarget:        defaultHalfOpenSuccessThreshold,
+		streamFirstContentTimeoutMs:  defaultStreamFirstContentTimeoutMs,
+		streamInactivityTimeoutMs:    defaultStreamInactivityTimeoutMs,
 		stopCh:                       make(chan struct{}),
 	}
 	// 启动后台熔断恢复任务
@@ -2121,6 +2130,9 @@ type CircuitBreakerParams struct {
 	WindowSize                   int     `json:"windowSize"`
 	FailureThreshold             float64 `json:"failureThreshold"`
 	ConsecutiveFailuresThreshold int64   `json:"consecutiveFailuresThreshold"`
+	// 流式健康检测参数
+	StreamFirstContentTimeoutMs int `json:"streamFirstContentTimeoutMs"` // HTTP 200 后首个有效内容等待超时（ms，0=禁用）
+	StreamInactivityTimeoutMs   int `json:"streamInactivityTimeoutMs"`   // 首字后连续性确认窗口（ms，0=禁用）
 }
 
 // GetCircuitBreakerConfig 获取当前运行时生效的熔断器配置
@@ -2128,9 +2140,11 @@ func (m *MetricsManager) GetCircuitBreakerConfig() CircuitBreakerParams {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return CircuitBreakerParams{
-		WindowSize:                   m.windowSize,
-		FailureThreshold:             m.failureThreshold,
+		WindowSize:                  m.windowSize,
+		FailureThreshold:            m.failureThreshold,
 		ConsecutiveFailuresThreshold: m.consecutiveFailuresThreshold,
+		StreamFirstContentTimeoutMs: m.streamFirstContentTimeoutMs,
+		StreamInactivityTimeoutMs:   m.streamInactivityTimeoutMs,
 	}
 }
 
@@ -2145,6 +2159,20 @@ func (m *MetricsManager) UpdateCircuitBreakerConfig(params CircuitBreakerParams)
 	if params.ConsecutiveFailuresThreshold < 1 {
 		params.ConsecutiveFailuresThreshold = defaultConsecutiveRetryableFailuresThreshold
 	}
+	if params.StreamFirstContentTimeoutMs != 0 {
+		if params.StreamFirstContentTimeoutMs < 1000 {
+			params.StreamFirstContentTimeoutMs = 1000
+		} else if params.StreamFirstContentTimeoutMs > 300000 {
+			params.StreamFirstContentTimeoutMs = 300000
+		}
+	}
+	if params.StreamInactivityTimeoutMs != 0 {
+		if params.StreamInactivityTimeoutMs < 1000 {
+			params.StreamInactivityTimeoutMs = 1000
+		} else if params.StreamInactivityTimeoutMs > 60000 {
+			params.StreamInactivityTimeoutMs = 60000
+		}
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -2152,6 +2180,8 @@ func (m *MetricsManager) UpdateCircuitBreakerConfig(params CircuitBreakerParams)
 	m.windowSize = params.WindowSize
 	m.failureThreshold = params.FailureThreshold
 	m.consecutiveFailuresThreshold = params.ConsecutiveFailuresThreshold
+	m.streamFirstContentTimeoutMs = params.StreamFirstContentTimeoutMs
+	m.streamInactivityTimeoutMs = params.StreamInactivityTimeoutMs
 }
 
 // ============ 兼容旧 API 的方法（基于 channelIndex，需要调用方提供 baseURL 和 keys）============

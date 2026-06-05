@@ -372,7 +372,7 @@ func sendAndCheckStream(ctx context.Context, channel *config.UpstreamConfig, req
 	doneCh := make(chan streamResult, 1)
 
 	go func() {
-		preflight := common.PreflightStreamEvents(eventChan, errChan)
+		preflight := common.PreflightStreamEvents(eventChan, errChan, common.StreamPreflightTimeouts{})
 		if preflight.HasError {
 			doneCh <- streamResult{err: preflight.Error}
 			return
@@ -439,6 +439,12 @@ func classifyError(err error, statusCode int, ctx context.Context) string {
 		errStr = err.Error()
 		if errors.Is(err, common.ErrEmptyStreamResponse) || strings.Contains(errStr, "上游返回空响应") {
 			return "empty_response"
+		}
+		if errors.Is(err, common.ErrStreamFirstContentTimeout) {
+			return "stream_first_content_timeout"
+		}
+		if errors.Is(err, common.ErrStreamStalled) {
+			return "stream_stalled"
 		}
 	}
 

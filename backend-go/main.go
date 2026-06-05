@@ -329,9 +329,11 @@ func main() {
 
 	applyCircuitBreakerConfig := func(cfg config.Config) {
 		params := metrics.CircuitBreakerParams{
-			WindowSize:                   envCfg.MetricsWindowSize,
-			FailureThreshold:             envCfg.MetricsFailureThreshold,
+			WindowSize:                  envCfg.MetricsWindowSize,
+			FailureThreshold:            envCfg.MetricsFailureThreshold,
 			ConsecutiveFailuresThreshold: 3,
+			StreamFirstContentTimeoutMs: 30000,
+			StreamInactivityTimeoutMs:   5000,
 		}
 		if cfg.CircuitBreaker != nil {
 			if cfg.CircuitBreaker.WindowSize != nil {
@@ -342,6 +344,12 @@ func main() {
 			}
 			if cfg.CircuitBreaker.ConsecutiveFailuresThreshold != nil {
 				params.ConsecutiveFailuresThreshold = int64(*cfg.CircuitBreaker.ConsecutiveFailuresThreshold)
+			}
+			if cfg.CircuitBreaker.StreamFirstContentTimeoutMs != nil {
+				params.StreamFirstContentTimeoutMs = *cfg.CircuitBreaker.StreamFirstContentTimeoutMs
+			}
+			if cfg.CircuitBreaker.StreamInactivityTimeoutMs != nil {
+				params.StreamInactivityTimeoutMs = *cfg.CircuitBreaker.StreamInactivityTimeoutMs
 			}
 		}
 		messagesMetricsManager.UpdateCircuitBreakerConfig(params)

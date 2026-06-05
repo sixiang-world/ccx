@@ -161,7 +161,8 @@ func handleMultiChannel(
 				},
 				func(c *gin.Context, resp *http.Response, upstreamCopy *config.UpstreamConfig, apiKey string, actualRequestBody []byte) (*types.Usage, error) {
 					if claudeReq.Stream {
-						return common.HandleStreamResponse(c, resp, provider, envCfg, startTime, upstreamCopy, actualRequestBody, claudeReq.Model)
+						timeouts := common.ResolveStreamPreflightTimeouts(upstreamCopy, metricsManager.GetCircuitBreakerConfig())
+						return common.HandleStreamResponse(c, resp, provider, envCfg, startTime, upstreamCopy, actualRequestBody, claudeReq.Model, timeouts)
 					}
 					return handleNormalResponse(c, resp, provider, envCfg, startTime, actualRequestBody, upstreamCopy, apiKey, cfgManager.GetFuzzyModeEnabled())
 				},
@@ -266,7 +267,8 @@ func handleSingleChannel(
 		nil,
 		func(c *gin.Context, resp *http.Response, upstreamCopy *config.UpstreamConfig, apiKey string, actualRequestBody []byte) (*types.Usage, error) {
 			if claudeReq.Stream {
-				return common.HandleStreamResponse(c, resp, provider, envCfg, startTime, upstreamCopy, actualRequestBody, claudeReq.Model)
+				timeouts := common.ResolveStreamPreflightTimeouts(upstreamCopy, metricsManager.GetCircuitBreakerConfig())
+				return common.HandleStreamResponse(c, resp, provider, envCfg, startTime, upstreamCopy, actualRequestBody, claudeReq.Model, timeouts)
 			}
 			return handleNormalResponse(c, resp, provider, envCfg, startTime, actualRequestBody, upstreamCopy, apiKey, cfgManager.GetFuzzyModeEnabled())
 		},
