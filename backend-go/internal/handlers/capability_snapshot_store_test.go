@@ -247,6 +247,115 @@ func TestGetCapabilitySnapshot_PreservesSameSourceRedirectProtocol(t *testing.T)
 	}
 }
 
+func TestGetCapabilitySnapshot_IncludesCrossProtocolWithoutModelMapping(t *testing.T) {
+	resetCapabilityTestState()
+	gin.SetMode(gin.TestMode)
+
+	cfg := config.Config{
+		ResponsesUpstream: []config.UpstreamConfig{
+			{
+				Name:        "responses-to-chat-channel",
+				BaseURL:     "https://example.test",
+				APIKeys:     []string{"sk-test"},
+				ServiceType: "openai",
+			},
+		},
+	}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("marshal config failed: %v", err)
+	}
+
+	configFile := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(configFile, data, 0644); err != nil {
+		t.Fatalf("write config failed: %v", err)
+	}
+	cfgManager, err := config.NewConfigManager(configFile, "")
+	if err != nil {
+		t.Fatalf("create config manager failed: %v", err)
+	}
+	t.Cleanup(func() { cfgManager.Close() })
+
+	r := gin.New()
+	r.GET("/responses/channels/:id/capability-snapshot", GetCapabilitySnapshot(cfgManager, "responses"))
+
+	req := httptest.NewRequest(http.MethodGet, "/responses/channels/0/capability-snapshot?sourceTab=responses", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
+	}
+
+	var snapshot CapabilitySnapshot
+	if err := json.Unmarshal(w.Body.Bytes(), &snapshot); err != nil {
+		t.Fatalf("unmarshal snapshot failed: %v", err)
+	}
+
+	test := findSnapshotTest(&snapshot, "responses->chat")
+	if test == nil {
+		t.Fatalf("expected responses->chat in snapshot tests: %#v", snapshot.Tests)
+	}
+	if test.AttemptedModels == 0 || len(test.ModelResults) == 0 {
+		t.Fatalf("expected model results for responses->chat, got attempted=%d len=%d", test.AttemptedModels, len(test.ModelResults))
+	}
+	for _, result := range test.ModelResults {
+		if result.ActualModel != "" && result.ActualModel != result.Model {
+			t.Fatalf("expected no model redirect for %s, got actualModel=%q", result.Model, result.ActualModel)
+		}
+	}
+}
+
+func TestGetCapabilitySnapshot_SkipsSameProtocolWithoutModelMapping(t *testing.T) {
+	resetCapabilityTestState()
+	gin.SetMode(gin.TestMode)
+
+	cfg := config.Config{
+		ResponsesUpstream: []config.UpstreamConfig{
+			{
+				Name:        "responses-channel",
+				BaseURL:     "https://example.test",
+				APIKeys:     []string{"sk-test"},
+				ServiceType: "responses",
+			},
+		},
+	}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("marshal config failed: %v", err)
+	}
+
+	configFile := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(configFile, data, 0644); err != nil {
+		t.Fatalf("write config failed: %v", err)
+	}
+	cfgManager, err := config.NewConfigManager(configFile, "")
+	if err != nil {
+		t.Fatalf("create config manager failed: %v", err)
+	}
+	t.Cleanup(func() { cfgManager.Close() })
+
+	r := gin.New()
+	r.GET("/responses/channels/:id/capability-snapshot", GetCapabilitySnapshot(cfgManager, "responses"))
+
+	req := httptest.NewRequest(http.MethodGet, "/responses/channels/0/capability-snapshot?sourceTab=responses", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
+	}
+
+	var snapshot CapabilitySnapshot
+	if err := json.Unmarshal(w.Body.Bytes(), &snapshot); err != nil {
+		t.Fatalf("unmarshal snapshot failed: %v", err)
+	}
+
+	if test := findSnapshotTest(&snapshot, "responses->responses"); test != nil {
+		t.Fatalf("expected no responses->responses without model mapping, got %#v", test)
+	}
+}
+
 func TestFilterSameSourceVirtualProtocols(t *testing.T) {
 	tests := []CapabilityProtocolJobResult{
 		{Protocol: "responses->responses"},

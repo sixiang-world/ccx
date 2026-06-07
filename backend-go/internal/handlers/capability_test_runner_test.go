@@ -11,18 +11,18 @@ func TestShouldRunRedirectVerification(t *testing.T) {
 		want               bool
 	}{
 		{
-			name:               "single unrelated protocol does not run redirect verification",
+			name:               "cross protocol runs redirect verification even for unrelated base protocol",
 			protocols:          []string{"messages"},
 			sourceTab:          "responses",
 			channelServiceType: "chat",
-			want:               false,
+			want:               true,
 		},
 		{
-			name:               "source protocol does not run redirect verification implicitly",
+			name:               "cross protocol runs redirect verification for source protocol",
 			protocols:          []string{"responses"},
 			sourceTab:          "responses",
 			channelServiceType: "chat",
-			want:               false,
+			want:               true,
 		},
 		{
 			name:               "explicit virtual protocol runs redirect verification",
@@ -32,22 +32,29 @@ func TestShouldRunRedirectVerification(t *testing.T) {
 			want:               true,
 		},
 		{
-			name:               "other virtual protocol does not run redirect verification",
+			name:               "cross protocol runs redirect verification even when protocols contain other virtual protocol",
 			protocols:          []string{"messages->chat"},
 			sourceTab:          "responses",
 			channelServiceType: "chat",
-			want:               false,
+			want:               true,
 		},
 		{
-			name:               "all base protocols do not run redirect verification implicitly",
+			name:               "all base protocols run redirect verification for cross protocol channel",
 			protocols:          []string{"messages", "responses", "chat", "gemini"},
 			sourceTab:          "responses",
 			channelServiceType: "chat",
-			want:               false,
+			want:               true,
 		},
 		{
 			name:               "same source and channel protocol does not run redirect verification implicitly",
 			protocols:          []string{"responses"},
+			sourceTab:          "responses",
+			channelServiceType: "responses",
+			want:               false,
+		},
+		{
+			name:               "same source unrelated virtual protocol does not run redirect verification",
+			protocols:          []string{"messages->chat"},
 			sourceTab:          "responses",
 			channelServiceType: "responses",
 			want:               false,

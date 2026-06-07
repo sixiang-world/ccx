@@ -34,6 +34,40 @@ func TestExpandCapabilityProtocolsForChannel_IncludesSameProtocolWhenModelMappin
 	}
 }
 
+func TestExpandCapabilityProtocolsForChannel_IncludesCrossProtocolWithoutModelMapping(t *testing.T) {
+	channel := &config.UpstreamConfig{
+		ServiceType: "openai",
+	}
+
+	got := expandCapabilityProtocolsForChannel("responses", channel, []string{"responses"})
+	want := []string{"responses->chat", "responses"}
+	if len(got) != len(want) {
+		t.Fatalf("protocols length=%d, want %d: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("protocols[%d]=%q, want %q: %v", i, got[i], want[i], got)
+		}
+	}
+}
+
+func TestExpandCapabilityProtocolsForChannel_SkipsSameProtocolWithoutModelMapping(t *testing.T) {
+	channel := &config.UpstreamConfig{
+		ServiceType: "responses",
+	}
+
+	got := expandCapabilityProtocolsForChannel("responses", channel, []string{"responses"})
+	want := []string{"responses"}
+	if len(got) != len(want) {
+		t.Fatalf("protocols length=%d, want %d: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("protocols[%d]=%q, want %q: %v", i, got[i], want[i], got)
+		}
+	}
+}
+
 func TestRunRedirectVerification_UsesChannelServiceTypeForVirtualProtocol(t *testing.T) {
 	resetCapabilityTestState()
 
