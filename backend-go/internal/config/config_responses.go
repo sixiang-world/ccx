@@ -227,6 +227,9 @@ func (cm *ConfigManager) UpdateResponsesUpstream(index int, updates UpstreamUpda
 		v := *updates.CodexToolCompat
 		upstream.CodexToolCompat = &v
 	}
+	if updates.StripImageGenerationTool != nil {
+		upstream.StripImageGenerationTool = *updates.StripImageGenerationTool
+	}
 	if updates.InjectDummyThoughtSignature != nil {
 		upstream.InjectDummyThoughtSignature = *updates.InjectDummyThoughtSignature
 	}

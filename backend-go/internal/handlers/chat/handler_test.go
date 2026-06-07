@@ -59,6 +59,96 @@ func TestBuildProviderRequest_InjectsReasoningBeforeModelRedirect(t *testing.T) 
 	}
 }
 
+func TestStripImageGenerationFromChatTools(t *testing.T) {
+	t.Run("剥离 image_generation 保留其他工具", func(t *testing.T) {
+		reqMap := map[string]interface{}{
+			"tools": []interface{}{
+				map[string]interface{}{"type": "image_generation"},
+				map[string]interface{}{"type": "function", "function": map[string]interface{}{"name": "lookup_user"}},
+			},
+			"tool_choice": "auto",
+		}
+		stripImageGenerationFromChatTools(reqMap)
+
+		tools, ok := reqMap["tools"].([]interface{})
+		if !ok || len(tools) != 1 {
+			t.Fatalf("tools = %#v, want 1 entry", reqMap["tools"])
+		}
+		if reqMap["tool_choice"] != "auto" {
+			t.Fatalf("tool_choice 不应被删除")
+		}
+	})
+
+	t.Run("全部剥离后清理 tools/tool_choice", func(t *testing.T) {
+		reqMap := map[string]interface{}{
+			"tools": []interface{}{
+				map[string]interface{}{"type": "image_generation"},
+			},
+			"tool_choice":         "auto",
+			"parallel_tool_calls": true,
+		}
+		stripImageGenerationFromChatTools(reqMap)
+
+		if _, ok := reqMap["tools"]; ok {
+			t.Fatal("tools 应被删除")
+		}
+		if _, ok := reqMap["tool_choice"]; ok {
+			t.Fatal("tool_choice 应被删除")
+		}
+		if _, ok := reqMap["parallel_tool_calls"]; ok {
+			t.Fatal("parallel_tool_calls 应被删除")
+		}
+	})
+
+	t.Run("无 image_generation 不修改", func(t *testing.T) {
+		reqMap := map[string]interface{}{
+			"tools": []interface{}{
+				map[string]interface{}{"type": "function", "function": map[string]interface{}{"name": "lookup_user"}},
+			},
+		}
+		stripImageGenerationFromChatTools(reqMap)
+		tools, ok := reqMap["tools"].([]interface{})
+		if !ok || len(tools) != 1 {
+			t.Fatalf("tools 不应被修改")
+		}
+	})
+}
+
+func TestBuildProviderRequest_StripsImageGenerationTool(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil).WithContext(context.Background())
+
+	bodyBytes := []byte(`{"model":"gpt-5.5","messages":[{"role":"user","content":"hi"}],"tools":[{"type":"image_generation","output_format":"png"},{"type":"function","function":{"name":"lookup_user"}}]}`)
+	upstream := &config.UpstreamConfig{
+		ServiceType:              "openai",
+		StripImageGenerationTool: true,
+	}
+
+	req, err := buildProviderRequest(c, upstream, "https://api.example.com", "sk-test", bodyBytes, "gpt-5.5", false)
+	if err != nil {
+		t.Fatalf("buildProviderRequest() err = %v", err)
+	}
+
+	var got map[string]interface{}
+	if err := json.NewDecoder(req.Body).Decode(&got); err != nil {
+		t.Fatalf("decode request body: %v", err)
+	}
+
+	tools, ok := got["tools"].([]interface{})
+	if !ok {
+		t.Fatalf("tools 缺失或类型错误: %#v", got["tools"])
+	}
+	if len(tools) != 1 {
+		t.Fatalf("tools 长度=%d，期望 1（image_generation 应被剥离）", len(tools))
+	}
+	tool := tools[0].(map[string]interface{})
+	if tool["type"] != "function" {
+		t.Fatalf("剩余工具应为 function，实际 %v", tool["type"])
+	}
+}
+
 func TestConvertChatToClaudeRequest_MapsUserIDToMetadata(t *testing.T) {
 	bodyBytes := []byte(`{"model":"deepseek-v4-pro","user_id":"deepseek_user_123","messages":[{"role":"user","content":"hi"}]}`)
 

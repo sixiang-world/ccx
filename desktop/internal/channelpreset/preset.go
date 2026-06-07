@@ -103,6 +103,7 @@ type ChannelPayload struct {
 	CodexNativeToolPassthrough    bool              `json:"codexNativeToolPassthrough,omitempty"`
 	CodexToolCompat               bool              `json:"codexToolCompat,omitempty"`
 	StripCodexClientTools         bool              `json:"stripCodexClientTools,omitempty"`
+	StripImageGenerationTool      bool              `json:"stripImageGenerationTool,omitempty"`
 	NormalizeNonstandardChatRoles bool              `json:"normalizeNonstandardChatRoles,omitempty"`
 	Priority                      int               `json:"priority,omitempty"`
 	Status                        string            `json:"status,omitempty"`

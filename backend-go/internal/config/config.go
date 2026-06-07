@@ -40,6 +40,8 @@ type UpstreamConfig struct {
 	CodexToolCompat            *bool `json:"codexToolCompat,omitempty"`
 	// Deprecated: 使用 codexToolCompat；保留旧字段仅用于配置读取和旧前端写入兼容。
 	StripCodexClientTools bool `json:"stripCodexClientTools,omitempty"`
+	// Responses/Chat 工具兼容：移除 image_generation 工具（兼容未开通图片生成权限的上游）
+	StripImageGenerationTool bool `json:"stripImageGenerationTool,omitempty"`
 	// 多渠道调度相关字段
 	Priority       int        `json:"priority"`                 // 渠道优先级（数字越小优先级越高，默认按索引）
 	Status         string     `json:"status"`                   // 渠道状态：active（正常）, suspended（暂停）, disabled（备用池）
@@ -123,6 +125,11 @@ func (u *UpstreamConfig) IsCodexToolCompatEnabled() bool {
 	return u.StripCodexClientTools
 }
 
+// IsStripImageGenerationToolEnabled 检查是否移除 image_generation 工具（默认 false）。
+func (u *UpstreamConfig) IsStripImageGenerationToolEnabled() bool {
+	return u.StripImageGenerationTool
+}
+
 // GetEffectiveRequestTimeoutMs 返回渠道生效的非流式上游请求超时时间（毫秒）。
 func (u *UpstreamConfig) GetEffectiveRequestTimeoutMs(fallback int) int {
 	if u.RequestTimeoutMs > 0 {
@@ -150,6 +157,7 @@ type UpstreamUpdate struct {
 	CodexNativeToolPassthrough    *bool             `json:"codexNativeToolPassthrough"`
 	CodexToolCompat               *bool             `json:"codexToolCompat"`
 	StripCodexClientTools         *bool             `json:"stripCodexClientTools"`
+	StripImageGenerationTool      *bool             `json:"stripImageGenerationTool"`
 	// 多渠道调度相关字段
 	Priority                *int       `json:"priority"`
 	Status                  *string    `json:"status"`

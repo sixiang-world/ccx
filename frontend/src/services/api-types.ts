@@ -80,6 +80,7 @@ export interface Channel {
   codexToolCompat?: boolean               // Codex 工具兼容（默认 false）
   normalizeNonstandardChatRoles?: boolean  // OpenAI Chat 上游：将非标准 role 改写为 user（默认 false）
   stripCodexClientTools?: boolean          // Responses 上游：透传前剥离 Codex CLI 0.130+ 客户端专属工具条目（默认 false）
+  stripImageGenerationTool?: boolean       // Responses/Chat 上游：移除 image_generation 工具（默认 false）
   latency?: number
   status?: ChannelStatus | 'healthy' | 'error' | 'unknown' | ''
   index: number

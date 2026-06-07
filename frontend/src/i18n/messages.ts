@@ -228,6 +228,8 @@ export type MessageKey =
   | 'addChannel.codexNativeToolPassthroughHint'
   | 'addChannel.codexToolCompatLabel'
   | 'addChannel.codexToolCompatHint'
+  | 'addChannel.stripImageGenerationToolLabel'
+  | 'addChannel.stripImageGenerationToolHint'
   | 'addChannel.normalizeMetadataUserIdLabel'
   | 'addChannel.normalizeMetadataUserIdHint'
   | 'addChannel.stripEmptyTextBlocksLabel'

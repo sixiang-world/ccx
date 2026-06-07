@@ -234,6 +234,9 @@ func (cm *ConfigManager) UpdateChatUpstream(index int, updates UpstreamUpdate) (
 		v := *updates.CodexToolCompat
 		upstream.CodexToolCompat = &v
 	}
+	if updates.StripImageGenerationTool != nil {
+		upstream.StripImageGenerationTool = *updates.StripImageGenerationTool
+	}
 	if updates.CustomHeaders != nil {
 		upstream.CustomHeaders = updates.CustomHeaders
 	}

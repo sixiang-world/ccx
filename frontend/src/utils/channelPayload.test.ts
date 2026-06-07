@@ -33,6 +33,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -82,6 +83,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -125,6 +127,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -164,6 +167,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -203,6 +207,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -245,6 +250,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -283,6 +289,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -321,6 +328,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -359,6 +367,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -397,6 +406,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: true,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''
@@ -435,6 +445,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       normalizeNonstandardChatRoles: true,
       noVision: false,
       noVisionModels: [],
@@ -475,6 +486,7 @@ describe('buildChannelPayload', () => {
       normalizeSystemRoleToTopLevel: false,
       codexNativeToolPassthrough: false,
       codexToolCompat: true,
+      stripImageGenerationTool: false,
       noVision: false,
       noVisionModels: [],
       visionFallbackModel: ''

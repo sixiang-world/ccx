@@ -19,3 +19,11 @@ Windows 系统下桌面应用图标周边没有透明背景，需要修正图标
 ## GPT 类型上游模型测试覆盖 codex-auto-review
 
 GPT 类型的上游模型测试用例应包含 `codex-auto-review`，确保 Codex 自动评审相关模型能力在 GPT 类渠道中被覆盖。
+
+## 桌面端同步 stripImageGenerationTool 开关
+
+Web 端与后端已支持渠道级「去除 image_generation 工具」开关（Responses/Chat 透传路径剥离 image_generation 工具，规避无图片生成权限上游的 permission_error 误拉黑）。桌面端尚未同步，需补：`desktop/internal/channelpreset/preset.go` 已加字段，仍需 `desktop/frontend/src/services/admin-api.ts` 类型、`desktop/frontend/src/utils/channel-payload.ts`、`desktop/frontend/src/components/console/ChannelEditDialog.vue` 表单/UI/预设。
+
+## 疑似bug
+
+issues #162 #188 #187

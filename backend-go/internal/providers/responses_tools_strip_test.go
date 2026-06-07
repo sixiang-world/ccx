@@ -514,3 +514,104 @@ func TestConvertCodexToolsForPassthrough(t *testing.T) {
 		}
 	})
 }
+
+func TestStripImageGenerationFromTools(t *testing.T) {
+	t.Run("开关关闭时 image_generation 保留", func(t *testing.T) {
+		req := map[string]interface{}{
+			"tools": []interface{}{
+				map[string]interface{}{"type": "image_generation", "output_format": "png"},
+				map[string]interface{}{"type": "function", "function": map[string]interface{}{"name": "lookup_user"}},
+			},
+		}
+		// 不调用 stripImageGenerationFromTools，验证原始数据不变
+		tools := req["tools"].([]interface{})
+		if len(tools) != 2 {
+			t.Fatalf("期望 2 个工具，实际 %d", len(tools))
+		}
+	})
+
+	t.Run("开启后剥离 image_generation 对象", func(t *testing.T) {
+		req := map[string]interface{}{
+			"tools": []interface{}{
+				map[string]interface{}{"type": "image_generation", "output_format": "png"},
+				map[string]interface{}{"type": "function", "function": map[string]interface{}{"name": "lookup_user"}},
+			},
+			"tool_choice":         "auto",
+			"parallel_tool_calls": true,
+		}
+		stripImageGenerationFromTools(req)
+
+		tools, ok := req["tools"].([]interface{})
+		if !ok {
+			t.Fatal("tools 被误删")
+		}
+		if len(tools) != 1 {
+			t.Fatalf("tools 长度=%d，期望 1", len(tools))
+		}
+	})
+
+	t.Run("开启后剥离 image_generation 字符串简写", func(t *testing.T) {
+		req := map[string]interface{}{
+			"tools": []interface{}{
+				"image_generation",
+				"exec_command",
+			},
+		}
+		stripImageGenerationFromTools(req)
+
+		tools, ok := req["tools"].([]interface{})
+		if !ok {
+			t.Fatal("tools 被误删")
+		}
+		if len(tools) != 1 {
+			t.Fatalf("tools 长度=%d，期望 1", len(tools))
+		}
+	})
+
+	t.Run("全部剥离后清理 tools/tool_choice/parallel_tool_calls", func(t *testing.T) {
+		req := map[string]interface{}{
+			"tools": []interface{}{
+				map[string]interface{}{"type": "image_generation", "output_format": "png"},
+			},
+			"tool_choice":         "auto",
+			"parallel_tool_calls": true,
+		}
+		stripImageGenerationFromTools(req)
+
+		if _, ok := req["tools"]; ok {
+			t.Fatal("tools 应被删除")
+		}
+		if _, ok := req["tool_choice"]; ok {
+			t.Fatal("tool_choice 应被删除")
+		}
+		if _, ok := req["parallel_tool_calls"]; ok {
+			t.Fatal("parallel_tool_calls 应被删除")
+		}
+	})
+
+	t.Run("无 image_generation 时不修改", func(t *testing.T) {
+		req := map[string]interface{}{
+			"tools": []interface{}{
+				map[string]interface{}{"type": "function", "function": map[string]interface{}{"name": "lookup_user"}},
+			},
+			"tool_choice": "auto",
+		}
+		stripImageGenerationFromTools(req)
+
+		tools, ok := req["tools"].([]interface{})
+		if !ok || len(tools) != 1 {
+			t.Fatalf("tools 不应被修改")
+		}
+		if req["tool_choice"] != "auto" {
+			t.Fatal("tool_choice 不应被修改")
+		}
+	})
+
+	t.Run("无 tools 字段不报错", func(t *testing.T) {
+		req := map[string]interface{}{"model": "gpt-5.5"}
+		stripImageGenerationFromTools(req)
+		if _, ok := req["tools"]; ok {
+			t.Fatal("不应注入 tools")
+		}
+	})
+}

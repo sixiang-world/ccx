@@ -715,6 +715,7 @@ func GetChannelDashboard(cfgManager *config.ConfigManager, sch *scheduler.Channe
 				channel["passbackReasoningContent"] = up.PassbackReasoningContent
 				channel["passbackThinkingBlocks"] = up.PassbackThinkingBlocks
 				channel["stripEmptyTextBlocks"] = up.StripEmptyTextBlocks
+				channel["stripImageGenerationTool"] = up.IsStripImageGenerationToolEnabled()
 				channel["injectDummyThoughtSignature"] = up.InjectDummyThoughtSignature
 				channel["stripThoughtSignature"] = up.StripThoughtSignature
 			}
@@ -722,6 +723,7 @@ func GetChannelDashboard(cfgManager *config.ConfigManager, sch *scheduler.Channe
 			if channelType == "chat" {
 				channel["passbackReasoningContent"] = up.PassbackReasoningContent
 				channel["passbackThinkingBlocks"] = up.PassbackThinkingBlocks
+				channel["stripImageGenerationTool"] = up.IsStripImageGenerationToolEnabled()
 				channel["injectDummyThoughtSignature"] = up.InjectDummyThoughtSignature
 				channel["stripThoughtSignature"] = up.StripThoughtSignature
 			}
@@ -729,6 +731,7 @@ func GetChannelDashboard(cfgManager *config.ConfigManager, sch *scheduler.Channe
 			if channelType == "responses" {
 				channel["passbackReasoningContent"] = up.PassbackReasoningContent
 				channel["passbackThinkingBlocks"] = up.PassbackThinkingBlocks
+				channel["stripImageGenerationTool"] = up.IsStripImageGenerationToolEnabled()
 				channel["injectDummyThoughtSignature"] = up.InjectDummyThoughtSignature
 				channel["stripThoughtSignature"] = up.StripThoughtSignature
 			}

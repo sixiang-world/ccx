@@ -224,6 +224,8 @@ export const zhCNMessages: Record<MessageKey, string> = {
     'addChannel.codexNativeToolPassthroughHint': '透传模式下将 Codex 原生工具（apply_patch、namespace 等）转换为 OpenAI function 格式，使上游模型可调用。',
     'addChannel.codexToolCompatLabel': 'Codex 工具兼容',
     'addChannel.codexToolCompatHint': '启用 Codex CLI 兼容：Responses 透传上游会剥离客户端专属工具，Chat/Claude/Gemini 上游会转换为 function 代理工具。',
+    'addChannel.stripImageGenerationToolLabel': '去除 image_generation 工具',
+    'addChannel.stripImageGenerationToolHint': '从请求的 tools 数组中移除 image_generation 类型，避免未开通图片生成权限的上游返回权限错误。',
     'addChannel.normalizeMetadataUserIdLabel': '规范化 metadata.user_id',
     'addChannel.normalizeMetadataUserIdHint': '自动将 JSON 对象格式的 user_id 转换为扁平字符串，确保上游兼容性。',
     'addChannel.stripEmptyTextBlocksLabel': '移除空 Text Block',

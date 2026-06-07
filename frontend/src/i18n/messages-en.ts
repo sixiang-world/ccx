@@ -224,6 +224,8 @@ export const enMessages: Record<MessageKey, string> = {
     'addChannel.codexNativeToolPassthroughHint': 'Convert Codex native tools (apply_patch, namespace, etc.) to OpenAI function format in passthrough mode, so upstream models can invoke them.',
     'addChannel.codexToolCompatLabel': 'Codex tools compatibility',
     'addChannel.codexToolCompatHint': 'Enable Codex CLI compatibility: strip client-only tools for Responses passthrough upstreams, or convert them to function proxy tools for Chat/Claude/Gemini upstreams.',
+    'addChannel.stripImageGenerationToolLabel': 'Strip image_generation tool',
+    'addChannel.stripImageGenerationToolHint': 'Remove image_generation from the tools array to avoid upstream permission errors when image generation is not enabled.',
     'addChannel.normalizeMetadataUserIdLabel': 'Normalize metadata.user_id',
     'addChannel.normalizeMetadataUserIdHint': 'Auto-convert JSON object user_id to a flat string for upstream compatibility.',
     'addChannel.stripEmptyTextBlocksLabel': 'Strip empty text blocks',

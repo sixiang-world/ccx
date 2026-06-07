@@ -110,6 +110,9 @@ func (p *ResponsesProvider) buildProviderRequestBody(c *gin.Context, requestPath
 		} else if upstream.IsCodexToolCompatEnabled() {
 			stripCodexClientOnlyTools(reqMap)
 		}
+		if upstream.StripImageGenerationTool {
+			stripImageGenerationFromTools(reqMap)
+		}
 		if model, ok := reqMap["model"].(string); ok {
 			reqMap["model"] = config.RedirectModel(model, upstream)
 			if effort := config.ResolveReasoningEffort(model, upstream); effort != "" {
@@ -909,6 +912,47 @@ func stripCodexClientOnlyTools(reqMap map[string]interface{}) {
 			kept = append(kept, v)
 		default:
 			removed++
+		}
+	}
+
+	if removed == 0 {
+		return
+	}
+
+	if len(kept) == 0 {
+		delete(reqMap, "tools")
+		delete(reqMap, "tool_choice")
+		delete(reqMap, "parallel_tool_calls")
+		return
+	}
+	reqMap["tools"] = kept
+	normalizeToolChoiceAfterToolStrip(reqMap, kept)
+}
+
+func stripImageGenerationFromTools(reqMap map[string]interface{}) {
+	rawTools, ok := reqMap["tools"].([]interface{})
+	if !ok || len(rawTools) == 0 {
+		return
+	}
+
+	kept := make([]interface{}, 0, len(rawTools))
+	removed := 0
+	for _, item := range rawTools {
+		switch v := item.(type) {
+		case string:
+			if strings.EqualFold(v, "image_generation") {
+				removed++
+				continue
+			}
+			kept = append(kept, v)
+		case map[string]interface{}:
+			if strings.EqualFold(toString(v["type"]), "image_generation") {
+				removed++
+				continue
+			}
+			kept = append(kept, v)
+		default:
+			kept = append(kept, item)
 		}
 	}
 

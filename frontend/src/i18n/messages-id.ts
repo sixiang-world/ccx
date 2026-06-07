@@ -224,6 +224,8 @@ export const idMessages: Record<MessageKey, string> = {
     'addChannel.codexNativeToolPassthroughHint': 'Konversi alat native Codex (apply_patch, namespace, dll.) ke format function OpenAI dalam mode passthrough, agar model upstream dapat memanggilnya.',
     'addChannel.codexToolCompatLabel': 'Kompatibilitas alat Codex',
     'addChannel.codexToolCompatHint': 'Aktifkan kompatibilitas Codex CLI: hapus tool khusus klien untuk upstream Responses passthrough, atau konversi menjadi tool proxy function untuk upstream Chat/Claude/Gemini.',
+    'addChannel.stripImageGenerationToolLabel': 'Hapus tool image_generation',
+    'addChannel.stripImageGenerationToolHint': 'Hapus image_generation dari array tools untuk menghindari error izin upstream saat pembuatan gambar tidak diaktifkan.',
     'addChannel.normalizeMetadataUserIdLabel': 'Normalisasi metadata.user_id',
     'addChannel.normalizeMetadataUserIdHint': 'Otomatis ubah user_id objek JSON menjadi string datar untuk kompatibilitas upstream.',
     'addChannel.stripEmptyTextBlocksLabel': 'Hapus blok text kosong',

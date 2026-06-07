@@ -293,6 +293,9 @@ func buildChatCompletionRequestBody(
 	}
 
 	reqMap["model"] = mappedModel
+	if upstream.StripImageGenerationTool {
+		stripImageGenerationFromChatTools(reqMap)
+	}
 
 	if includeAdvancedOptions {
 		if effort := config.ResolveReasoningEffort(model, upstream); effort != "" {
@@ -321,6 +324,36 @@ func buildChatCompletionRequestBody(
 	}
 
 	return json.Marshal(reqMap)
+}
+
+func stripImageGenerationFromChatTools(reqMap map[string]interface{}) {
+	rawTools, ok := reqMap["tools"].([]interface{})
+	if !ok || len(rawTools) == 0 {
+		return
+	}
+
+	kept := make([]interface{}, 0, len(rawTools))
+	removed := 0
+	for _, item := range rawTools {
+		if tool, ok := item.(map[string]interface{}); ok {
+			if toolType, ok := tool["type"].(string); ok && strings.EqualFold(toolType, "image_generation") {
+				removed++
+				continue
+			}
+		}
+		kept = append(kept, item)
+	}
+
+	if removed == 0 {
+		return
+	}
+	if len(kept) == 0 {
+		delete(reqMap, "tools")
+		delete(reqMap, "tool_choice")
+		delete(reqMap, "parallel_tool_calls")
+		return
+	}
+	reqMap["tools"] = kept
 }
 
 // buildProviderRequest 构建上游请求

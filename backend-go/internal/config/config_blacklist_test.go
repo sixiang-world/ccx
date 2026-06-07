@@ -377,3 +377,54 @@ func TestCodexToolCompatDefaultsAndUpdate(t *testing.T) {
 		t.Fatal("CodexToolCompat pointer should be deep-copied")
 	}
 }
+
+func TestStripImageGenerationToolDefaultsAndUpdate(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.json")
+	initialConfig := `{
+		"responsesUpstream": [{
+			"name": "test-channel",
+			"baseUrl": "https://example.com",
+			"apiKeys": ["sk-active"],
+			"serviceType": "openai"
+		}]
+	}`
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	cm, err := NewConfigManager(configPath, "")
+	if err != nil {
+		t.Fatalf("NewConfigManager() error = %v", err)
+	}
+	defer cm.Close()
+
+	cfg := cm.GetConfig()
+	if got := cfg.ResponsesUpstream[0].IsStripImageGenerationToolEnabled(); got != false {
+		t.Fatalf("default IsStripImageGenerationToolEnabled() = %v, want false", got)
+	}
+
+	enabled := true
+	if _, err := cm.UpdateResponsesUpstream(0, UpstreamUpdate{StripImageGenerationTool: &enabled}); err != nil {
+		t.Fatalf("UpdateResponsesUpstream() error = %v", err)
+	}
+
+	cfg = cm.GetConfig()
+	if got := cfg.ResponsesUpstream[0].IsStripImageGenerationToolEnabled(); got != true {
+		t.Fatalf("IsStripImageGenerationToolEnabled() = %v, want true", got)
+	}
+
+	cloned := cfg.ResponsesUpstream[0].Clone()
+	if !cloned.StripImageGenerationTool {
+		t.Fatalf("cloned StripImageGenerationTool = %v, want true", cloned.StripImageGenerationTool)
+	}
+
+	disabled := false
+	if _, err := cm.UpdateResponsesUpstream(0, UpstreamUpdate{StripImageGenerationTool: &disabled}); err != nil {
+		t.Fatalf("UpdateResponsesUpstream() error = %v", err)
+	}
+	cfg = cm.GetConfig()
+	if got := cfg.ResponsesUpstream[0].IsStripImageGenerationToolEnabled(); got != false {
+		t.Fatalf("after disable IsStripImageGenerationToolEnabled() = %v, want false", got)
+	}
+}

@@ -840,6 +840,19 @@
               </div>
             </v-col>
 
+            <v-col v-if="props.channelType === 'responses' || props.channelType === 'chat'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="warning">mdi-filter-remove</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.stripImageGenerationToolLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.stripImageGenerationToolHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.stripImageGenerationTool" inset color="warning" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
             <v-col v-if="props.channelType === 'messages' || props.channelType === 'responses'" cols="12">
               <div class="d-flex align-center justify-space-between">
                 <div class="d-flex align-center ga-2">
@@ -1804,6 +1817,7 @@ const claudeChannelPresets: Record<
     passbackThinkingBlocks: boolean
     stripEmptyTextBlocks: boolean
     normalizeSystemRoleToTopLevel: boolean
+    stripImageGenerationTool: boolean
     noVision: boolean
     noVisionModels: string[]
     visionFallbackModel: string
@@ -1815,6 +1829,7 @@ const claudeChannelPresets: Record<
     passbackThinkingBlocks: false,
     stripEmptyTextBlocks: false,
     normalizeSystemRoleToTopLevel: false,
+    stripImageGenerationTool: false,
     noVision: false,
     noVisionModels: ['mimo-v2.5-pro'],
     visionFallbackModel: 'mimo-v2.5',
@@ -1829,6 +1844,7 @@ const claudeChannelPresets: Record<
     passbackThinkingBlocks: true,
     stripEmptyTextBlocks: true,
     normalizeSystemRoleToTopLevel: false,
+    stripImageGenerationTool: true,
     noVision: true,
     noVisionModels: [],
     visionFallbackModel: '',
@@ -1846,6 +1862,7 @@ const applyClaudeChannelPreset = (preset: keyof typeof claudeChannelPresets) => 
   form.passbackThinkingBlocks = presetConfig.passbackThinkingBlocks
   form.stripEmptyTextBlocks = presetConfig.stripEmptyTextBlocks
   form.normalizeSystemRoleToTopLevel = presetConfig.normalizeSystemRoleToTopLevel
+  form.stripImageGenerationTool = presetConfig.stripImageGenerationTool
   form.noVision = presetConfig.noVision
   form.noVisionModels = [...presetConfig.noVisionModels]
   form.visionFallbackModel = presetConfig.visionFallbackModel
@@ -1868,6 +1885,7 @@ const codexResponsesChannelPresets: Record<
     codexNativeToolPassthrough: boolean
     codexToolCompat: boolean
     stripCodexClientTools: boolean
+    stripImageGenerationTool: boolean
     normalizeNonstandardChatRoles: boolean
     noVision: boolean
     noVisionModels: string[]
@@ -1884,6 +1902,7 @@ const codexResponsesChannelPresets: Record<
     codexNativeToolPassthrough: false,
     codexToolCompat: false,
     stripCodexClientTools: false,
+    stripImageGenerationTool: false,
     normalizeNonstandardChatRoles: false,
     noVision: false,
     noVisionModels: ['mimo-v2.5-pro'],
@@ -1902,6 +1921,7 @@ const codexResponsesChannelPresets: Record<
     codexNativeToolPassthrough: true,
     codexToolCompat: false,
     stripCodexClientTools: false,
+    stripImageGenerationTool: false,
     normalizeNonstandardChatRoles: true,
     noVision: true,
     noVisionModels: [],
@@ -1917,6 +1937,7 @@ const applyCodexResponsesChannelPreset = (preset: keyof typeof codexResponsesCha
   form.codexNativeToolPassthrough = presetConfig.codexNativeToolPassthrough
   form.codexToolCompat = presetConfig.codexToolCompat
   form.stripCodexClientTools = presetConfig.stripCodexClientTools
+  form.stripImageGenerationTool = presetConfig.stripImageGenerationTool
   form.normalizeNonstandardChatRoles = presetConfig.normalizeNonstandardChatRoles
   form.noVision = presetConfig.noVision
   form.noVisionModels = [...presetConfig.noVisionModels]
@@ -2091,6 +2112,7 @@ const form = reactive({
   codexToolCompat: false,
   normalizeNonstandardChatRoles: false,
   stripCodexClientTools: false,
+  stripImageGenerationTool: false,
   noVision: false,
   noVisionModels: [] as string[],
   visionFallbackModel: '',
@@ -2490,6 +2512,7 @@ const hasEditableDraftChanges = computed(() => {
     codexToolCompat: props.channel.codexToolCompat ?? props.channel.stripCodexClientTools ?? false,
     normalizeNonstandardChatRoles: !!props.channel.normalizeNonstandardChatRoles,
     stripCodexClientTools: props.channel.codexToolCompat ?? props.channel.stripCodexClientTools ?? false,
+    stripImageGenerationTool: !!props.channel.stripImageGenerationTool,
     noVision: !!props.channel.noVision,
     noVisionModels: [...(props.channel.noVisionModels || [])],
     visionFallbackModel: props.channel.visionFallbackModel || '',
@@ -2576,6 +2599,7 @@ const resetForm = () => {
   form.codexToolCompat = false
   form.normalizeNonstandardChatRoles = false
   form.stripCodexClientTools = false
+  form.stripImageGenerationTool = false
   form.noVision = false
   form.noVisionModels = []
   form.visionFallbackModel = ''
@@ -2656,6 +2680,7 @@ const loadChannelData = (channel: Channel) => {
   form.codexToolCompat = channel.codexToolCompat ?? channel.stripCodexClientTools ?? false
   form.normalizeNonstandardChatRoles = !!channel.normalizeNonstandardChatRoles
   form.stripCodexClientTools = channel.codexToolCompat ?? channel.stripCodexClientTools ?? false
+  form.stripImageGenerationTool = !!channel.stripImageGenerationTool
   form.noVision = !!channel.noVision
   form.noVisionModels = [...(channel.noVisionModels || [])]
   form.visionFallbackModel = channel.visionFallbackModel || ''
@@ -3046,7 +3071,7 @@ const PAYLOAD_KEYS = [
   'apiKeys', 'modelMapping', 'reasoningMapping', 'reasoningParamStyle', 'textVerbosity',
   'fastMode', 'customHeaders', 'proxyUrl', 'requestTimeoutMs', 'streamFirstContentTimeoutMs', 'streamInactivityTimeoutMs', 'streamToolCallIdleTimeoutMs', 'routePrefix', 'supportedModels',
   'autoBlacklistBalance', 'normalizeMetadataUserId', 'passbackThinkingBlocks', 'stripEmptyTextBlocks', 'normalizeSystemRoleToTopLevel', 'codexNativeToolPassthrough',
-  'codexToolCompat', 'normalizeNonstandardChatRoles', 'stripCodexClientTools'
+  'codexToolCompat', 'normalizeNonstandardChatRoles', 'stripCodexClientTools', 'stripImageGenerationTool'
 ] as const
 
 function extractPayloadFields(channel: Channel): Record<string, unknown> {

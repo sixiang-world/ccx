@@ -42,6 +42,7 @@ func BuildChannelView(up config.UpstreamConfig, index int) gin.H {
 		"normalizeMetadataUserId":       up.IsNormalizeMetadataUserIDEnabled(),
 		"codexNativeToolPassthrough":    up.CodexNativeToolPassthrough,
 		"codexToolCompat":               up.IsCodexToolCompatEnabled(),
+		"stripImageGenerationTool":      up.IsStripImageGenerationToolEnabled(),
 		"noVision":                      up.NoVision,
 		"noVisionModels":                up.NoVisionModels,
 		"visionFallbackModel":           up.VisionFallbackModel,

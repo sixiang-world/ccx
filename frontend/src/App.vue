@@ -1633,6 +1633,7 @@ const handleCopyToTab = async (targetProtocol: string, serviceProtocol = targetP
     stripEmptyTextBlocks: sourceChannel.stripEmptyTextBlocks,
     normalizeSystemRoleToTopLevel: sourceChannel.normalizeSystemRoleToTopLevel,
     normalizeNonstandardChatRoles: sourceChannel.normalizeNonstandardChatRoles,
+    stripImageGenerationTool: sourceChannel.stripImageGenerationTool,
     rpm: sourceChannel.rpm ?? 10,
   }
 
