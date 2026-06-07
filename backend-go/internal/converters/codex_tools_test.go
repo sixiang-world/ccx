@@ -722,3 +722,76 @@ func TestRemapCustomToolCallsInResponse_StringToolsApplyPatch(t *testing.T) {
 		t.Fatalf("expected patch format input, got %q", item.Input)
 	}
 }
+
+// ========== tool_search tests ==========
+
+func TestBuildCodexToolContext_ToolSearch(t *testing.T) {
+	tools := []interface{}{
+		map[string]interface{}{
+			"type":        "tool_search",
+			"execution":   "server",
+			"description": "Search for tools",
+			"parameters": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+
+	ctx := BuildCodexToolContextFromRaw(tools)
+
+	if !ctx.HasCustomTools {
+		t.Fatal("HasCustomTools should be true when tool_search is present")
+	}
+	spec, ok := ctx.CustomTools["tool_search"]
+	if !ok {
+		t.Fatal("missing tool_search entry in CustomTools")
+	}
+	if spec.Kind != CodexCustomToolBuiltIn {
+		t.Fatalf("Kind = %q, want %q", spec.Kind, CodexCustomToolBuiltIn)
+	}
+	if spec.OpenAIName != "tool_search" {
+		t.Fatalf("OpenAIName = %q, want %q", spec.OpenAIName, "tool_search")
+	}
+}
+
+func TestToolSearchConvertsToOpenAIProxy(t *testing.T) {
+	tools := []interface{}{
+		map[string]interface{}{
+			"type":        "tool_search",
+			"execution":   "server",
+			"description": "Search for tools by description",
+			"parameters": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+		map[string]interface{}{
+			"type": "function",
+			"name": "my_func",
+			"parameters": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+
+	ctx := BuildCodexToolContextFromRaw(tools)
+	result := responsesRawToolsToOpenAIWithContext(tools, ctx)
+
+	// tool_search should produce a generic proxy tool + my_func should produce a function tool
+	if len(result) != 2 {
+		t.Fatalf("expected 2 tools, got %d", len(result))
+	}
+
+	// Verify the tool_search proxy tool
+	proxyTool := result[0]
+	fn, _ := proxyTool["function"].(map[string]interface{})
+	if fn["name"] != "tool_search" {
+		t.Fatalf("proxy tool name = %v, want tool_search", fn["name"])
+	}
+	desc, _ := fn["description"].(string)
+	if !strings.Contains(desc, "Search for tools by description") {
+		t.Fatalf("proxy tool description = %q, should contain original description", desc)
+	}
+}

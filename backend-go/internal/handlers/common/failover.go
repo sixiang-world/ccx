@@ -685,6 +685,7 @@ func mentionsResponsesTools(text string) bool {
 		"function '",
 		"function \"",
 		"web_search",
+		"tool_search",
 		"namespace",
 		"custom tool",
 	}

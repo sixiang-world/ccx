@@ -815,7 +815,7 @@ func HasClaudeSemanticContent(event string) bool {
 func responseItemCarriesSemanticContent(item map[string]interface{}) bool {
 	itemType, _ := item["type"].(string)
 	switch itemType {
-	case "function_call", "reasoning":
+	case "function_call", "reasoning", "tool_search_call", "tool_search_output":
 		return true
 	}
 	return strings.HasSuffix(itemType, "_call")

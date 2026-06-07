@@ -102,7 +102,7 @@ func BuildCodexToolContextFromRaw(tools []interface{}) CodexToolContext {
 			ctx.FunctionTools[name] = CodexFunctionToolSpec{Name: name}
 		case "namespace":
 			addNamespaceToolsToContext(&ctx, tool)
-		case "web_search", "local_shell", "computer_use":
+		case "web_search", "local_shell", "computer_use", "tool_search":
 			name, _ := tool["name"].(string)
 			if name == "" {
 				name = toolType
@@ -279,7 +279,7 @@ func responsesRawToolsToOpenAIWithContext(tools []interface{}, ctx CodexToolCont
 			openaiTools = append(openaiTools, ot)
 		case "namespace":
 			openaiTools = append(openaiTools, namespaceToolsToOpenAI(tool, ctx)...)
-		case "custom", "web_search", "local_shell", "computer_use":
+		case "custom", "web_search", "local_shell", "computer_use", "tool_search":
 			name, _ := tool["name"].(string)
 			if name == "" {
 				name = toolType
