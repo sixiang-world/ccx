@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/BenedictKing/ccx/internal/config"
 	"github.com/BenedictKing/ccx/internal/metrics"
@@ -322,7 +323,13 @@ func TryUpstreamWithAllKeys(
 				markURLSuccess(currentBaseURL)
 			}
 
+			if isStream {
+				StartStreamTimeoutObservation(c, channelLogStore, metricsKey, logRequestID, time.Now())
+			}
 			usage, err = handleSuccess(c, resp, upstreamCopy, apiKey, attemptBody)
+			if isStream {
+				FinishStreamTimeoutObservation(c)
+			}
 			if err != nil {
 				lastError = err
 				// 区分客户端错误和渠道故障

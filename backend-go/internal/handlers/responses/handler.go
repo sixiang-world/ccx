@@ -656,6 +656,7 @@ func handleStreamSuccess(
 	var bufferedLines []string
 	var preflightTextBuf bytes.Buffer
 	preflightToolTracker := common.NewStreamToolCallTracker()
+	streamObserver := common.GetStreamTimeoutObserver(c)
 	preflightHasNonTextContent := false
 	preflightEmpty := false
 	preflightDiagnostic := ""
@@ -769,6 +770,7 @@ func handleStreamSuccess(
 
 			for _, event := range eventsToCheck {
 				seenConvertedEvent = true
+				hadPendingToolCall := preflightToolTracker.HasPendingToolCall()
 				if malformed, name := preflightToolTracker.ProcessResponsesEvent(event); malformed {
 					preflightEmpty = true
 					preflightDiagnostic = fmt.Sprintf("malformed tool call: %s", name)
@@ -788,6 +790,9 @@ func handleStreamSuccess(
 					preflightHasNonTextContent = true
 					preflightEmpty = false
 					// 进入阶段B，不立即放行
+					if streamObserver != nil {
+						streamObserver.MarkFirstContent(time.Now())
+					}
 					enterPhaseB()
 					if timeouts.InactivityTimeoutMs <= 0 {
 						preflightDone = true
@@ -803,6 +808,9 @@ func handleStreamSuccess(
 				if !common.IsEffectivelyEmptyStreamText(preflightTextBuf.String()) {
 					if !hasFirstContent {
 						// 阶段A→阶段B：首次检测到有效文本内容
+						if streamObserver != nil {
+							streamObserver.MarkFirstContent(time.Now())
+						}
 						enterPhaseB()
 						if timeouts.InactivityTimeoutMs <= 0 {
 							preflightDone = true
@@ -811,6 +819,9 @@ func handleStreamSuccess(
 						resetInactivityTimer()
 					} else {
 						// 阶段B中收到第二个有效内容：健康流，放行
+						if streamObserver != nil {
+							streamObserver.MarkStreamActivity(time.Now())
+						}
 						preflightDone = true
 						break
 					}
@@ -828,6 +839,15 @@ func handleStreamSuccess(
 					}
 					preflightDiagnostic = buildResponsesPreflightDiagnostic(seenConvertedEvent, true, seenUsageOnlyEvent, seenUnknownEvent, unknownEventType, preflightTextBuf.String())
 					break
+				}
+				if hasFirstContent && streamObserver != nil {
+					if preflightToolTracker.HasPendingToolCall() {
+						streamObserver.MarkToolCallActivity(time.Now())
+					} else if hadPendingToolCall {
+						streamObserver.MarkToolCallComplete(time.Now())
+					} else if common.HasStreamEventActivity(event) {
+						streamObserver.MarkStreamActivity(time.Now())
+					}
 				}
 			}
 
@@ -1106,9 +1126,21 @@ func handleStreamSuccess(
 			}
 			events := processLine(sl.text)
 			keepaliveTicker.Reset(15 * time.Second)
+			wasToolCallPending := postCommitToolTracker.HasPendingToolCall()
 			toolCallStateChanged := observePostCommitEvents(events)
+			nowToolCallPending := postCommitToolTracker.HasPendingToolCall()
 			nextTimeoutMs := resolvePostCommitTimeoutMs()
-			if common.HasStreamEventActivity(sl.text+"\n") || toolCallStateChanged || nextTimeoutMs != activePostCommitTimeoutMs {
+			hasActivity := common.HasStreamEventActivity(sl.text + "\n")
+			if hasActivity || toolCallStateChanged {
+				if nowToolCallPending {
+					common.MarkStreamToolCallActivity(c)
+				} else if wasToolCallPending {
+					common.MarkStreamToolCallComplete(c)
+				} else {
+					common.MarkStreamActivity(c)
+				}
+			}
+			if hasActivity || toolCallStateChanged || nextTimeoutMs != activePostCommitTimeoutMs {
 				resetPostCommitTimer(nextTimeoutMs)
 			}
 		case <-postCommitChan:

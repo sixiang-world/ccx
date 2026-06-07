@@ -141,8 +141,12 @@ type StreamToolCallState struct {
 //   - 阶段B：首个有效内容后等待后续活动，超时返回 ErrStreamStalled
 //
 // timeouts 参数控制超时行为，0 表示禁用对应阶段。
-func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeouts StreamPreflightTimeouts) *StreamPreflightResult {
+func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeouts StreamPreflightTimeouts, observers ...*StreamTimeoutObserver) *StreamPreflightResult {
 	result := &StreamPreflightResult{}
+	var observer *StreamTimeoutObserver
+	if len(observers) > 0 {
+		observer = observers[0]
+	}
 	var textBuf bytes.Buffer
 	var thinkingBuf bytes.Buffer
 	toolTracker := NewStreamToolCallTracker()
@@ -170,6 +174,7 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeou
 	for {
 		select {
 		case event, ok := <-eventChan:
+			now := time.Now()
 			if !ok {
 				// eventChan 关闭：流结束
 				if hasNonTextContent {
@@ -201,8 +206,14 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeou
 			}
 			// 检测工具调用是否刚闭合：标记为 non-text 内容
 			if hadPending && !toolTracker.HasPendingToolCall() && !hasNonTextContent {
+				if observer != nil {
+					observer.MarkToolCallComplete(now)
+				}
 				hasNonTextContent = true
 				if !hasFirstContent {
+					if observer != nil {
+						observer.MarkFirstContent(now)
+					}
 					hasFirstContent = true
 					if firstContentTimer != nil {
 						firstContentTimer.Stop()
@@ -223,6 +234,9 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeou
 				hasNonTextContent = true
 				// 非文本内容：视为首个有效内容，进入阶段B
 				if !hasFirstContent {
+					if observer != nil {
+						observer.MarkFirstContent(now)
+					}
 					hasFirstContent = true
 					if firstContentTimer != nil {
 						firstContentTimer.Stop()
@@ -258,6 +272,9 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeou
 			if !isEmptyStreamContent(textBuf.String(), thinkingBuf.String()) {
 				if !hasFirstContent {
 					// 阶段A→阶段B：首次检测到有效文本内容
+					if observer != nil {
+						observer.MarkFirstContent(now)
+					}
 					hasFirstContent = true
 					if firstContentTimer != nil {
 						firstContentTimer.Stop()
@@ -273,12 +290,25 @@ func PreflightStreamEvents(eventChan <-chan string, errChan <-chan error, timeou
 					}
 				} else {
 					// 阶段B中收到第二个有效内容事件：健康流，放行
+					if observer != nil {
+						observer.MarkStreamActivity(now)
+					}
 					return result
 				}
 			}
 
 			// 阶段B中重置不活动定时器（收到任何事件都重置）
 			if hasFirstContent && inactivityTimer != nil {
+				if observer != nil {
+					nowPending := toolTracker.HasPendingToolCall()
+					if nowPending {
+						observer.MarkToolCallActivity(now)
+					} else if hadPending {
+						observer.MarkToolCallComplete(now)
+					} else {
+						observer.MarkStreamActivity(now)
+					}
+				}
 				if !inactivityTimer.Stop() {
 					select {
 					case <-inactivityTimer.C:
@@ -967,6 +997,7 @@ func ProcessStreamEvents(
 				return usage, nil
 			}
 			prevTextLen := ctx.OutputTextBuffer.Len()
+			prevToolCallPending := toolCallPending
 			ProcessStreamEvent(c, w, flusher, event, ctx, envCfg, requestBody)
 			if ctx.OutputTextBuffer.Len() > prevTextLen {
 				progress.AddText(ctx.OutputTextBuffer.String()[prevTextLen:])
@@ -982,6 +1013,15 @@ func ProcessStreamEvents(
 					activeTimeoutMs = timeouts.InactivityTimeoutMs
 				}
 				eventHasActivity = eventHasActivity || activeTimeoutMs > 0
+			}
+			if eventHasActivity {
+				if nowToolCallPending {
+					MarkStreamToolCallActivity(c)
+				} else if prevToolCallPending {
+					MarkStreamToolCallComplete(c)
+				} else {
+					MarkStreamActivity(c)
+				}
 			}
 			if postCommitTimer != nil && eventHasActivity && activeTimeoutMs > 0 {
 				if !postCommitTimer.Stop() {
@@ -1469,7 +1509,7 @@ func HandleStreamResponse(
 	}
 
 	// 预检测：在发送 HTTP Header 之前缓冲事件并检查是否为空响应
-	preflight := PreflightStreamEvents(eventChan, errChan, timeouts)
+	preflight := PreflightStreamEvents(eventChan, errChan, timeouts, GetStreamTimeoutObserver(c))
 
 	// 流错误：排空 channel 后返回错误
 	if preflight.HasError {

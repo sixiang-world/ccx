@@ -464,10 +464,14 @@ func prepareImagesUpstreamHeaders(c *gin.Context, targetHost string, contentType
 	return headers
 }
 
-func preflightImagesStream(resp *http.Response, timeouts common.StreamPreflightTimeouts) ([]byte, <-chan []byte, <-chan error, error) {
+func preflightImagesStream(resp *http.Response, timeouts common.StreamPreflightTimeouts, observers ...*common.StreamTimeoutObserver) ([]byte, <-chan []byte, <-chan error, error) {
 	chunkChan, bodyErrChan := common.StartBodyChunkReader(resp.Body, 4*1024, 16)
 	var buffered bytes.Buffer
 	hasFirstContent := false
+	var observer *common.StreamTimeoutObserver
+	if len(observers) > 0 {
+		observer = observers[0]
+	}
 
 	var firstContentTimer *time.Timer
 	firstContentChan := (<-chan time.Time)(nil)
@@ -494,6 +498,9 @@ func preflightImagesStream(resp *http.Response, timeouts common.StreamPreflightT
 			}
 			buffered.Write(chunk)
 			if !hasFirstContent {
+				if observer != nil {
+					observer.MarkFirstContent(time.Now())
+				}
 				hasFirstContent = true
 				if firstContentTimer != nil {
 					firstContentTimer.Stop()
@@ -506,6 +513,9 @@ func preflightImagesStream(resp *http.Response, timeouts common.StreamPreflightT
 					return buffered.Bytes(), chunkChan, bodyErrChan, nil
 				}
 				continue
+			}
+			if observer != nil {
+				observer.MarkStreamActivity(time.Now())
 			}
 			return buffered.Bytes(), chunkChan, bodyErrChan, nil
 		case err := <-bodyErrChan:
@@ -558,7 +568,7 @@ func passthroughStreamingResponseWithLog(c *gin.Context, resp *http.Response, en
 		common.LogUpstreamResponseHeaders(c, resp, envCfg, "Images")
 	}
 
-	bufferedBytes, chunkChan, bodyErrChan, err := preflightImagesStream(resp, timeouts)
+	bufferedBytes, chunkChan, bodyErrChan, err := preflightImagesStream(resp, timeouts, common.GetStreamTimeoutObserver(c))
 	if err != nil {
 		if err == common.ErrStreamFirstContentTimeout {
 			common.RequestLogf(c, "[Images-FirstContentTimeout] 流式首块超时: %dms，触发重试", timeouts.FirstContentTimeoutMs)
@@ -620,6 +630,7 @@ func passthroughStreamingResponseWithLog(c *gin.Context, resp *http.Response, en
 				goto streamEnd
 			}
 			if len(chunk) > 0 {
+				common.MarkStreamActivity(c)
 				progress.AddBytes(len(chunk))
 				progress.Tick()
 				if streamLoggingEnabled {

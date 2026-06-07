@@ -23,10 +23,15 @@ type streamLineReader struct {
 	remainder string
 	err       error
 	eof       bool
+	observer  *common.StreamTimeoutObserver
 }
 
-func newStreamLineReader(chunkChan <-chan []byte, errChan <-chan error) *streamLineReader {
-	return &streamLineReader{chunkChan: chunkChan, errChan: errChan}
+func newStreamLineReader(chunkChan <-chan []byte, errChan <-chan error, observers ...*common.StreamTimeoutObserver) *streamLineReader {
+	reader := &streamLineReader{chunkChan: chunkChan, errChan: errChan}
+	if len(observers) > 0 {
+		reader.observer = observers[0]
+	}
+	return reader
 }
 
 // NextLine 返回下一行 SSE 数据（不含末尾 \n）。
@@ -38,12 +43,14 @@ func (r *streamLineReader) NextLine(deadline time.Duration) (line string, eof bo
 		if idx := strings.IndexByte(r.remainder, '\n'); idx >= 0 {
 			line = r.remainder[:idx]
 			r.remainder = r.remainder[idx+1:]
+			r.markActivity(line)
 			return line, false, nil, false
 		}
 		if r.err != nil {
 			if r.remainder != "" {
 				line = r.remainder
 				r.remainder = ""
+				r.markActivity(line)
 				return line, false, r.err, false
 			}
 			return "", true, r.err, false
@@ -53,6 +60,7 @@ func (r *streamLineReader) NextLine(deadline time.Duration) (line string, eof bo
 			if r.remainder != "" {
 				line = r.remainder
 				r.remainder = ""
+				r.markActivity(line)
 				return line, false, nil, false
 			}
 			return "", true, nil, false
@@ -73,6 +81,7 @@ func (r *streamLineReader) NextLine(deadline time.Duration) (line string, eof bo
 				if r.remainder != "" {
 					line = r.remainder
 					r.remainder = ""
+					r.markActivity(line)
 					return line, false, r.err, false
 				}
 				return "", true, r.err, false
@@ -82,6 +91,7 @@ func (r *streamLineReader) NextLine(deadline time.Duration) (line string, eof bo
 			if idx := strings.IndexByte(r.remainder, '\n'); idx >= 0 {
 				line = r.remainder[:idx]
 				r.remainder = r.remainder[idx+1:]
+				r.markActivity(line)
 				return line, false, nil, false
 			}
 			// 还没凑够一行，继续等下一块
@@ -96,6 +106,7 @@ func (r *streamLineReader) NextLine(deadline time.Duration) (line string, eof bo
 			if r.remainder != "" {
 				line = r.remainder
 				r.remainder = ""
+				r.markActivity(line)
 				return line, false, r.err, false
 			}
 			return "", true, r.err, false
@@ -105,9 +116,20 @@ func (r *streamLineReader) NextLine(deadline time.Duration) (line string, eof bo
 	}
 }
 
+func (r *streamLineReader) markActivity(line string) {
+	if r.observer == nil || strings.TrimSpace(line) == "" {
+		return
+	}
+	r.observer.MarkStreamActivity(time.Now())
+}
+
 // preflightGeminiStream Gemini 流式预检测（两阶段：首字等待 + 首字后断流检测）
-func preflightGeminiStream(resp *http.Response, upstreamType string, timeouts common.StreamPreflightTimeouts) (bufferedLines []string, chunkChan <-chan []byte, bodyErrChan <-chan error, err error) {
+func preflightGeminiStream(resp *http.Response, upstreamType string, timeouts common.StreamPreflightTimeouts, observers ...*common.StreamTimeoutObserver) (bufferedLines []string, chunkChan <-chan []byte, bodyErrChan <-chan error, err error) {
 	hasFirstContent := false
+	var observer *common.StreamTimeoutObserver
+	if len(observers) > 0 {
+		observer = observers[0]
+	}
 
 	// 启动 goroutine 读取 body chunk。preflight 放行后继续由同一个 channel 驱动正常流式转发，避免丢 chunk。
 	chunkChan, bodyErrChan = common.StartBodyChunkReader(resp.Body, 32*1024, 16)
@@ -204,6 +226,9 @@ func preflightGeminiStream(resp *http.Response, upstreamType string, timeouts co
 		if hasSemanticContent(completeLines) {
 			if !hasFirstContent {
 				// 阶段A→阶段B
+				if observer != nil {
+					observer.MarkFirstContent(time.Now())
+				}
 				hasFirstContent = true
 				if firstContentTimer != nil {
 					firstContentTimer.Stop()
@@ -221,6 +246,9 @@ func preflightGeminiStream(resp *http.Response, upstreamType string, timeouts co
 				}
 			} else {
 				// 阶段B中收到第二个有效内容：健康流，放行
+				if observer != nil {
+					observer.MarkStreamActivity(time.Now())
+				}
 				if remainder != "" {
 					allLines = append(allLines, remainder)
 				}
@@ -329,7 +357,7 @@ func handleStreamSuccess(
 	timeouts common.StreamPreflightTimeouts,
 ) (*types.Usage, error) {
 	// Preflight：在发送 HTTP Header 之前检测流是否可用
-	bufferedLines, chunkChan, bodyErrChan, err := preflightGeminiStream(resp, upstreamType, timeouts)
+	bufferedLines, chunkChan, bodyErrChan, err := preflightGeminiStream(resp, upstreamType, timeouts, common.GetStreamTimeoutObserver(c))
 	if err != nil {
 		if errors.Is(err, common.ErrStreamFirstContentTimeout) {
 			common.RequestLogf(c, "[Gemini-FirstContentTimeout] 流式首字超时: %dms，触发重试", timeouts.FirstContentTimeoutMs)
@@ -367,7 +395,7 @@ func handleStreamSuccess(
 	if bufferedBody != "" && !strings.HasSuffix(bufferedBody, "\n") {
 		bufferedBody += "\n"
 	}
-	reader := newStreamLineReader(chunkChan, bodyErrChan)
+	reader := newStreamLineReader(chunkChan, bodyErrChan, common.GetStreamTimeoutObserver(c))
 	reader.remainder = bufferedBody
 	progress := common.NewStreamProgressLogger("Gemini", startTime, envCfg.ShouldLog("info"), common.RequestLogTag(c))
 

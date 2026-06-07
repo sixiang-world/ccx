@@ -48,8 +48,8 @@ func TestGetCircuitBreaker_ReturnsToolCallIdleTimeout(t *testing.T) {
 			FailureThreshold:             0.5,
 			ConsecutiveFailuresThreshold: 3,
 			StreamFirstContentTimeoutMs:  30000,
-			StreamInactivityTimeoutMs:    5000,
-			StreamToolCallIdleTimeoutMs:  3000,
+			StreamInactivityTimeoutMs:    20000,
+			StreamToolCallIdleTimeoutMs:  30000,
 		}
 	}), http.MethodGet, "")
 
@@ -61,8 +61,8 @@ func TestGetCircuitBreaker_ReturnsToolCallIdleTimeout(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("解析响应失败: %v", err)
 	}
-	if got := int(body["streamToolCallIdleTimeoutMs"].(float64)); got != 3000 {
-		t.Fatalf("streamToolCallIdleTimeoutMs = %d, want 3000", got)
+	if got := int(body["streamToolCallIdleTimeoutMs"].(float64)); got != 30000 {
+		t.Fatalf("streamToolCallIdleTimeoutMs = %d, want 30000", got)
 	}
 }
 

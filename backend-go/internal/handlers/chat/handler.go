@@ -940,7 +940,7 @@ func handleStreamSuccess(
 
 	common.LogUpstreamResponseHeaders(c, resp, envCfg, "Chat")
 
-	preflight, chunkChan, bodyErrChan, err := preflightChatStream(resp, upstreamType, timeouts)
+	preflight, chunkChan, bodyErrChan, err := preflightChatStream(resp, upstreamType, timeouts, common.GetStreamTimeoutObserver(c))
 	if err != nil {
 		if errors.Is(err, common.ErrStreamFirstContentTimeout) {
 			common.RequestLogf(c, "[Chat-FirstContentTimeout] 流式首字超时: %dms，触发重试", timeouts.FirstContentTimeoutMs)
@@ -1013,8 +1013,12 @@ type chatToolTracker interface {
 }
 
 // preflightChatStream Chat 流式预检测（两阶段：首字等待 + 首字后断流检测）
-func preflightChatStream(resp *http.Response, upstreamType string, timeouts common.StreamPreflightTimeouts) (*chatStreamPreflight, <-chan []byte, <-chan error, error) {
+func preflightChatStream(resp *http.Response, upstreamType string, timeouts common.StreamPreflightTimeouts, observers ...*common.StreamTimeoutObserver) (*chatStreamPreflight, <-chan []byte, <-chan error, error) {
 	result := &chatStreamPreflight{}
+	var observer *common.StreamTimeoutObserver
+	if len(observers) > 0 {
+		observer = observers[0]
+	}
 	tracker := common.NewStreamToolCallTracker()
 	chatTracker := newOpenAIChatToolCallTracker()
 	var remainder string
@@ -1132,6 +1136,7 @@ func preflightChatStream(resp *http.Response, upstreamType string, timeouts comm
 
 		for _, line := range completeLines {
 			wasInPhaseB := hasFirstContent
+			wasPendingToolCall := hasPendingToolCall()
 			lineSet := []string{line}
 			if malformed, name := detectMalformedChatStreamLines(lineSet, upstreamType, tracker, chatTracker); malformed {
 				result.malformedToolName = name
@@ -1144,6 +1149,9 @@ func preflightChatStream(resp *http.Response, upstreamType string, timeouts comm
 
 			if !hasFirstContent && hasSemanticContent {
 				// 阶段A→阶段B：首次检测到有效语义内容。工具调用参数未完成也算首内容，但不能提前放行。
+				if observer != nil {
+					observer.MarkFirstContent(time.Now())
+				}
 				enterPhaseB()
 				if timeouts.InactivityTimeoutMs <= 0 && !hasPendingToolCall() {
 					flushRemainder()
@@ -1153,8 +1161,24 @@ func preflightChatStream(resp *http.Response, upstreamType string, timeouts comm
 
 			if wasInPhaseB && hasDataActivity && !hasPendingToolCall() {
 				// 阶段B中收到后续 SSE 活动且没有未完成工具调用：健康流，放行
+				if observer != nil {
+					if wasPendingToolCall {
+						observer.MarkToolCallComplete(time.Now())
+					} else {
+						observer.MarkStreamActivity(time.Now())
+					}
+				}
 				flushRemainder()
 				return result, chunkChan, bodyErrChan, nil
+			}
+			if hasFirstContent && hasDataActivity && observer != nil {
+				if hasPendingToolCall() {
+					observer.MarkToolCallActivity(time.Now())
+				} else if wasPendingToolCall {
+					observer.MarkToolCallComplete(time.Now())
+				} else {
+					observer.MarkStreamActivity(time.Now())
+				}
 			}
 		}
 		if result.malformedToolName != "" {
@@ -1402,6 +1426,7 @@ func streamPassthrough(
 		}
 
 		if len(chunk) > 0 {
+			common.MarkStreamActivity(c)
 			progress.AddBytes(len(chunk))
 			progress.Tick()
 			if loggingEnabled {
@@ -1524,6 +1549,7 @@ func streamClaudeToChat(
 		}
 
 		if len(chunk) > 0 {
+			common.MarkStreamActivity(c)
 			progress.AddBytes(len(chunk))
 			progress.Tick()
 			if loggingEnabled {
@@ -1778,6 +1804,7 @@ func streamResponsesToChat(
 		}
 
 		if len(chunk) > 0 {
+			common.MarkStreamActivity(c)
 			progress.AddBytes(len(chunk))
 			progress.Tick()
 			if loggingEnabled {

@@ -31,6 +31,11 @@ type ChannelLog struct {
 	ConnectedAt *time.Time `json:"connectedAt,omitempty"` // 连接建立时间
 	FirstByteAt *time.Time `json:"firstByteAt,omitempty"` // 首字节到达时间
 	CompletedAt *time.Time `json:"completedAt,omitempty"` // 请求完成时间
+
+	// 流式超时校准观测值
+	FirstContentLatencyMs int64 `json:"firstContentLatencyMs,omitempty"` // HTTP 200 后首个有效内容耗时
+	MaxStreamIdleMs       int64 `json:"maxStreamIdleMs,omitempty"`       // 首个有效内容后最大上游空闲间隔
+	MaxToolCallIdleMs     int64 `json:"maxToolCallIdleMs,omitempty"`     // 工具调用阶段最大上游空闲间隔
 }
 
 const (

@@ -69,8 +69,8 @@ const (
 	defaultCircuitBackoffMax                     time.Duration = 10 * time.Minute
 	// 流式健康检测默认参数
 	defaultStreamFirstContentTimeoutMs = 30000 // HTTP 200 后首个有效内容等待超时（30秒）
-	defaultStreamInactivityTimeoutMs   = 5000  // 首字后连续性确认窗口（5秒）
-	defaultStreamToolCallIdleTimeoutMs = 3000  // 工具调用空闲超时（3秒）
+	defaultStreamInactivityTimeoutMs   = 20000 // 首字后连续性确认窗口（20秒）
+	defaultStreamToolCallIdleTimeoutMs = 30000 // 工具调用空闲超时（30秒）
 )
 
 // RequestRecord 带时间戳的请求记录（扩展版，支持 Token、Cache 和失败分类数据）。

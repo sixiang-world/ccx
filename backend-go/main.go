@@ -333,8 +333,8 @@ func main() {
 			FailureThreshold:             envCfg.MetricsFailureThreshold,
 			ConsecutiveFailuresThreshold: 3,
 			StreamFirstContentTimeoutMs:  30000,
-			StreamInactivityTimeoutMs:    5000,
-			StreamToolCallIdleTimeoutMs:  3000,
+			StreamInactivityTimeoutMs:    20000,
+			StreamToolCallIdleTimeoutMs:  30000,
 		}
 		if cfg.CircuitBreaker != nil {
 			if cfg.CircuitBreaker.WindowSize != nil {

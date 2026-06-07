@@ -21,17 +21,17 @@ func TestResolveStreamPreflightTimeouts_ToolCallIdleTimeoutIsIndependent(t *test
 	upstream := &config.UpstreamConfig{}
 	global := metrics.CircuitBreakerParams{
 		StreamFirstContentTimeoutMs: 30000,
-		StreamInactivityTimeoutMs:   5000,
-		StreamToolCallIdleTimeoutMs: 3000,
+		StreamInactivityTimeoutMs:   20000,
+		StreamToolCallIdleTimeoutMs: 30000,
 	}
 
 	timeouts := ResolveStreamPreflightTimeouts(upstream, global)
 
-	if timeouts.InactivityTimeoutMs != 5000 {
-		t.Fatalf("InactivityTimeoutMs = %d, want 5000", timeouts.InactivityTimeoutMs)
+	if timeouts.InactivityTimeoutMs != 20000 {
+		t.Fatalf("InactivityTimeoutMs = %d, want 20000", timeouts.InactivityTimeoutMs)
 	}
-	if timeouts.ToolCallIdleTimeoutMs != 3000 {
-		t.Fatalf("ToolCallIdleTimeoutMs = %d, want 3000", timeouts.ToolCallIdleTimeoutMs)
+	if timeouts.ToolCallIdleTimeoutMs != 30000 {
+		t.Fatalf("ToolCallIdleTimeoutMs = %d, want 30000", timeouts.ToolCallIdleTimeoutMs)
 	}
 }
 
@@ -39,8 +39,8 @@ func TestResolveStreamPreflightTimeouts_ToolCallIdleChannelOverride(t *testing.T
 	upstream := &config.UpstreamConfig{StreamToolCallIdleTimeoutMs: 12000}
 	global := metrics.CircuitBreakerParams{
 		StreamFirstContentTimeoutMs: 30000,
-		StreamInactivityTimeoutMs:   5000,
-		StreamToolCallIdleTimeoutMs: 3000,
+		StreamInactivityTimeoutMs:   20000,
+		StreamToolCallIdleTimeoutMs: 30000,
 	}
 
 	timeouts := ResolveStreamPreflightTimeouts(upstream, global)
