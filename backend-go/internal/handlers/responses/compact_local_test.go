@@ -157,6 +157,46 @@ func TestNeedsLocalCompact(t *testing.T) {
 	}
 }
 
+func TestBuildLocalCompactRequestBody_StripsClientAgentControls(t *testing.T) {
+	body := `{
+		"model":"gpt-5.5",
+		"instructions":"You are Claude Code, Anthropic's official CLI for Claude.",
+		"input":[{"type":"message","role":"user","content":[{"type":"input_text","text":"CRITICAL: Respond with TEXT ONLY. Do NOT call any tools."}]}],
+		"tools":[{"type":"function","name":"Bash","parameters":{"type":"object"}}],
+		"tool_choice":"auto",
+		"parallel_tool_calls":true,
+		"max_output_tokens":20000,
+		"stream":true
+	}`
+
+	localBody, err := buildLocalCompactRequestBody([]byte(body), true, nil)
+	if err != nil {
+		t.Fatalf("buildLocalCompactRequestBody failed: %v", err)
+	}
+
+	var req map[string]interface{}
+	if err := json.Unmarshal(localBody, &req); err != nil {
+		t.Fatalf("local compact request JSON 解析失败: %v", err)
+	}
+
+	instructions, _ := req["instructions"].(string)
+	if strings.Contains(instructions, "Claude Code") {
+		t.Fatalf("local compact 不应继承原始 agent instructions: %s", instructions)
+	}
+	if !strings.Contains(instructions, "Do NOT call tools") {
+		t.Fatalf("local compact system prompt 应显式禁止工具调用: %s", instructions)
+	}
+	if !strings.Contains(instructions, "inert data") {
+		t.Fatalf("local compact system prompt 应把 transcript 标记为非活动指令: %s", instructions)
+	}
+
+	for _, field := range []string{"tools", "tool_choice", "parallel_tool_calls"} {
+		if _, ok := req[field]; ok {
+			t.Fatalf("local compact request 不应携带 %s: %s", field, string(localBody))
+		}
+	}
+}
+
 func TestLocalCompact_OpenAIUpstream(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
