@@ -52,7 +52,6 @@ const presetOrder = [
   'runapi',
   'openrouter',
   'kimi',
-  'kimi-code',
   'glm',
   'minimax',
   'dashscope',

@@ -235,14 +235,16 @@ func Presets() []ProviderPreset {
 			ID:                  ProviderKimi,
 			Order:               50,
 			Label:               "Kimi / Moonshot",
-			Description:         "Messages 原生透传、Codex Responses、Chat 渠道透传三种用法。",
+			Description:         "Messages 原生透传、Codex Responses、Chat 渠道透传三种用法；内置按量与 Coding Plan 入口。",
 			DirectAgent:         true,
 			NativeMessages:      true,
 			ChatCompatible:      true,
 			ResponsesCompatible: true,
 			Plans: []ProviderPlan{
-				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.moonshot.cn/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
-				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.moonshot.cn/v1", Description: "Chat / Responses 通用入口"},
+				{ID: "anthropic", Label: "按量 (Anthropic)", BaseURL: "https://api.moonshot.cn/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
+				{ID: "openai-chat", Label: "按量 (OpenAI)", BaseURL: "https://api.moonshot.cn/v1", Description: "Chat / Responses 通用入口"},
+				{ID: "coding-anthropic", Label: "Coding Plan (Anthropic)", BaseURL: "https://api.kimi.com/coding", Description: "Coding Plan Claude Messages 原生入口"},
+				{ID: "coding-openai-chat", Label: "Coding Plan (OpenAI)", BaseURL: "https://api.kimi.com/coding/v1", Description: "Coding Plan Chat / Responses 通用入口"},
 			},
 			Targets: []ChannelTarget{
 				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
@@ -368,26 +370,6 @@ func Presets() []ProviderPreset {
 			Plans: []ProviderPlan{
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.lkeap.cloud.tencent.com/plan/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.lkeap.cloud.tencent.com/plan/v3", Description: "Chat / Responses 通用入口"},
-			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
-			DefaultTarget: TargetMessages,
-		},
-		{
-			ID:                  ProviderKimiCode,
-			Order:               55,
-			Label:               "Kimi Code Plan",
-			Description:         "Kimi 会员 Coding Plan 编程套餐，原生支持 Anthropic/OpenAI 双协议，适配 Claude Code、OpenCode、Roo Code 等主流编码工具。",
-			DirectAgent:         false,
-			NativeMessages:      true,
-			ChatCompatible:      true,
-			ResponsesCompatible: true,
-			Plans: []ProviderPlan{
-				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.kimi.com/coding", Description: "Claude Messages 原生入口", Recommended: true},
-				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.kimi.com/coding/v1", Description: "Chat / Responses 通用入口"},
 			},
 			Targets: []ChannelTarget{
 				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},

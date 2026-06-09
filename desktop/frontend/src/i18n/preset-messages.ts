@@ -71,9 +71,15 @@ export const presetMessages: Record<SupportedLocale, Record<string, string>> = {
 
     // Kimi
     'channel.preset.kimi.description':
-      'Messages native passthrough, Codex Responses, and Chat passthrough — three usage modes.',
+      'Messages native passthrough, Codex Responses, and Chat passthrough; includes pay-as-you-go and Coding Plan endpoints.',
+    'channel.preset.kimi.plan.anthropic.label': 'Pay-as-you-go (Anthropic)',
     'channel.preset.kimi.plan.anthropic.description': 'Claude Messages native endpoint',
+    'channel.preset.kimi.plan.openai-chat.label': 'Pay-as-you-go (OpenAI)',
     'channel.preset.kimi.plan.openai-chat.description': 'Common Chat / Responses endpoint',
+    'channel.preset.kimi.plan.coding-anthropic.label': 'Coding Plan (Anthropic)',
+    'channel.preset.kimi.plan.coding-anthropic.description': 'Coding Plan Claude Messages native endpoint',
+    'channel.preset.kimi.plan.coding-openai-chat.label': 'Coding Plan (OpenAI)',
+    'channel.preset.kimi.plan.coding-openai-chat.description': 'Coding Plan Chat / Responses shared endpoint',
 
     // GLM
     'channel.preset.glm.description':
@@ -105,9 +111,6 @@ export const presetMessages: Record<SupportedLocale, Record<string, string>> = {
     // Tencent Lkeap
     'channel.preset.tencent-lkeap.plan.anthropic.description': 'Claude Messages native endpoint',
     'channel.preset.tencent-lkeap.plan.openai-chat.description': 'Common Chat / Responses endpoint',
-    // Kimi Code Plan
-    'channel.preset.kimi-code.plan.anthropic.description': 'Claude Messages native endpoint',
-    'channel.preset.kimi-code.plan.openai-chat.description': 'Common Chat / Responses endpoint',
     // Volcengine Ark Coding Plan
     'channel.preset.volc-ark.plan.anthropic.description': 'Claude Messages native endpoint',
     'channel.preset.volc-ark.plan.openai-chat.description': 'Common Chat / Responses endpoint',
