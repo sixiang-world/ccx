@@ -106,3 +106,8 @@ Web 端与后端已支持渠道级「去除 image_generation 工具」开关（R
 如果有渠道频繁缓存写很高，说明大概率设置有问题，应该在渠道列表给他一个badge提醒用户注意这个问题
 还有runapi现在的messages协议很偏向原生协议，那么应该从桌面端渠道中心添加的时候关闭userid兼容。还有就是cch头关闭的问题，之前有这个问题的渠道比较多，所以放在了全局开关，但是现在有问题的很少了，那么应该放在messages协议渠道级开关，默认是关闭的。
 
+## 上游版本变更
+
+- [Claude Code v2.1.169] 发现协议/工具/用法变更：stream。请评估对 ccx Messages 渠道的影响。
+- [Codex rust-v0.138.0] 发现协议/工具/用法变更：code mode, code-mode, compact, effort, environment, goal extension, image generation, multi-agent, permission, plugin, Plugin, reasoning, Reasoning, remote control, remote-control, sandbox, Sandbox, session, skill。请评估对 ccx Responses 渠道的影响。
+
