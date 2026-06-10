@@ -31,9 +31,16 @@
 
 使用 OpenRouter 的免费路由（free routing）时，工具调用（tool call）会报失败。需要排查 OpenRouter 免费层对 tool_use 请求的处理差异，确认是否为上游限制或协议转换问题，并给出相应修复或降级提示。
 
-## [ ] 火山 coding plan 模型列表与功能 Bug (#204)
+## [x] 火山 coding plan 模型列表与功能 Bug (#204)
 
 火山引擎（Volcano/Ark）的 coding plan 渠道一直有问题：模型列表不正确，存在 bug。需要排查火山 coding plan 渠道的模型映射、预设配置与上游 API 的对齐情况。
+
+**关键提交：**
+- `5f470512` fix(preset): 火山方舟 Coding Plan 渠道补充模型映射与特性配置 (#204)
+
+**关键变更：**
+- `desktop/internal/channelpreset/preset.go`
+- `desktop/internal/channelpreset/preset_test.go`
 
 ## [ ] 磁铁图标背景不透明 + 黄色光圈
 
