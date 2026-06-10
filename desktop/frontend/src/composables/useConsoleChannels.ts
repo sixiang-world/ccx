@@ -86,7 +86,7 @@ async function doRefresh(tab: ChannelType) {
     const existing = channelsByType.value[tab].channels
     channelsByType.value[tab] = {
       channels: mergeChannelsWithLocalData(dashboard.channels, existing),
-      current: channelsByType.value[tab].current,
+      current: typeof dashboard.current === 'number' ? dashboard.current : channelsByType.value[tab].current,
     }
     dashboardCache.value[tab] = {
       metrics: dashboard.metrics,

@@ -38,6 +38,8 @@ type ChannelScheduler struct {
 	conversationTracker      *conversation.ConversationTracker
 	overrideManager          *conversation.OverrideManager
 	rateLimitManager         *ratelimit.Manager
+	lastSelectedMu           sync.RWMutex
+	lastSelectedChannels     map[ChannelKind]int
 }
 
 // ChannelKind 标识调度器所处理的渠道类型
@@ -78,6 +80,8 @@ func NewChannelScheduler(
 		geminiChannelLogStore:    metrics.NewChannelLogStore(),
 		chatChannelLogStore:      metrics.NewChannelLogStore(),
 		imagesChannelLogStore:    metrics.NewChannelLogStore(),
+		conversationTracker:      nil,
+		lastSelectedChannels:     make(map[ChannelKind]int),
 	}
 }
 
@@ -190,6 +194,15 @@ type SelectionResult struct {
 	Upstream     *config.UpstreamConfig
 	ChannelIndex int
 	Reason       string // 选择原因（用于日志）
+}
+
+func (s *ChannelScheduler) selectionResult(kind ChannelKind, upstream *config.UpstreamConfig, channelIndex int, reason string) *SelectionResult {
+	s.recordLastSelectedChannel(kind, channelIndex)
+	return &SelectionResult{
+		Upstream:     upstream,
+		ChannelIndex: channelIndex,
+		Reason:       reason,
+	}
 }
 
 // NextScheduledRecoveryTimeUTC 返回下一个 UTC 0/8/16 点后 1 秒的恢复时刻。
@@ -410,11 +423,7 @@ func (s *ChannelScheduler) SelectChannel(
 				}
 				prefix := kindSchedulerLogPrefix(kind)
 				log.Printf("[%s-Pin] 通过 X-Channel 指定渠道: [%d] %s", prefix, ch.Index, ch.Name)
-				return &SelectionResult{
-					Upstream:     upstream,
-					ChannelIndex: ch.Index,
-					Reason:       "channel_pin",
-				}, nil
+				return s.selectionResult(kind, upstream, ch.Index, "channel_pin"), nil
 			}
 		}
 		return nil, fmt.Errorf("未找到名为 %q 的活跃渠道", channelName)
@@ -473,11 +482,7 @@ func (s *ChannelScheduler) SelectChannel(
 						upstream := s.getUpstreamByIndex(entry.ChannelIndex, kind)
 						if upstream != nil && s.channelCircuitState(upstream, kind) != metrics.CircuitStateOpen {
 							log.Printf("[%s-Override] 手动覆盖选择渠道: [%d] %s (user: %s)", prefix, entry.ChannelIndex, entry.ChannelName, maskUserID(userID))
-							return &SelectionResult{
-								Upstream:     upstream,
-								ChannelIndex: entry.ChannelIndex,
-								Reason:       "manual_override",
-							}, nil
+							return s.selectionResult(kind, upstream, entry.ChannelIndex, "manual_override"), nil
 						}
 					}
 				}
@@ -496,11 +501,7 @@ func (s *ChannelScheduler) SelectChannel(
 			failureRate := s.channelFailureRate(upstream, kind)
 			prefix := kindSchedulerLogPrefix(kind)
 			log.Printf("[%s-Promotion] 促销期优先选择渠道: [%d] %s (失败率: %.1f%%, 绕过健康检查)", prefix, promotedChannel.Index, upstream.Name, failureRate*100)
-			return &SelectionResult{
-				Upstream:     upstream,
-				ChannelIndex: promotedChannel.Index,
-				Reason:       "promotion_priority",
-			}, nil
+			return s.selectionResult(kind, upstream, promotedChannel.Index, "promotion_priority"), nil
 		} else if upstream != nil {
 			prefix := kindSchedulerLogPrefix(kind)
 			log.Printf("[%s-Promotion] 警告: 促销渠道 [%d] %s 无可用密钥，跳过", prefix, promotedChannel.Index, upstream.Name)
@@ -534,11 +535,7 @@ func (s *ChannelScheduler) SelectChannel(
 					if upstream != nil && s.channelIsHealthy(upstream, kind) {
 						prefix := kindSchedulerLogPrefix(kind)
 						log.Printf("[%s-Affinity] Trace亲和选择渠道: [%d] %s (user: %s)", prefix, preferredIdx, upstream.Name, maskUserID(userID))
-						return &SelectionResult{
-							Upstream:     upstream,
-							ChannelIndex: preferredIdx,
-							Reason:       "trace_affinity",
-						}, nil
+						return s.selectionResult(kind, upstream, preferredIdx, "trace_affinity"), nil
 					}
 				}
 			}
@@ -586,11 +583,7 @@ func (s *ChannelScheduler) SelectChannel(
 
 		prefix := kindSchedulerLogPrefix(kind)
 		log.Printf("[%s-Channel] 选择渠道: [%d] %s (优先级: %d)", prefix, ch.Index, upstream.Name, ch.Priority)
-		return &SelectionResult{
-			Upstream:     upstream,
-			ChannelIndex: ch.Index,
-			Reason:       "priority_order",
-		}, nil
+		return s.selectionResult(kind, upstream, ch.Index, "priority_order"), nil
 	}
 
 	// 3. 所有健康渠道都失败，选择失败率最低的作为降级
@@ -692,11 +685,7 @@ func (s *ChannelScheduler) selectFallbackChannel(
 		prefix := kindSchedulerLogPrefix(kind)
 		log.Printf("[%s-Fallback] 警告: 降级选择渠道: [%d] %s (失败率: %.1f%%)",
 			prefix, bestChannel.Index, bestUpstream.Name, bestFailureRate*100)
-		return &SelectionResult{
-			Upstream:     bestUpstream,
-			ChannelIndex: bestChannel.Index,
-			Reason:       "fallback",
-		}, nil
+		return s.selectionResult(kind, bestUpstream, bestChannel.Index, "fallback"), nil
 	}
 
 	return nil, fmt.Errorf("所有渠道都不可用")
@@ -1124,6 +1113,32 @@ func (s *ChannelScheduler) isUpstreamInConfig(upstream *config.UpstreamConfig, k
 // GetActiveChannelCount 获取活跃渠道数量
 func (s *ChannelScheduler) GetActiveChannelCount(kind ChannelKind) int {
 	return len(s.getActiveChannels(kind, ""))
+}
+
+// GetFirstActiveChannelIndex 返回当前类型下第一个活跃渠道索引；无活跃渠道时回退到 0；无渠道时返回 -1。
+func (s *ChannelScheduler) GetFirstActiveChannelIndex(kind ChannelKind) int {
+	channels := s.getActiveChannels(kind, "")
+	if len(channels) == 0 {
+		return -1
+	}
+	return channels[0].Index
+}
+
+func (s *ChannelScheduler) recordLastSelectedChannel(kind ChannelKind, channelIndex int) {
+	s.lastSelectedMu.Lock()
+	defer s.lastSelectedMu.Unlock()
+	s.lastSelectedChannels[kind] = channelIndex
+}
+
+// GetCurrentChannelIndex 返回最近一次成功选中的渠道；若尚无请求记录，则回退到首个活跃渠道。
+func (s *ChannelScheduler) GetCurrentChannelIndex(kind ChannelKind) int {
+	s.lastSelectedMu.RLock()
+	channelIndex, ok := s.lastSelectedChannels[kind]
+	s.lastSelectedMu.RUnlock()
+	if ok {
+		return channelIndex
+	}
+	return s.GetFirstActiveChannelIndex(kind)
 }
 
 // IsMultiChannelMode 判断是否为多渠道模式

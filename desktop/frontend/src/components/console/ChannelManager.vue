@@ -443,7 +443,7 @@ watch(() => status.value.running, (running) => {
             </span>
           </div>
           <span class="font-mono text-[11px] text-muted-foreground">
-            current #{{ currentIndex >= 0 ? currentIndex : '—' }}
+            {{ tf('console.pool.current', 'Current channel') }} {{ currentIndex >= 0 ? `#${currentIndex + 1}` : '—' }}
           </span>
         </div>
         <div class="divide-y divide-border">

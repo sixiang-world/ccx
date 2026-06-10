@@ -763,9 +763,13 @@ func GetChannelDashboard(cfgManager *config.ConfigManager, sch *scheduler.Channe
 			recentActivity[i] = metricsManager.GetRecentActivityMultiURL(i, upstream.GetAllBaseURLs(), upstream.APIKeys, scheduler.NormalizedMetricsServiceType(kind, upstream.ServiceType))
 		}
 
+		// 5. 当前渠道索引（最近一次运行态调度选择；无请求记录时回退首个活跃渠道）
+		currentChannel := sch.GetCurrentChannelIndex(kind)
+
 		// 返回合并数据
 		c.JSON(200, gin.H{
 			"channels":       channels,
+			"current":        currentChannel,
 			"metrics":        metricsResult,
 			"stats":          stats,
 			"recentActivity": recentActivity,

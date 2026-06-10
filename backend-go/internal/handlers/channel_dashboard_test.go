@@ -76,11 +76,15 @@ func TestGetChannelDashboard_IncludesBreakerFields(t *testing.T) {
 	}
 
 	var resp struct {
+		Current int              `json:"current"`
 		Metrics []map[string]any `json:"metrics"`
 		Stats   map[string]any   `json:"stats"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("解析响应失败: %v", err)
+	}
+	if resp.Current != 0 {
+		t.Fatalf("current=%d, want=0", resp.Current)
 	}
 	if len(resp.Metrics) != 1 {
 		t.Fatalf("metrics len=%d, want=1", len(resp.Metrics))

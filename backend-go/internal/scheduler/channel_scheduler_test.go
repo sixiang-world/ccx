@@ -137,6 +137,10 @@ func TestPromotedChannelBypassesHealthCheck(t *testing.T) {
 	if result.Upstream.Name != "promoted-channel" {
 		t.Errorf("期望选择 promoted-channel，实际选择了 %s", result.Upstream.Name)
 	}
+
+	if got := scheduler.GetCurrentChannelIndex(ChannelKindMessages); got != 1 {
+		t.Errorf("运行态当前渠道 = %d, want 1", got)
+	}
 }
 
 // TestPromotedChannelSkippedAfterFailure 测试促销渠道在本次请求失败后被跳过
@@ -183,6 +187,10 @@ func TestPromotedChannelSkippedAfterFailure(t *testing.T) {
 
 	if result.Upstream.Name != "normal-channel" {
 		t.Errorf("期望选择 normal-channel，实际选择了 %s", result.Upstream.Name)
+	}
+
+	if got := scheduler.GetCurrentChannelIndex(ChannelKindMessages); got != 0 {
+		t.Errorf("运行态当前渠道 = %d, want 0", got)
 	}
 }
 

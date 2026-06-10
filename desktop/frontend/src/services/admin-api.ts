@@ -119,6 +119,7 @@ export interface ChannelsResponse {
 
 export interface ChannelDashboardResponse {
   channels: Channel[]
+  current?: number
   metrics: ChannelMetrics[]
   stats: SchedulerStatsResponse
   recentActivity?: ChannelRecentActivity[]
