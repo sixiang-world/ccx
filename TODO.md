@@ -129,3 +129,11 @@ Web 端与后端已支持渠道级「去除 image_generation 工具」开关（R
 
 发现协议/工具/用法变更：code mode, code-mode, compact, effort, environment, goal extension, image generation, multi-agent, permission, plugin, Plugin, reasoning, Reasoning, remote control, remote-control, sandbox, Sandbox, session, skill。请评估对 ccx Responses 渠道的影响。
 
+## [ ] Claude Code v2.1.170 上游协议/工具变更评估
+
+有新版本 v2.1.170 可用（本地: 2.1.168）。非紧急，可在方便时升级。主要内容：新增 Claude Fable 5 模型支持；修复 VS Code 集成终端启动时会话未保存问题。
+
+## [ ] Codex rust-v0.139.0 上游协议/工具变更评估
+
+发现协议/工具/用法变更：code mode, Code mode, compact, environment, multi-agent, permission, plugin, Plugin, remote-control, sandbox, Sandbox, session, skill, web search。请评估对 ccx Responses 渠道的影响。主要变更：Code mode 支持独立 web search 调用；工具与连接器输入 schema 保留 oneOf/allOf 并优化大 schema compact 结构；codex doctor 新增编辑器与 pager 环境信息；Plugin marketplace 列表增强。
+
