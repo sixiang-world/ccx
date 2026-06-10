@@ -104,6 +104,7 @@ export interface Channel {
   noVision?: boolean
   noVisionModels?: string[]
   visionFallbackModel?: string
+  historicalImageTurnLimit?: number
   // 主动限速（渠道级生产代理限速）
   rateLimitRpm?: number
   rateLimitBurst?: number

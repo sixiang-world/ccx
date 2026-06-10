@@ -143,6 +143,14 @@ func (u *UpstreamConfig) IsCodexToolCompatEnabled() bool {
 	return u.StripCodexClientTools
 }
 
+// IsRateLimitAutoFromHeadersEnabled 检查是否自动从上游响应头解析限流信息（默认 false）。
+func (u *UpstreamConfig) IsRateLimitAutoFromHeadersEnabled() bool {
+	if u.RateLimitAutoFromHeaders != nil {
+		return *u.RateLimitAutoFromHeaders
+	}
+	return false
+}
+
 // IsStripImageGenerationToolEnabled 检查是否移除 image_generation 工具（默认 false）。
 func (u *UpstreamConfig) IsStripImageGenerationToolEnabled() bool {
 	return u.StripImageGenerationTool

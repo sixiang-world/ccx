@@ -146,6 +146,7 @@ const form = reactive({
   noVisionModelsText: '',
   visionFallbackModel: '',
   noVision: false,
+  historicalImageTurnLimit: 0,
   passbackReasoningContent: false,
   passbackThinkingBlocks: false,
   fastMode: false,
@@ -202,6 +203,7 @@ function resetForm() {
   form.noVisionModelsText = ''
   form.visionFallbackModel = ''
   form.noVision = false
+  form.historicalImageTurnLimit = 0
   form.passbackReasoningContent = false
   form.passbackThinkingBlocks = false
   form.fastMode = false
@@ -274,6 +276,7 @@ function populateFromChannel(ch: Channel) {
   form.noVisionModelsText = (ch.noVisionModels || []).filter(m => !mappedTargets.has(m)).join('\n')
   form.visionFallbackModel = ch.visionFallbackModel || ''
   form.noVision = ch.noVision ?? false
+  form.historicalImageTurnLimit = ch.historicalImageTurnLimit ?? 0
   form.passbackReasoningContent = ch.passbackReasoningContent ?? false
   form.passbackThinkingBlocks = ch.passbackThinkingBlocks ?? false
   form.fastMode = ch.fastMode ?? false
@@ -423,6 +426,7 @@ function buildSubmitPayload() {
         noVision: form.noVision,
         noVisionModels: parseLines(form.noVisionModelsText),
         visionFallbackModel: form.visionFallbackModel,
+        historicalImageTurnLimit: form.historicalImageTurnLimit,
       })
 
   if (isEditMode.value && props.channel?.requestTimeoutMs && !String(form.requestTimeoutMs ?? '').trim()) {
@@ -1127,6 +1131,7 @@ function buildCurrentPayload() {
     noVision: form.noVision,
     noVisionModels: getNoVisionModelsFromRows(),
     visionFallbackModel: form.visionFallbackModel,
+    historicalImageTurnLimit: form.historicalImageTurnLimit,
   })
 }
 </script>
@@ -1527,6 +1532,11 @@ function buildCurrentPayload() {
                           </div>
                         </div>
                         <div class="space-y-1 md:col-span-2"><Label class="text-[10px]">{{ tf('console.form.noVisionModels', 'No vision models（每行一个）') }}</Label><Textarea v-model="form.noVisionModelsText" rows="2" class="font-mono text-xs" /></div>
+                        <div class="space-y-1">
+                          <Label class="text-[10px]">{{ tf('console.form.historicalImageTurnLimit', '历史图片轮次限制') }}</Label>
+                          <Input v-model.number="form.historicalImageTurnLimit" type="number" min="0" class="h-7 text-xs" placeholder="0" />
+                          <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.historicalImageTurnLimitHint', '0 = 继承全局；后端会对 >0 的值应用最低 3 约束') }}</p>
+                        </div>
                       </div>
                     </div>
 

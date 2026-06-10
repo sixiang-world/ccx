@@ -46,6 +46,7 @@ export interface ChannelFormLike {
   noVision: boolean
   noVisionModels: string[]
   visionFallbackModel: string
+  historicalImageTurnLimit?: string | number | null
 
 }
 
@@ -103,6 +104,14 @@ export function buildChannelPayload(form: ChannelFormLike): Omit<Channel, 'index
   if (deduplicatedUrls.length > 1) {
     channelData.baseUrls = deduplicatedUrls
   }
+
+  // 历史图片轮次限制：始终发送（含 0），使编辑场景能把渠道级覆盖清回 0（继承全局）。
+  // 0=继承全局；后端会对 >0 的值应用最低 3 约束。空/非整数/负数归一为 0。
+  const historicalImageTurnLimit = Number(form.historicalImageTurnLimit)
+  ;(channelData as any).historicalImageTurnLimit =
+    Number.isInteger(historicalImageTurnLimit) && historicalImageTurnLimit > 0
+      ? historicalImageTurnLimit
+      : 0
 
   const requestTimeoutMs = Number(form.requestTimeoutMs)
   if (Number.isInteger(requestTimeoutMs) && requestTimeoutMs > 0) {

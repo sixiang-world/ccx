@@ -61,5 +61,10 @@ func BuildChannelView(up config.UpstreamConfig, index int) gin.H {
 		"streamFirstContentTimeoutMs": up.StreamFirstContentTimeoutMs,
 		"streamInactivityTimeoutMs":   up.StreamInactivityTimeoutMs,
 		"streamToolCallIdleTimeoutMs": up.StreamToolCallIdleTimeoutMs,
+		// Rate Limit（渠道级限速）
+		"rateLimitRpm":            up.RateLimitRPM,
+		"rateLimitBurst":           up.RateLimitBurst,
+		"rateLimitMaxConcurrent":   up.RateLimitMaxConcurrent,
+		"rateLimitAutoFromHeaders": up.IsRateLimitAutoFromHeadersEnabled(),
 	}
 }
