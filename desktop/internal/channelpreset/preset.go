@@ -409,7 +409,7 @@ func Presets() []ProviderPreset {
 			ResponsesCompatible: true,
 			Plans: []ProviderPlan{
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://qianfan.baidubce.com/anthropic/coding", Description: "Claude Messages 原生入口", Recommended: true},
-				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://qianfan.baidubce.com/v2/coding", Description: "Chat / Responses 通用入口"},
+				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://qianfan.baidubce.com/v2/coding#", Description: "Chat / Responses 通用入口"},
 			},
 			Targets: []ChannelTarget{
 				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
@@ -765,6 +765,14 @@ var channelTargetConfigs = map[string]map[string]channelTargetConfig{
 			NoVisionModels:           []string{"deepseek-v4-flash"},
 			VisionFallbackModel:      "minimax-m2.7",
 		},
+		ProviderQianfan: {
+			ModelMapping: map[string]string{
+				"fable":  "qianfan-code-latest",
+				"haiku":  "qianfan-code-latest",
+				"opus":   "qianfan-code-latest",
+				"sonnet": "qianfan-code-latest",
+			},
+		},
 	},
 	TargetChat: {
 		ProviderDeepSeek: {
@@ -792,6 +800,9 @@ var channelTargetConfigs = map[string]map[string]channelTargetConfig{
 		ProviderOpenCodeZen: {},
 		ProviderOpenCodeGo:  {},
 		ProviderVolcArk: {
+			NormalizeNonstandardChatRoles: true,
+		},
+		ProviderQianfan: {
 			NormalizeNonstandardChatRoles: true,
 		},
 	},
@@ -892,6 +903,14 @@ var channelTargetConfigs = map[string]map[string]channelTargetConfig{
 			NormalizeNonstandardChatRoles: true,
 			NoVisionModels:                []string{"deepseek-v4-flash"},
 			VisionFallbackModel:           "minimax-m2.7",
+		},
+		ProviderQianfan: {
+			ModelMapping: map[string]string{
+				"codex": "qianfan-code-latest",
+				"gpt":   "qianfan-code-latest",
+				"mini":  "qianfan-code-latest",
+			},
+			NormalizeNonstandardChatRoles: true,
 		},
 	},
 }

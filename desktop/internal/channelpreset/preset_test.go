@@ -396,6 +396,39 @@ func TestBuildPayload(t *testing.T) {
 			wantNoVisionModels: []string{"deepseek-v4-flash"},
 			wantFallback:       "minimax-m2.7",
 		},
+		{
+			name:        "qianfan messages (anthropic endpoint)",
+			req:         CreateChannelRequest{Provider: ProviderQianfan, Target: TargetMessages, APIKey: "qf-test"},
+			wantBaseURL: "https://qianfan.baidubce.com/anthropic/coding",
+			wantService: "claude",
+			wantModelMap: map[string]string{
+				"fable":  "qianfan-code-latest",
+				"haiku":  "qianfan-code-latest",
+				"opus":   "qianfan-code-latest",
+				"sonnet": "qianfan-code-latest",
+			},
+		},
+		{
+			name:          "qianfan chat",
+			req:           CreateChannelRequest{Provider: ProviderQianfan, Target: TargetChat, APIKey: "qf-test"},
+			wantBaseURL:   "https://qianfan.baidubce.com/v2/coding#",
+			wantService:   "openai",
+			wantNormalize: true,
+		},
+		{
+			name:        "qianfan responses",
+			req:         CreateChannelRequest{Provider: ProviderQianfan, Target: TargetResponses, APIKey: "qf-test"},
+			wantBaseURL: "https://qianfan.baidubce.com/v2/coding#",
+			wantService: "openai",
+			wantModelMap: map[string]string{
+				"codex": "qianfan-code-latest",
+				"gpt":   "qianfan-code-latest",
+				"mini":  "qianfan-code-latest",
+			},
+			wantNormalize:  true,
+			wantCodex:      true,
+			wantStripCodex: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
