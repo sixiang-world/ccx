@@ -44,6 +44,11 @@ watch(() => props.type, (newType) => {
 
 const channels = computed(() => channelsByType.value[props.type]?.channels || [])
 const currentIndex = computed(() => channelsByType.value[props.type]?.current ?? -1)
+const currentChannelName = computed(() => {
+  const idx = currentIndex.value
+  if (idx < 0) return ''
+  return channels.value.find(ch => ch.index === idx)?.name || ''
+})
 const metrics = computed(() => dashboardCache.value[props.type]?.metrics || [])
 const activity = computed(() => dashboardCache.value[props.type]?.recentActivity || [])
 const stats = computed(() => dashboardCache.value[props.type]?.stats)
@@ -443,7 +448,7 @@ watch(() => status.value.running, (running) => {
             </span>
           </div>
           <span class="font-mono text-[11px] text-muted-foreground">
-            {{ tf('console.pool.current', 'Current channel') }} {{ currentIndex >= 0 ? `#${currentIndex + 1}` : '—' }}
+            {{ tf('console.pool.current', 'Current channel') }}{{ currentChannelName ? ` ${currentChannelName}` : '' }}{{ currentIndex >= 0 ? ` (#${currentIndex + 1})` : ' —' }}
           </span>
         </div>
         <div class="divide-y divide-border">
