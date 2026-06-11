@@ -1291,7 +1291,7 @@
                 min="1"
               />
             </v-col>
-            <v-col cols="12" md="3">
+            <v-col cols="12" md="4">
               <v-text-field
                 v-model="form.rateLimitMaxConcurrent"
                 :label="t('addChannel.rateLimitMaxConcurrentLabel')"
@@ -1306,17 +1306,17 @@
                 min="1"
               />
             </v-col>
-            <v-col cols="12" md="3">
-              <v-card variant="tonal" class="pa-4 h-100 d-flex flex-column justify-center">
-                <v-switch
-                  v-model="form.rateLimitAutoFromHeaders"
-                  :label="t('addChannel.rateLimitAutoFromHeadersLabel')"
-                  :hint="t('addChannel.rateLimitAutoFromHeadersHint')"
-                  persistent-hint
-                  color="secondary"
-                  density="comfortable"
-                />
-              </v-card>
+            <v-col cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="secondary">mdi-robot</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.rateLimitAutoFromHeadersLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.rateLimitAutoFromHeadersHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.rateLimitAutoFromHeaders" inset color="secondary" hide-details />
+              </div>
             </v-col>
 
             <!-- 路由前缀 -->
