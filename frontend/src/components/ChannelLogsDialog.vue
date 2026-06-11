@@ -3,9 +3,13 @@
     <v-card>
       <v-card-title class="d-flex align-center justify-space-between">
         <span class="dialog-title">{{ t('channelLogs.title', { channel: channelName }) }}</span>
-        <v-btn icon size="small" variant="text" @click="$emit('update:modelValue', false)">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
+        <v-tooltip :text="t('app.actions.close') + ' (Esc)'">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn icon size="small" variant="text" v-bind="tooltipProps" @click="$emit('update:modelValue', false)">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </template>
+        </v-tooltip>
       </v-card-title>
       <v-divider />
       <v-card-text class="pa-0 channel-logs-scroll">
@@ -104,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { api, type ChannelLogEntry } from '../services/api'
 import { useI18n } from '../i18n'
 import { useGlobalTick } from '../composables/useGlobalTick'
@@ -116,7 +120,7 @@ const props = defineProps<{
   channelType: 'messages' | 'chat' | 'responses' | 'gemini' | 'images'
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (_e: 'update:modelValue', _v: boolean): void
 }>()
 const { t } = useI18n()
@@ -280,7 +284,22 @@ watch(() => props.modelValue, (open) => {
   }
 }, { immediate: true })
 
-onUnmounted(() => stopPolling())
+// 键盘监听
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!props.modelValue) return
+  if (e.key === 'Escape') {
+    emit('update:modelValue', false)
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  stopPolling()
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <style scoped>

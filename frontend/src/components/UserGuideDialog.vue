@@ -14,9 +14,13 @@
         <span class="text-caption text-medium-emphasis mr-3 d-none d-sm-inline">
           {{ t('guide.stepIndicator', { current: step + 1, total: STEP_COUNT }) }}
         </span>
-        <v-btn icon size="small" variant="text" @click="close">
-          <v-icon size="20">mdi-close</v-icon>
-        </v-btn>
+        <v-tooltip :text="t('app.actions.close') + ' (Esc)'">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn icon size="small" variant="text" v-bind="tooltipProps" @click="close">
+              <v-icon size="20">mdi-close</v-icon>
+            </v-btn>
+          </template>
+        </v-tooltip>
       </v-card-title>
 
       <v-divider />
@@ -133,11 +137,11 @@
         <v-spacer />
         <v-btn v-if="step < STEP_COUNT - 1" color="primary" variant="flat" append-icon="mdi-arrow-right" @click="next">
           {{ t('guide.next') }}
-          <span class="ml-1.5 text-xs opacity-60">Enter</span>
+          <span class="shortcut-hint ml-2.5 text-xs opacity-50">Enter</span>
         </v-btn>
         <v-btn v-else color="primary" variant="flat" prepend-icon="mdi-check" @click="close">
           {{ t('guide.gotIt') }}
-          <span class="ml-1.5 text-xs opacity-60">Enter</span>
+          <span class="shortcut-hint ml-2.5 text-xs opacity-50">Enter</span>
         </v-btn>
       </v-card-actions>
     </v-card>

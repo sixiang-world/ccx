@@ -12,9 +12,13 @@
           <v-icon color="success">mdi-test-tube</v-icon>
           <span class="dialog-title">{{ t('capability.title', { channel: channelName }) }}</span>
         </div>
-        <v-btn icon variant="text" @click="$emit('update:modelValue', false)">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
+        <v-tooltip :text="t('app.actions.close') + ' (Esc)'">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn icon variant="text" v-bind="tooltipProps" @click="$emit('update:modelValue', false)">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </template>
+        </v-tooltip>
       </v-card-title>
 
       <v-divider />
@@ -318,7 +322,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type {
   CapabilityTestJob,
   CapabilityProtocolJobResult
@@ -646,6 +650,22 @@ const handleCancel = () => {
 const handleRetryModel = (protocol: string, model: string) => {
   emit('retryModel', protocol, model)
 }
+
+// 键盘监听
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!props.modelValue) return
+  if (e.key === 'Escape') {
+    emit('update:modelValue', false)
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 
 defineExpose({ setError })
 </script>
