@@ -1,10 +1,43 @@
-## [Unreleased]
+## [v2.8.28] - 2026-06-11
+
+### 新增
+
+- **桌面端管理面板集成用量统计图表 (#199)** - 管理面板新增用量统计图表展示
+- **补齐渠道中心所有 provider 到 Agent 直连设置** - 完善 Agent 直连配置，覆盖所有渠道中心 provider
+- **驾驶舱 Override 有效期选择器补齐** - 驾驶舱 Override 配置界面新增有效期选择器
+- **upstream-check 新增功能与体验变更报告输出步骤** - 上游版本检查 skill 新增变更报告输出
+
+### 修复
+
+- **完善驾驶舱 i18n 并移除重复的系统状态显示** - 优化驾驶舱国际化文案，移除重复状态展示
+- **补全 tooltip content-class 并加大快捷键提示间距** - 修复 tooltip 样式类缺失，优化快捷键提示视觉间距
+- **补全 stream.go 中 message_delta 的 stop_details 字段** - 流式响应 handlers 补充 stop_details 字段处理
+- **添加 stop_details 字段到 message_delta** - providers 层新增 stop_details 字段支持
+- **过滤 compaction 流式响应中的 reasoning items (#179)** - Responses compaction 场景过滤推理内容，避免重复输出
+- **优化弹窗快捷键提示体验** - 改进弹窗快捷键提示交互
+- **Override 有效期标签改为用户易懂的「空闲自动恢复」** - 重写 Override 配置文案，提升用户理解
+- **有效期选择器默认选中 30min + 补充长时段选项** - 优化有效期默认值与选项范围
+- **修复磁贴图标透明背景与黄色光圈，补齐 Windows 磁贴资产** - 修复桌面端 Windows 图标透明度问题，补全磁贴资源
+- **千帆 Coding Plan 渠道补充模型映射与特性配置** - 完善千帆编码计划渠道模型映射
+- **火山方舟 Coding Plan 渠道补充模型映射与特性配置 (#204)** - 完善火山方舟编码计划渠道模型映射
+- **替换已归档官方镜像为社区维护 fork，修复 Docker API 版本兼容性问题** - Watchtower 迁移至社区维护镜像，修复 API 兼容性
+
+### 优化
+
+- **前端构建增加双层缓存，避免重复编译** - 前端构建流程新增缓存机制，加速构建
 
 ### 改进
 
 - **驾驶舱 Override 有效期可配置** - 支持环境变量 `OVERRIDE_TTL_MINUTES`（默认 30 分钟）和前端下拉选择器（15min/30min/1h/2h/永不恢复）自定义 override 有效期
 - **Override Idle 续期** - 对话活跃时自动续期 override TTL，仅在闲置超过设定时间后才恢复默认调度
 - **Override 永不恢复选项** - 支持设置 override 永不过期，手动恢复前不会自动过期
+
+### 文档
+
+- **注释说明极易云 originrouter 刻意不纳入 Agent 直连** - 渠道预设注释补充设计决策说明
+- **新增 TODO #199 桌面端用量显示与 #179 compaction v2 think 拆分问题** - 更新待办事项
+- **完成 TODO #1 OpenRouter 免费路由工具调用排查，确认为上游限制** - 标记已完成任务
+- **清理已完成任务并添加三个新 TODO** - 维护任务列表
 
 ### 变更文件
 
