@@ -330,7 +330,13 @@ function populateFromChannel(ch: Channel) {
 
 watch(() => props.channel, (ch) => {
   resetForm()
-  if (ch) populateFromChannel(ch)
+  if (ch) {
+    populateFromChannel(ch)
+    // 如果有模型映射配置，主动触发一次模型列表获取
+    if (ch.modelMapping && Object.keys(ch.modelMapping).length > 0) {
+      void fetchTargetModels()
+    }
+  }
 }, { immediate: true })
 
 // baseUrlsText 是唯一的 Base URL 输入（每行一个，第一行为主），派生 form.baseUrl / form.baseUrls（对齐 WebUI）
