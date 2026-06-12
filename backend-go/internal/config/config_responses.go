@@ -300,6 +300,12 @@ func (cm *ConfigManager) UpdateResponsesUpstream(index int, updates UpstreamUpda
 		}
 		upstream.RateLimitRPM = *updates.RateLimitRPM
 	}
+	if updates.RateLimitWindowSeconds != nil {
+		if *updates.RateLimitWindowSeconds < 0 {
+			return false, fmt.Errorf("rateLimitWindowSeconds 不能为负数")
+		}
+		upstream.RateLimitWindowSeconds = *updates.RateLimitWindowSeconds
+	}
 	if updates.RateLimitBurst != nil {
 		if *updates.RateLimitBurst < 0 {
 			return false, fmt.Errorf("rateLimitBurst 不能为负数")

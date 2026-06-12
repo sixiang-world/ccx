@@ -1226,7 +1226,7 @@
                 <span class="text-caption text-medium-emphasis">{{ t('addChannel.rateLimitSectionHint') }}</span>
               </div>
             </v-col>
-            <v-col cols="12" md="6">
+            <v-col cols="12" md="4">
               <v-text-field
                 v-model="form.rateLimitRpm"
                 :label="t('addChannel.rateLimitRpmLabel')"
@@ -1241,7 +1241,22 @@
                 min="1"
               />
             </v-col>
-            <v-col cols="12" md="6">
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="form.rateLimitWindowSeconds"
+                :label="t('addChannel.rateLimitWindowSecondsLabel')"
+                :placeholder="t('addChannel.rateLimitWindowSecondsPlaceholder')"
+                prepend-inner-icon="mdi-clock-outline"
+                :hint="t('addChannel.rateLimitWindowSecondsHint')"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+                type="number"
+                min="1"
+              />
+            </v-col>
+            <v-col cols="12" md="4">
               <v-text-field
                 v-model="form.rateLimitMaxConcurrent"
                 :label="t('addChannel.rateLimitMaxConcurrentLabel')"
@@ -2159,6 +2174,7 @@ const form = reactive({
   streamToolCallIdleTimeoutEnabled: false,
   streamToolCallIdleTimeoutMs: defaultStreamTimeouts.toolCallIdleMs as number,
   rateLimitRpm: null as string | number | null,
+  rateLimitWindowSeconds: null as string | number | null,
   rateLimitMaxConcurrent: null as string | number | null,
   rateLimitAutoFromHeaders: false,
   routePrefix: '',
@@ -2508,6 +2524,7 @@ const normalizeComparablePayload = (payload: Partial<Channel>) => ({
   streamInactivityTimeoutMs: payload.streamInactivityTimeoutMs || undefined,
   streamToolCallIdleTimeoutMs: payload.streamToolCallIdleTimeoutMs || undefined,
   rateLimitRpm: payload.rateLimitRpm || undefined,
+  rateLimitWindowSeconds: payload.rateLimitWindowSeconds || undefined,
   rateLimitMaxConcurrent: payload.rateLimitMaxConcurrent || undefined,
   rateLimitAutoFromHeaders: !!payload.rateLimitAutoFromHeaders,
 })
@@ -2575,6 +2592,7 @@ const hasEditableDraftChanges = computed(() => {
     streamInactivityTimeoutMs: props.channel.streamInactivityTimeoutMs || undefined,
     streamToolCallIdleTimeoutMs: props.channel.streamToolCallIdleTimeoutMs || undefined,
     rateLimitRpm: props.channel.rateLimitRpm || undefined,
+    rateLimitWindowSeconds: props.channel.rateLimitWindowSeconds || undefined,
     rateLimitMaxConcurrent: props.channel.rateLimitMaxConcurrent || undefined,
     rateLimitAutoFromHeaders: !!props.channel.rateLimitAutoFromHeaders,
     routePrefix: props.channel.routePrefix || '',
@@ -2666,6 +2684,7 @@ const resetForm = () => {
   form.streamToolCallIdleTimeoutEnabled = false
   form.streamToolCallIdleTimeoutMs = defaultStreamTimeouts.toolCallIdleMs
   form.rateLimitRpm = null
+  form.rateLimitWindowSeconds = null
   form.rateLimitMaxConcurrent = null
   form.rateLimitAutoFromHeaders = false
   form.routePrefix = ''
@@ -2751,6 +2770,7 @@ const loadChannelData = (channel: Channel) => {
   form.streamToolCallIdleTimeoutEnabled = !!(channel.streamToolCallIdleTimeoutMs && channel.streamToolCallIdleTimeoutMs >= 30000)
   form.streamToolCallIdleTimeoutMs = channel.streamToolCallIdleTimeoutMs && channel.streamToolCallIdleTimeoutMs >= 30000 ? channel.streamToolCallIdleTimeoutMs : defaultStreamTimeouts.toolCallIdleMs
   form.rateLimitRpm = channel.rateLimitRpm || null
+  form.rateLimitWindowSeconds = channel.rateLimitWindowSeconds || null
   form.rateLimitMaxConcurrent = channel.rateLimitMaxConcurrent || null
   form.rateLimitAutoFromHeaders = !!channel.rateLimitAutoFromHeaders
   form.routePrefix = channel.routePrefix || ''
@@ -3155,7 +3175,7 @@ const PAYLOAD_KEYS = [
   'lowQuality', 'injectDummyThoughtSignature', 'stripThoughtSignature', 'description',
   'apiKeys', 'modelMapping', 'reasoningMapping', 'reasoningParamStyle', 'textVerbosity',
   'fastMode', 'customHeaders', 'proxyUrl', 'requestTimeoutMs', 'streamFirstContentTimeoutMs', 'streamInactivityTimeoutMs', 'streamToolCallIdleTimeoutMs', 'routePrefix', 'supportedModels',
-  'rateLimitRpm', 'rateLimitMaxConcurrent', 'rateLimitAutoFromHeaders',
+  'rateLimitRpm', 'rateLimitWindowSeconds', 'rateLimitMaxConcurrent', 'rateLimitAutoFromHeaders',
   'autoBlacklistBalance', 'normalizeMetadataUserId', 'stripBillingHeader', 'passbackThinkingBlocks', 'stripEmptyTextBlocks', 'normalizeSystemRoleToTopLevel', 'codexNativeToolPassthrough',
   'codexToolCompat', 'normalizeNonstandardChatRoles', 'stripCodexClientTools', 'stripImageGenerationTool'
 ] as const

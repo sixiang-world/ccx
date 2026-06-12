@@ -131,6 +131,7 @@ const form = reactive({
   streamToolCallIdleTimeoutEnabled: false,
   streamToolCallIdleTimeoutMs: 30000,
   rateLimitRpm: '' as string | number,
+  rateLimitWindowSeconds: '' as string | number,
   rateLimitMaxConcurrent: '' as string | number,
   rateLimitAutoFromHeaders: false,
   routePrefix: '',
@@ -187,6 +188,7 @@ function resetForm() {
   form.streamToolCallIdleTimeoutEnabled = false
   form.streamToolCallIdleTimeoutMs = 30000
   form.rateLimitRpm = ''
+  form.rateLimitWindowSeconds = ''
   form.rateLimitMaxConcurrent = ''
   form.rateLimitAutoFromHeaders = false
   form.routePrefix = ''
@@ -251,6 +253,7 @@ function populateFromChannel(ch: Channel) {
   form.streamToolCallIdleTimeoutEnabled = !!(ch.streamToolCallIdleTimeoutMs && ch.streamToolCallIdleTimeoutMs > 0)
   form.streamToolCallIdleTimeoutMs = ch.streamToolCallIdleTimeoutMs && ch.streamToolCallIdleTimeoutMs > 0 ? ch.streamToolCallIdleTimeoutMs : 30000
   form.rateLimitRpm = ch.rateLimitRpm || ''
+  form.rateLimitWindowSeconds = ch.rateLimitWindowSeconds || ''
   form.rateLimitMaxConcurrent = ch.rateLimitMaxConcurrent || ''
   form.rateLimitAutoFromHeaders = !!ch.rateLimitAutoFromHeaders
   form.routePrefix = ch.routePrefix || ''
@@ -1714,11 +1717,16 @@ function buildCurrentPayload() {
                         <div class="space-y-1">
                           <p class="text-[10px] font-medium text-foreground">{{ tf('console.form.rateLimitSectionLabel', '主动限速') }}</p>
                           <p class="text-[10px] leading-4 text-muted-foreground mb-2">{{ tf('console.form.rateLimitSectionHint', '在请求发往上游前主动限流，避免触发上游 429。') }}</p>
-                          <div class="grid grid-cols-2 gap-2 mb-3">
+                          <div class="grid grid-cols-3 gap-2 mb-3">
                             <div class="space-y-1">
                               <Label class="text-[10px]">{{ tf('console.form.rateLimitRpmLabel', 'RPM') }}</Label>
                               <Input v-model="form.rateLimitRpm" type="number" class="h-7 text-xs" placeholder="留空=不限" />
                               <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.rateLimitRpmHint', '每分钟请求数上限') }}</p>
+                            </div>
+                            <div class="space-y-1">
+                              <Label class="text-[10px]">{{ tf('console.form.rateLimitWindowSecondsLabel', '窗口时长') }}</Label>
+                              <Input v-model="form.rateLimitWindowSeconds" type="number" class="h-7 text-xs" placeholder="留空=60秒" />
+                              <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('console.form.rateLimitWindowSecondsHint', '滑动窗口秒数') }}</p>
                             </div>
                             <div class="space-y-1">
                               <Label class="text-[10px]">{{ tf('console.form.rateLimitMaxConcurrentLabel', '最大并发') }}</Label>

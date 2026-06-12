@@ -33,6 +33,8 @@ type ChannelLimiter struct {
 type Config struct {
 	// RPM 是每分钟请求数上限。0=不限。
 	RPM int
+	// WindowSeconds 是滑动窗口时长（秒）。0=默认60秒。
+	WindowSeconds int
 	// Burst 已废弃，保留字段仅为兼容性，不再使用。
 	Burst int
 	// MaxConcurrent 是最大并发上游请求数。0=不限。
@@ -51,7 +53,6 @@ var (
 // NewChannelLimiter 创建一个新的 ChannelLimiter。now 参数保留用于兼容性但不使用。
 func NewChannelLimiter(cfg Config, now time.Time) *ChannelLimiter {
 	l := &ChannelLimiter{
-		window:     60 * time.Second, // 固定1分钟窗口
 		timestamps: make([]time.Time, 0),
 	}
 	l.applyConfig(cfg)
@@ -62,8 +63,14 @@ func NewChannelLimiter(cfg Config, now time.Time) *ChannelLimiter {
 func (l *ChannelLimiter) applyConfig(cfg Config) {
 	if cfg.RPM > 0 {
 		l.maxRequests = cfg.RPM
+		if cfg.WindowSeconds > 0 {
+			l.window = time.Duration(cfg.WindowSeconds) * time.Second
+		} else {
+			l.window = 60 * time.Second // 默认1分钟
+		}
 	} else {
 		l.maxRequests = 0
+		l.window = 0
 	}
 
 	if cfg.MaxConcurrent > 0 {

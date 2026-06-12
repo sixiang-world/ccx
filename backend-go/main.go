@@ -383,9 +383,9 @@ func main() {
 			for idx, upstream := range ct.upstreams {
 				autoFromHeaders := upstream.RateLimitAutoFromHeaders != nil && *upstream.RateLimitAutoFromHeaders
 				rateLimitManager.GetOrCreate(ct.apiType, idx, ratelimit.Config{
-					RPM:             upstream.RateLimitRPM,
-					Burst:           upstream.RateLimitBurst,
-					MaxConcurrent:   upstream.RateLimitMaxConcurrent,
+					RPM:           upstream.RateLimitRPM,
+					WindowSeconds: upstream.RateLimitWindowSeconds,
+					MaxConcurrent: upstream.RateLimitMaxConcurrent,
 					AutoFromHeaders: autoFromHeaders,
 				})
 			}
