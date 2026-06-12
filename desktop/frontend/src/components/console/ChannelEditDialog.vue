@@ -79,6 +79,39 @@ const newModelMapping = reactive<ModelMappingRow>({ id: 0, source: '', target: '
 const headerRows = ref<HeaderRow[]>([])
 const newHeader = reactive<HeaderRow>({ id: 0, key: '', value: '' })
 
+// 目标模型自动完成建议
+const showTargetSuggestions = ref(false)
+const activeTargetInputId = ref<string | null>(null)
+const targetInputFilter = ref('')
+
+function getFilteredTargetModels(filter: string): string[] {
+  if (!filter.trim()) return targetModelDatalist.value.slice(0, 20)
+  const lower = filter.toLowerCase()
+  return targetModelDatalist.value.filter(m => m.toLowerCase().includes(lower)).slice(0, 20)
+}
+
+function showTargetDropdown(inputId: string, currentValue: string) {
+  activeTargetInputId.value = inputId
+  targetInputFilter.value = currentValue
+  showTargetSuggestions.value = targetModelDatalist.value.length > 0
+}
+
+function hideTargetDropdown() {
+  setTimeout(() => {
+    showTargetSuggestions.value = false
+    activeTargetInputId.value = null
+  }, 200)
+}
+
+function selectTargetModel(model: string, rowOrNew: 'new' | number) {
+  if (rowOrNew === 'new') {
+    newModelMapping.target = model
+  } else {
+    modelMappingRows.value[rowOrNew].target = model
+  }
+  hideTargetDropdown()
+}
+
 const reasoningParamStyleOptions = [
   { label: 'reasoning.effort', value: 'reasoning' },
   { label: 'reasoning_effort', value: 'reasoning_effort' },
@@ -1435,15 +1468,31 @@ function buildCurrentPayload() {
                             <ArrowRight class="h-3.5 w-3.5" />
                           </span>
                         </div>
-                        <div class="min-w-0 space-y-1">
+                        <div class="relative min-w-0 space-y-1">
                           <div class="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">TARGET</div>
                           <Input 
                             v-model="row.target" 
                             class="h-8 rounded-lg border-border/70 bg-background/65 font-mono text-xs focus-visible:border-primary/50 focus-visible:ring-primary/20" 
                             placeholder="target-model" 
-                            @focus="handleTargetFocus"
                             autocomplete="off"
+                            @focus="handleTargetFocus(); showTargetDropdown(`row-${index}`, row.target)"
+                            @blur="hideTargetDropdown"
+                            @input="targetInputFilter = row.target"
                           />
+                          <!-- 下拉建议列表 -->
+                          <div 
+                            v-if="showTargetSuggestions && activeTargetInputId === `row-${index}` && getFilteredTargetModels(targetInputFilter).length"
+                            class="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-lg border border-border/70 bg-card shadow-lg"
+                          >
+                            <div
+                              v-for="model in getFilteredTargetModels(targetInputFilter)"
+                              :key="model"
+                              class="cursor-pointer border-b border-border/30 px-3 py-1.5 font-mono text-xs text-foreground transition-colors hover:bg-primary/10 last:border-0"
+                              @mousedown.prevent="selectTargetModel(model, index)"
+                            >
+                              {{ model }}
+                            </div>
+                          </div>
                         </div>
                         <Select v-if="supportsOpenAIAdvanced" :model-value="toSelectValue(row.reasoning)" @update:model-value="row.reasoning = fromSelectValue($event) as ReasoningEffort | ''">
                           <SelectTrigger class="h-8 rounded-lg border-border/70 bg-background/55 text-xs"><SelectValue :placeholder="tf('console.form.reasoningEffort', '思考强度')" /></SelectTrigger>
@@ -1476,16 +1525,32 @@ function buildCurrentPayload() {
                       <div class="flex h-8 items-center text-primary">
                         <ArrowRight class="h-3.5 w-3.5" />
                       </div>
-                      <div class="min-w-0 space-y-1">
+                      <div class="relative min-w-0 space-y-1">
                         <div class="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">TARGET</div>
                         <Input 
                           v-model="newModelMapping.target" 
                           class="h-8 rounded-lg border-primary/25 bg-background/65 font-mono text-xs focus-visible:border-primary/60 focus-visible:ring-primary/20" 
                           placeholder="target-model" 
-                          @focus="handleTargetFocus" 
-                          @keydown.enter.prevent="addModelMappingRow"
                           autocomplete="off"
+                          @focus="handleTargetFocus(); showTargetDropdown('new', newModelMapping.target)"
+                          @blur="hideTargetDropdown"
+                          @input="targetInputFilter = newModelMapping.target"
+                          @keydown.enter.prevent="addModelMappingRow"
                         />
+                        <!-- 下拉建议列表 -->
+                        <div 
+                          v-if="showTargetSuggestions && activeTargetInputId === 'new' && getFilteredTargetModels(targetInputFilter).length"
+                          class="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-lg border border-primary/30 bg-card shadow-lg"
+                        >
+                          <div
+                            v-for="model in getFilteredTargetModels(targetInputFilter)"
+                            :key="model"
+                            class="cursor-pointer border-b border-border/30 px-3 py-1.5 font-mono text-xs text-foreground transition-colors hover:bg-primary/10 last:border-0"
+                            @mousedown.prevent="selectTargetModel(model, 'new')"
+                          >
+                            {{ model }}
+                          </div>
+                        </div>
                       </div>
                       <Select v-if="supportsOpenAIAdvanced" :model-value="toSelectValue(newModelMapping.reasoning)" @update:model-value="newModelMapping.reasoning = fromSelectValue($event) as ReasoningEffort | ''">
                         <SelectTrigger class="h-8 rounded-lg border-primary/25 bg-background/55 text-xs"><SelectValue :placeholder="tf('console.form.reasoningEffort', '思考强度')" /></SelectTrigger>
@@ -1524,12 +1589,31 @@ function buildCurrentPayload() {
                   </div>
 
                   <!-- Vision fallback model（仅当有模型级 noVision 标记时显示，对齐 WebUI） -->
-                  <div v-if="getNoVisionModelsFromRows().length > 0" class="space-y-1.5">
+                  <div v-if="getNoVisionModelsFromRows().length > 0" class="relative space-y-1.5">
                     <Label>{{ tf('console.form.visionFallbackModel', 'Vision fallback model') }}</Label>
-                    <Input v-model="form.visionFallbackModel" class="h-7 text-xs" placeholder="mimo-v2.5" list="vision-fallback-models" @focus="handleTargetFocus" />
-                    <datalist id="vision-fallback-models">
-                      <option v-for="m in targetModelDatalist" :key="m" :value="m" />
-                    </datalist>
+                    <Input 
+                      v-model="form.visionFallbackModel" 
+                      class="h-7 text-xs" 
+                      placeholder="mimo-v2.5" 
+                      autocomplete="off"
+                      @focus="handleTargetFocus(); showTargetDropdown('vision-fallback', form.visionFallbackModel)"
+                      @blur="hideTargetDropdown"
+                      @input="targetInputFilter = form.visionFallbackModel"
+                    />
+                    <!-- 下拉建议列表 -->
+                    <div 
+                      v-if="showTargetSuggestions && activeTargetInputId === 'vision-fallback' && getFilteredTargetModels(targetInputFilter).length"
+                      class="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-lg border border-border/70 bg-card shadow-lg"
+                    >
+                      <div
+                        v-for="model in getFilteredTargetModels(targetInputFilter)"
+                        :key="model"
+                        class="cursor-pointer border-b border-border/30 px-3 py-1.5 font-mono text-xs text-foreground transition-colors hover:bg-primary/10 last:border-0"
+                        @mousedown.prevent="form.visionFallbackModel = model; hideTargetDropdown()"
+                      >
+                        {{ model }}
+                      </div>
+                    </div>
                   </div>
                 </section>
 
