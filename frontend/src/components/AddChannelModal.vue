@@ -364,12 +364,16 @@
                             <v-combobox
                               v-model="row.target"
                               :items="targetModelOptions"
+                              :loading="fetchingModels"
                               density="compact"
                               variant="outlined"
                               hide-details
                               placeholder="target-model"
                               class="text-caption"
                               style="font-family: monospace;"
+                              eager
+                              @focus="handleTargetModelClick"
+                              @update:menu="onMenuUpdate"
                             />
                           </div>
 
@@ -1374,7 +1378,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTheme } from 'vuetify'
 import type { Channel } from '../services/api'
 import { ApiService, ApiError } from '../services/api'
@@ -2875,6 +2879,13 @@ const loadChannelData = (channel: Channel) => {
   fetchModelsError.value = ''
   keyModelsStatus.value.clear()
   hasTriedFetchModels.value = false
+
+  // 如果有模型映射配置，主动预加载模型列表
+  if (channel.modelMapping && Object.keys(channel.modelMapping).length > 0) {
+    nextTick(() => {
+      fetchTargetModels()
+    })
+  }
 }
 
 const addApiKey = () => {
@@ -3155,14 +3166,6 @@ const fetchTargetModels = async () => {
   }
 
   const channelId = props.channel?.index
-  if (isEditing.value) {
-    const savedChannelId = await ensureLatestSavedChannel()
-    if (savedChannelId === null) {
-      hasTriedFetchModels.value = false
-      fetchingModels.value = false
-      return
-    }
-  }
 
   // 仅为未检测过的 API Key 发起请求
   const uncheckedKeys = candidateKeys.filter(key => !keyModelsStatus.value.has(key))
