@@ -126,24 +126,23 @@
 
               <!-- 模型映射 -->
               <v-window-item value="model-mapping" class="pa-6">
-                <!-- @ts-ignore TypeScript props 推导问题 -->
                 <ModelMappingSection
                   v-if="form.serviceType"
-                  :mapping-rows="modelMappingRows"
-                  :source-model-options="sourceModelOptions"
-                  :target-model-options="targetModelOptions"
-                  :fetching-models="fetchingModels"
-                  :source-mapping-error="sourceMappingError"
-                  :fetch-models-error="fetchModelsError"
-                  :model-mapping-hint="modelMappingHint"
-                  :target-model-placeholder="targetModelPlaceholder"
-                  :show-model-mapping-presets="showModelMappingPresets"
-                  :show-messages-open-ai-channel-presets="showMessagesOpenAIChannelPresets"
-                  :show-claude-channel-presets="showClaudeChannelPresets"
-                  :show-codex-responses-channel-presets="showCodexResponsesChannelPresets"
-                  :supports-open-ai-advanced-options="supportsOpenAIAdvancedOptions"
-                  :reasoning-effort-options="reasoningEffortOptions"
-                  @update:mapping-rows="(modelMappingRows as any) = $event"
+                  :mappingRows="modelMappingRows"
+                  :sourceModelOptions="sourceModelOptions"
+                  :targetModelOptions="targetModelOptions"
+                  :fetchingModels="fetchingModels"
+                  :sourceMappingError="sourceMappingError"
+                  :fetchModelsError="fetchModelsError"
+                  :modelMappingHint="modelMappingHint"
+                  :targetModelPlaceholder="targetModelPlaceholder"
+                  :showModelMappingPresets="showModelMappingPresets"
+                  :showMessagesOpenAIChannelPresets="showMessagesOpenAIChannelPresets"
+                  :showClaudeChannelPresets="showClaudeChannelPresets"
+                  :showCodexResponsesChannelPresets="showCodexResponsesChannelPresets"
+                  :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
+                  :reasoningEffortOptions="reasoningEffortOptions"
+                  @update:mappingRows="modelMappingRows = ($event as any)"
                   @sync-upstream="syncUpstreamModels"
                   @apply-preset="applyPreset"
                   @menu-update="onMenuUpdate"
@@ -180,13 +179,12 @@
 
               <!-- 高级选项 -->
               <v-window-item value="advanced" class="pa-6">
-                <!-- @ts-ignore TypeScript props 推导问题 -->
                 <AdvancedOptionsSection
                   :form="form"
-                  :channel-type="props.channelType"
-                  :supports-chat-role-normalization="supportsChatRoleNormalization"
-                  :supports-open-ai-advanced-options="supportsOpenAIAdvancedOptions"
-                  :reasoning-param-style-options="reasoningParamStyleOptions"
+                  :channelType="props.channelType"
+                  :supportsChatRoleNormalization="supportsChatRoleNormalization"
+                  :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
+                  :reasoningParamStyleOptions="reasoningParamStyleOptions"
                   :rules="rules"
                   @update:form="updateForm"
                   @menu-update="onMenuUpdate"
