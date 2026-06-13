@@ -201,6 +201,13 @@ export const idMessages = {
     'addChannel.detectedApiKey': 'API Key',
     'addChannel.baseUrl': 'Base URL',
     'addChannel.expectedRequest': 'Permintaan yang diharapkan',
+    'addChannel.enterValidUrl': 'Masukkan Base URL yang valid',
+    'addChannel.apiKeys': 'API Keys',
+    'addChannel.detectedKeys': 'Terdeteksi {count} API Key',
+    'addChannel.enterApiKey': 'Masukkan setidaknya satu API Key',
+    'addChannel.channelName': 'Nama channel',
+    'addChannel.channelType': 'Tipe channel',
+    'addChannel.count': '{count}',
 
     // Header kustom
     'addChannel.customHeadersTitle': 'Header Kustom',
@@ -250,6 +257,7 @@ export const idMessages = {
     'addChannel.sourceModelPlaceholder': 'Pilih atau masukkan model sumber',
     'addChannel.targetModelLabel': 'Model target',
     'addChannel.reasoningEffortLabel': 'Kedalaman reasoning',
+    'addChannel.fastMode': 'Mode Cepat',
     'addChannel.fastModeLabel': 'Mode Cepat',
     'addChannel.fastModeHint': 'Jika aktif, request akan mengirim service_tier=priority',
     'addChannel.reasoningParamStyleLabel': 'Gaya parameter reasoning',

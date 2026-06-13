@@ -77,3 +77,61 @@ defineEmits<{
   'test-capability': []
 }>()
 </script>
+
+<style scoped>
+.modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.modal-subtitle {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.header-capability-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.capability-test-btn {
+  text-transform: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding-inline: 12px;
+}
+
+.capability-test-btn :deep(.v-btn__content) {
+  gap: 4px;
+  line-height: 1.5;
+}
+
+.text-white-subtitle {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+</style>

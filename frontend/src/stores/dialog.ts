@@ -15,6 +15,7 @@ export const useDialogStore = defineStore('dialog', () => {
 
   // 添加/编辑渠道对话框
   const showAddChannelModal = ref(false)
+  const showEditChannelModal = ref(false)
   const editingChannel = ref<Channel | null>(null)
 
   // 添加 API 密钥对话框
@@ -37,6 +38,7 @@ export const useDialogStore = defineStore('dialog', () => {
    */
   function openAddChannelModal() {
     editingChannel.value = null
+    showEditChannelModal.value = false
     showAddChannelModal.value = true
   }
 
@@ -44,8 +46,9 @@ export const useDialogStore = defineStore('dialog', () => {
    * 打开编辑渠道对话框
    */
   function openEditChannelModal(channel: Channel) {
+    showAddChannelModal.value = false
     editingChannel.value = channel
-    showAddChannelModal.value = true
+    showEditChannelModal.value = true
   }
 
   /**
@@ -53,6 +56,10 @@ export const useDialogStore = defineStore('dialog', () => {
    */
   function closeAddChannelModal() {
     showAddChannelModal.value = false
+  }
+
+  function closeEditChannelModal() {
+    showEditChannelModal.value = false
     editingChannel.value = null
   }
 
@@ -79,6 +86,7 @@ export const useDialogStore = defineStore('dialog', () => {
    */
   function resetDialogState() {
     showAddChannelModal.value = false
+    showEditChannelModal.value = false
     editingChannel.value = null
     showAddKeyModal.value = false
     selectedChannelForKey.value = -1
@@ -124,6 +132,7 @@ export const useDialogStore = defineStore('dialog', () => {
   return {
     // 状态
     showAddChannelModal,
+    showEditChannelModal,
     editingChannel,
     showAddKeyModal,
     selectedChannelForKey,
@@ -138,6 +147,7 @@ export const useDialogStore = defineStore('dialog', () => {
     openAddChannelModal,
     openEditChannelModal,
     closeAddChannelModal,
+    closeEditChannelModal,
     openAddKeyModal,
     closeAddKeyModal,
     resetDialogState,

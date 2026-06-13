@@ -200,6 +200,13 @@ export const zhCNMessages = {
     'addChannel.detectedApiKey': 'API Key',
     'addChannel.baseUrl': 'Base URL',
     'addChannel.expectedRequest': '预期请求',
+    'addChannel.enterValidUrl': '请输入有效的 Base URL',
+    'addChannel.apiKeys': 'API Keys',
+    'addChannel.detectedKeys': '已检测到 {count} 个 API Key',
+    'addChannel.enterApiKey': '请输入至少一个 API Key',
+    'addChannel.channelName': '渠道名称',
+    'addChannel.channelType': '渠道类型',
+    'addChannel.count': '{count} 个',
 
     // 自定义请求头
     'addChannel.customHeadersTitle': '自定义请求头',
@@ -249,6 +256,7 @@ export const zhCNMessages = {
     'addChannel.sourceModelPlaceholder': '选择或输入源模型名',
     'addChannel.targetModelLabel': '目标模型名',
     'addChannel.reasoningEffortLabel': '思考深度',
+    'addChannel.fastMode': '快速模式',
     'addChannel.fastModeLabel': '快速模式',
     'addChannel.fastModeHint': '优先选取低延迟的轻量边缘路由链路',
     'addChannel.reasoningParamStyleLabel': '思考参数风格',

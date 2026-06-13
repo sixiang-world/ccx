@@ -382,6 +382,14 @@
     <!-- 添加渠道模态框 -->
     <AddChannelModal
       v-model:show="dialogStore.showAddChannelModal"
+      :channel-type="channelStore.activeTab"
+      @save="saveChannel"
+      @error="showErrorToast"
+    />
+
+    <!-- 编辑渠道模态框 -->
+    <EditChannelModal
+      v-model:show="dialogStore.showEditChannelModal"
       :channel="dialogStore.editingChannel"
       :channel-type="channelStore.activeTab"
       @save="saveChannel"
@@ -681,6 +689,7 @@ import { useSystemStore } from './stores/system'
 import { useI18n } from './i18n'
 import type { SupportedLocale } from './i18n'
 import AddChannelModal from './components/AddChannelModal.vue'
+import EditChannelModal from './components/EditChannelModal.vue'
 import CapabilityTestDialog from './components/CapabilityTestDialog.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
 import UserGuideDialog from './components/UserGuideDialog.vue'
@@ -858,6 +867,7 @@ const saveChannel = async (channel: Omit<Channel, 'index' | 'latency' | 'status'
       showToast(result.quickAddMessage, 'info')
     }
     dialogStore.closeAddChannelModal()
+    dialogStore.closeEditChannelModal()
     await refreshChannels()
 
     if (options?.triggerCapabilityTest && result.channelId !== undefined) {
@@ -1449,6 +1459,9 @@ const testChannelCapability = async (channelId: number) => {
 
   if (dialogStore.showAddChannelModal) {
     dialogStore.closeAddChannelModal()
+  }
+  if (dialogStore.showEditChannelModal) {
+    dialogStore.closeEditChannelModal()
   }
 
   showCapabilityTestDialog.value = true

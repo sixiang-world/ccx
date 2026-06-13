@@ -201,6 +201,13 @@ export const enMessages = {
     'addChannel.detectedApiKey': 'API Key',
     'addChannel.baseUrl': 'Base URL',
     'addChannel.expectedRequest': 'Expected request',
+    'addChannel.enterValidUrl': 'Enter a valid Base URL',
+    'addChannel.apiKeys': 'API Keys',
+    'addChannel.detectedKeys': 'Detected {count} API key(s)',
+    'addChannel.enterApiKey': 'Enter at least one API key',
+    'addChannel.channelName': 'Channel name',
+    'addChannel.channelType': 'Channel type',
+    'addChannel.count': '{count}',
 
     // Custom headers
     'addChannel.customHeadersTitle': 'Custom Headers',
@@ -250,6 +257,7 @@ export const enMessages = {
     'addChannel.sourceModelPlaceholder': 'Select or enter a source model',
     'addChannel.targetModelLabel': 'Target model',
     'addChannel.reasoningEffortLabel': 'Reasoning effort',
+    'addChannel.fastMode': 'Fast Mode',
     'addChannel.fastModeLabel': 'Fast Mode',
     'addChannel.fastModeHint': 'When enabled, requests send service_tier=priority',
     'addChannel.reasoningParamStyleLabel': 'Reasoning parameter style',

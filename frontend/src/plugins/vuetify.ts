@@ -96,6 +96,7 @@ import {
   mdiTag,
   mdiInformation,
   mdiCog,
+  mdiCogOutline,
   mdiWeb,
   mdiShieldAlert,
   mdiText,
@@ -174,6 +175,8 @@ import {
   mdiArrowCollapseDown,
   mdiHistory,
   mdiFormatListBulleted,
+  mdiFormatAlignJustify,
+  mdiNetwork,
   mdiTagOff,
   mdiShieldLockOutline,
   mdiBrain,
@@ -310,6 +313,7 @@ const iconMap: Record<string, string> = {
   'tag': mdiTag,
   'information': mdiInformation,
   'cog': mdiCog,
+  'cog-outline': mdiCogOutline,
   'web': mdiWeb,
   'shield-alert': mdiShieldAlert,
   'text': mdiText,
@@ -319,6 +323,7 @@ const iconMap: Record<string, string> = {
   'dice-6': mdiDice6,
   'heart-pulse': mdiHeartPulse,
   'server-network': mdiServerNetwork,
+  'network': mdiNetwork,
   'pin': mdiPin,
   'pin-outline': mdiPinOutline,
   'lightning-bolt': mdiLightningBolt,
@@ -378,6 +383,7 @@ const iconMap: Record<string, string> = {
   // 日志与历史
   'history': mdiHistory,
   'format-list-bulleted': mdiFormatListBulleted,
+  'format-align-justify': mdiFormatAlignJustify,
 
   // 计费头
   'tag-off': mdiTagOff,

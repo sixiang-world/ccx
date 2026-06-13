@@ -1,180 +1,1380 @@
 <template>
-  <v-dialog :model-value="show" max-width="1200" persistent @update:model-value="$emit('update:show', $event)">
-    <v-card rounded="lg" class="add-channel-dialog">
-      <!-- 头部 -->
-      <AddChannelHeader
-        :is-editing="isEditing"
-        :channel-type="props.channelType"
-        :no-vision="form.noVision"
-        :header-classes="headerClasses"
-        :avatar-color="avatarColor"
-        :header-icon-style="headerIconStyle"
-        :subtitle-classes="subtitleClasses"
-        :edit-title="t('addChannel.editTitle')"
-        :create-title="t('addChannel.createTitle')"
-        :edit-subtitle="t('addChannel.editSubtitle')"
-        :create-subtitle="t('addChannel.quickSubtitle')"
-        :test-capability-label="t('addChannel.testCapability')"
-        :vision-tooltip="form.noVision ? t('channelCard.noVision') : t('channelCard.hasVision')"
-        @toggle-no-vision="form.noVision = !form.noVision"
-        @test-capability="handleTestCapability"
-      />
-
-      <!-- 主体内容 -->
-      <v-card-text class="pa-0" style="height: 600px;">
-        <div v-if="!isEditing" class="pa-6">
-          <!-- 快速添加模式 -->
-          <QuickInputSection @quick-submit="handleQuickSubmit" />
+  <v-dialog :model-value="show" max-width="800" persistent @update:model-value="$emit('update:show', $event)">
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-3 pa-6" :class="headerClasses">
+        <v-avatar :color="avatarColor" variant="flat" size="40">
+          <v-icon :style="headerIconStyle" size="20">{{ isEditing ? 'mdi-pencil' : 'mdi-plus' }}</v-icon>
+        </v-avatar>
+        <div class="flex-grow-1 modal-header-text">
+          <div class="modal-title">
+            {{ isEditing ? t('addChannel.editTitle') : t('addChannel.createTitle') }}
+          </div>
+          <div class="modal-subtitle" :class="subtitleClasses">
+            {{ isEditing ? t('addChannel.editSubtitle') : t('addChannel.quickSubtitle') }}
+          </div>
         </div>
+        <div v-if="isEditing && props.channelType !== 'images'" class="header-capability-actions">
+          <v-tooltip location="bottom" :text="form.noVision ? t('channelCard.noVision') : t('channelCard.hasVision')" :open-delay="150" content-class="key-tooltip">
+            <template #activator="{ props: tip }">
+              <v-btn
+                v-bind="tip"
+                :color="form.noVision ? 'warning' : undefined"
+                :variant="form.noVision ? 'tonal' : 'text'"
+                size="small"
+                icon
+                rounded="lg"
+                class="mr-2"
+                @click="form.noVision = !form.noVision"
+              >
+                <v-icon size="18">{{ form.noVision ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+              </v-btn>
+            </template>
+          </v-tooltip>
+          <v-btn
+            color="success"
+            variant="flat"
+            size="small"
+            prepend-icon="mdi-test-tube"
+            class="capability-test-btn"
+            @click="handleTestCapability"
+          >
+            {{ t('addChannel.testCapability') }}
+          </v-btn>
+        </div>
+      </v-card-title>
 
-        <!-- 编辑模式：左侧导航 + 右侧面板 -->
-        <div v-else class="content-row" style="height: 100%;">
-          <!-- 左侧垂直导航 -->
-          <AddChannelSidebarNav
-            :sections="sections"
-            :active-section="activeSection"
-            @navigate="scrollToSection"
+      <v-card-text class="pa-6">
+        <!-- 快速添加模式 -->
+        <div v-if="!isEditing">
+          <v-textarea
+            v-model="quickInput"
+            :label="t('addChannel.quickInputLabel')"
+            :placeholder="t('addChannel.quickInputPlaceholder')"
+            variant="outlined"
+            rows="10"
+            no-resize
+            autofocus
+            class="quick-input-textarea"
+            @input="parseQuickInput"
           />
 
-          <!-- 右侧内容面板 -->
-          <v-form ref="formRef" class="content-area" @submit.prevent="handleSubmit">
-            <!-- 基本信息 -->
-            <section :ref="(el: any) => setSectionRef('basic', el)" data-section-id="basic" class="pa-6 scroll-mt-4">
-              <BasicInfoSection
-                :form="form"
-                :base-urls-text="baseUrlsText"
-                :expected-request-urls="expectedRequestUrls"
-                :base-url-has-error="baseUrlHasError"
-                :service-type-options="serviceTypeOptions"
-                :errors="errors"
-                :rules="rules"
-                @update:form="updateForm"
-                @update:base-urls-text="baseUrlsText = $event"
-                @menu-update="onMenuUpdate"
-              />
-            </section>
+          <!-- 检测状态提示 -->
+          <v-card variant="outlined" class="mt-4 detection-status-card" rounded="lg">
+            <v-card-text class="pa-4">
+              <div class="d-flex flex-column ga-3">
+                <!-- Base URL 检测 -->
+                <div class="d-flex align-start ga-3">
+                  <v-icon :color="detectedBaseUrls.length > 0 ? 'success' : 'error'" size="20" class="mt-1">
+                    {{ detectedBaseUrls.length > 0 ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                  </v-icon>
+                  <div class="flex-grow-1">
+                    <div class="text-body-2 font-weight-medium">{{ t('addChannel.baseUrl') }}</div>
+                    <div v-if="detectedBaseUrls.length === 0" class="text-caption text-error">
+                      {{ t('addChannel.enterValidUrl') }}
+                    </div>
+                    <div v-else class="d-flex flex-column ga-2 mt-1">
+                      <div v-for="url in detectedBaseUrls" :key="url" class="base-url-item">
+                        <div class="text-caption text-success">{{ url }}</div>
+                        <div class="text-caption text-medium-emphasis">{{ t('addChannel.expectedRequest') }} {{ getExpectedRequestUrl(url) }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <v-chip v-if="detectedBaseUrls.length > 0" size="x-small" color="success" variant="tonal">
+                    {{ t('addChannel.count', { count: detectedBaseUrls.length }) }}
+                  </v-chip>
+                </div>
 
-            <!-- 模型映射 -->
-            <section :ref="(el: any) => setSectionRef('model-mapping', el)" data-section-id="model-mapping" class="pa-6 scroll-mt-4">
-              <ModelMappingSection
-                v-if="form.serviceType"
-                :mappingRows="modelMappingRows"
-                :sourceModelOptions="sourceModelOptions"
-                :targetModelOptions="targetModelOptions"
-                :fetchingModels="fetchingModels"
-                :sourceMappingError="sourceMappingError"
-                :fetchModelsError="fetchModelsError"
-                :modelMappingHint="modelMappingHint"
-                :targetModelPlaceholder="targetModelPlaceholder"
-                :showModelMappingPresets="showModelMappingPresets"
-                :showMessagesOpenAIChannelPresets="showMessagesOpenAIChannelPresets"
-                :showClaudeChannelPresets="showClaudeChannelPresets"
-                :showCodexResponsesChannelPresets="showCodexResponsesChannelPresets"
-                :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
-                :reasoningEffortOptions="reasoningEffortOptions"
-                @update:mappingRows="modelMappingRows = ($event as any)"
-                @sync-upstream="syncUpstreamModels"
-                @apply-preset="applyPreset"
-                @menu-update="onMenuUpdate"
-              />
-            </section>
+                <!-- API Keys 检测 -->
+                <div class="d-flex align-center ga-3">
+                  <v-icon :color="detectedApiKeys.length > 0 ? 'success' : 'error'" size="20">
+                    {{ detectedApiKeys.length > 0 ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                  </v-icon>
+                  <div class="flex-grow-1">
+                    <div class="text-body-2 font-weight-medium">{{ t('addChannel.apiKeys') }}</div>
+                    <div class="text-caption" :class="detectedApiKeys.length > 0 ? 'text-success' : 'text-error'">
+                      {{
+                        detectedApiKeys.length > 0
+                          ? t('addChannel.detectedKeys', { count: detectedApiKeys.length })
+                          : t('addChannel.enterApiKey')
+                      }}
+                    </div>
+                  </div>
+                  <v-chip v-if="detectedApiKeys.length > 0" size="x-small" color="success" variant="tonal">
+                    {{ t('addChannel.count', { count: detectedApiKeys.length }) }}
+                  </v-chip>
+                </div>
 
-            <!-- 模型过滤 -->
-            <section :ref="(el: any) => setSectionRef('filters', el)" data-section-id="filters" class="pa-6 scroll-mt-4">
-              <SupportedModelsFilter
-                :model-value="form.supportedModels"
-                :error="supportedModelsError"
-                :common-filters="commonSupportedModelFilters"
-                :selected-filters="Array.from(selectedSupportedModelSet)"
-                @update:model-value="handleSupportedModelsChange($event as any)"
-                @append-filter="appendSupportedModelFilter"
-                @menu-update="onMenuUpdate"
-              />
-            </section>
+                <!-- 渠道名称预览 -->
+                <div class="d-flex align-center ga-3">
+                  <v-icon color="primary" size="20">mdi-tag</v-icon>
+                  <div class="flex-grow-1">
+                    <div class="text-body-2 font-weight-medium">{{ t('addChannel.channelName') }}</div>
+                    <div class="text-caption text-primary font-weight-medium">
+                      {{ generatedChannelName }}
+                    </div>
+                  </div>
+                  <v-chip size="x-small" color="primary" variant="tonal"> {{ t('common.autoGenerated') }} </v-chip>
+                </div>
 
-            <!-- 身份认证 -->
-            <section :ref="(el: any) => setSectionRef('auth', el)" data-section-id="auth" class="pa-6 scroll-mt-4">
-              <ApiKeyManagementSection
-                :api-keys="form.apiKeys"
-                :disabled-keys="disabledKeys"
-                :key-models-status="keyModelsStatus"
-                :is-editing="isEditing"
-                :restoring-key="restoringKey"
-                @update:api-keys="form.apiKeys = $event"
-                @restore-key="restoreDisabledKey"
-              />
-            </section>
-
-            <!-- 高级选项 -->
-            <section :ref="(el: any) => setSectionRef('advanced', el)" data-section-id="advanced" class="pa-6 scroll-mt-4">
-              <AdvancedOptionsSection
-                :form="form"
-                :channelType="props.channelType"
-                :supportsChatRoleNormalization="supportsChatRoleNormalization"
-                :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
-                :reasoningParamStyleOptions="reasoningParamStyleOptions"
-                :rules="rules"
-                @update:form="updateForm"
-                @menu-update="onMenuUpdate"
-              >
-                <template #custom-headers>
-                  <!-- 自定义请求头 -->
-                  <v-col :ref="(el: any) => setSectionRef('headers', el)" data-section-id="headers" class="scroll-mt-4" cols="12">
-                    <CustomHeadersSection
-                      :headers="customHeadersArray"
-                      @update:headers="updateCustomHeaders"
-                    />
-                  </v-col>
-                </template>
-
-                <template #stream-timeout>
-                  <!-- 流式超时 -->
-                  <v-col :ref="(el: any) => setSectionRef('timeout', el)" data-section-id="timeout" class="scroll-mt-4" cols="12">
-                    <StreamTimeoutSection
-                      :selected-strategy="selectedStreamTimeoutStrategy"
-                      :first-content-enabled="form.streamFirstContentTimeoutEnabled"
-                      :first-content-ms="form.streamFirstContentTimeoutMs"
-                      :inactivity-enabled="form.streamInactivityTimeoutEnabled"
-                      :inactivity-ms="form.streamInactivityTimeoutMs"
-                      :tool-call-idle-enabled="form.streamToolCallIdleTimeoutEnabled"
-                      :tool-call-idle-ms="form.streamToolCallIdleTimeoutMs"
-                      @apply-strategy="applyStreamTimeoutStrategy"
-                      @update:first-content-ms="form.streamFirstContentTimeoutMs = $event"
-                      @update:inactivity-ms="form.streamInactivityTimeoutMs = $event"
-                      @update:tool-call-idle-ms="form.streamToolCallIdleTimeoutMs = $event"
-                    />
-                  </v-col>
-                </template>
-              </AdvancedOptionsSection>
-            </section>
-          </v-form>
+                <!-- 渠道类型提示 -->
+                <div class="d-flex align-center ga-3">
+                  <v-icon color="info" size="20">mdi-information</v-icon>
+                  <div class="flex-grow-1">
+                    <div class="text-body-2 font-weight-medium">{{ t('addChannel.channelType') }}</div>
+                    <div class="text-caption text-medium-emphasis">
+                      {{ props.channelType === 'chat' ? 'OpenAI Chat' : props.channelType === 'gemini' ? 'Gemini' : props.channelType === 'responses' ? 'Responses (Codex)' : props.channelType === 'images' ? 'Images' : 'Claude (Messages)' }} -
+                      {{ getDefaultServiceType() }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
         </div>
+
+        <!-- 详细表单模式（原有表单） -->
+        <v-form v-else ref="formRef" @submit.prevent="handleSubmit">
+          <v-row>
+            <!-- 基本信息 -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="form.name"
+                :label="t('addChannel.nameLabel')"
+                :placeholder="t('addChannel.namePlaceholder')"
+                prepend-inner-icon="mdi-tag"
+                variant="outlined"
+                density="comfortable"
+                :rules="[rules.required]"
+                required
+                :error-messages="errors.name"
+              />
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="form.serviceType"
+                :label="t('addChannel.serviceTypeLabel')"
+                :items="serviceTypeOptions"
+                prepend-inner-icon="mdi-cog"
+                variant="outlined"
+                density="comfortable"
+                :rules="[rules.required]"
+                required
+                :error-messages="errors.serviceType"
+                eager
+                @update:menu="onMenuUpdate"
+              />
+            </v-col>
+
+            <!-- 基础URL -->
+            <v-col cols="12">
+              <v-textarea
+                v-model="baseUrlsText"
+                :label="t('addChannel.baseUrlLabel')"
+                :placeholder="t('addChannel.baseUrlPlaceholder')"
+                prepend-inner-icon="mdi-web"
+                variant="outlined"
+                density="comfortable"
+                rows="3"
+                no-resize
+                :rules="[rules.required, rules.baseUrls]"
+                required
+                :error-messages="errors.baseUrl"
+                hide-details="auto"
+              />
+              <!-- 固定高度的提示区域，防止布局跳动；有错误时不显示 -->
+              <div v-show="formExpectedRequestUrls.length > 0 && !baseUrlHasError" class="base-url-hint">
+                <div v-for="(item, index) in formExpectedRequestUrls" :key="index" class="expected-request-item">
+                  <span class="text-caption text-medium-emphasis"> {{ t('addChannel.expectedRequest') }} {{ item.expectedUrl }} </span>
+                </div>
+              </div>
+            </v-col>
+
+            <!-- 官网/控制台（可选） -->
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.website"
+                :label="t('addChannel.websiteLabel')"
+                :placeholder="t('addChannel.websitePlaceholder')"
+                prepend-inner-icon="mdi-open-in-new"
+                variant="outlined"
+                density="comfortable"
+                type="url"
+                :rules="[rules.urlOptional]"
+                :error-messages="errors.website"
+              />
+            </v-col>
+
+            <!-- 模型重定向配置 -->
+            <v-col v-if="form.serviceType && isEditing" cols="12">
+              <v-card variant="outlined" rounded="lg">
+                <v-card-title class="d-flex align-center justify-space-between pa-4 pb-2">
+                  <div class="d-flex align-center ga-2">
+                    <v-icon color="primary">mdi-swap-horizontal</v-icon>
+                    <span class="section-title">{{ t('addChannel.modelRedirect') }}</span>
+                  </div>
+                  <v-chip size="small" color="secondary" variant="tonal"> {{ t('addChannel.autoConvertModelNames') }} </v-chip>
+                </v-card-title>
+
+                <v-card-text class="pt-2">
+                  <div class="text-body-2 text-medium-emphasis mb-4">
+                    {{ modelMappingHint }}
+                    <br/>
+                    <span class="text-caption text-primary">💡 {{ t('addChannel.modelHintTip') }}</span>
+                  </div>
+
+                  <div v-if="showModelMappingPresets" class="d-flex align-center flex-wrap ga-2 mb-4">
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.oneClickSetup') }}</div>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="primary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyModelMappingPreset('gpt-5.5')"
+                    >
+                      gpt-5.5
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyModelMappingPreset('gpt-5.4')"
+                    >
+                      gpt-5.4
+                    </v-btn>
+                    <v-btn
+                      v-if="showMessagesOpenAIChannelPresets"
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyClaudeChannelPreset('mimo')"
+                    >
+                      MiMo
+                    </v-btn>
+                    <v-btn
+                      v-if="showMessagesOpenAIChannelPresets"
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyClaudeChannelPreset('deepseek')"
+                    >
+                      DeepSeek
+                    </v-btn>
+                  </div>
+
+                  <div v-if="showClaudeChannelPresets" class="d-flex align-center flex-wrap ga-2 mb-4">
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.oneClickSetup') }}</div>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyClaudeChannelPreset('mimo')"
+                    >
+                      MiMo
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyClaudeChannelPreset('deepseek')"
+                    >
+                      DeepSeek
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyClaudeChannelPreset('minimax')"
+                    >
+                      MiniMax
+                    </v-btn>
+                  </div>
+
+                  <div v-if="showCodexResponsesChannelPresets" class="d-flex align-center flex-wrap ga-2 mb-4">
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.oneClickSetup') }}</div>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyCodexResponsesChannelPreset('mimo')"
+                    >
+                      MiMo
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyCodexResponsesChannelPreset('deepseek')"
+                    >
+                      DeepSeek
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-lightning-bolt"
+                      @click="applyCodexResponsesChannelPreset('minimax')"
+                    >
+                      MiniMax
+                    </v-btn>
+                  </div>
+
+                  <!-- 映射容器 -->
+                  <div class="mapping-container rounded-xl pa-3">
+                    <!-- 添加新映射（置顶） -->
+                    <div class="add-mapping-row d-flex align-center ga-3 pa-3 mb-3 rounded-lg">
+                      <v-combobox
+                        v-model="newMapping.source"
+                        :label="t('addChannel.sourceModelLabel')"
+                        :items="sourceModelOptions"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        class="flex-grow-1 font-mono"
+                        :placeholder="t('addChannel.sourceModelPlaceholder')"
+                        clearable
+                        :error="!!sourceMappingError"
+                        eager
+                        @update:model-value="handleSourceModelChange"
+                        @update:menu="onMenuUpdate"
+                        @keyup.enter="addModelMapping"
+                      />
+
+                      <v-icon color="primary" size="18" class="arrow-icon">mdi-arrow-right</v-icon>
+
+                      <v-combobox
+                        v-model="newMapping.target"
+                        :label="t('addChannel.targetModelLabel')"
+                        :placeholder="targetModelPlaceholder"
+                        :items="targetModelOptions"
+                        :loading="fetchingModels"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        class="flex-grow-1 font-mono"
+                        clearable
+                        eager
+                        @focus="handleTargetModelClick"
+                        @update:menu="onMenuUpdate"
+                        @keyup.enter="addModelMapping"
+                      />
+
+                      <v-select
+                        v-if="supportsOpenAIAdvancedOptions"
+                        v-model="newMapping.reasoningEffort"
+                        :label="t('addChannel.reasoningEffortLabel')"
+                        :items="reasoningEffortOptions"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        clearable
+                        class="flex-shrink-0"
+                        style="min-width: 120px;"
+                        eager
+                        @update:menu="onMenuUpdate"
+                      />
+
+                      <v-btn
+                        color="primary"
+                        height="40"
+                        variant="flat"
+                        class="rounded-lg px-4"
+                        :disabled="!isMappingInputValid"
+                        @click="addModelMapping"
+                      >
+                        <v-icon size="18" class="mr-1">mdi-plus</v-icon>
+                        {{ t('app.actions.add') }}
+                      </v-btn>
+                    </div>
+
+                    <!-- 已配置映射列表 -->
+                    <div v-if="modelMappingRows.length">
+                      <div class="text-caption text-medium-emphasis mb-3 d-flex align-center justify-space-between px-1">
+                        <span class="uppercase-label">{{ t('addChannel.configuredMappings') }}</span>
+                        <v-chip size="x-small" variant="flat" color="primary" class="font-weight-bold px-2 font-mono">{{ modelMappingRows.length }}</v-chip>
+                      </div>
+
+                      <div class="d-flex flex-column ga-2">
+                        <div
+                          v-for="(row, index) in modelMappingRows"
+                          :key="row.id"
+                          class="mapping-item d-flex align-center justify-space-between pa-3 rounded-lg"
+                        >
+                          <div class="d-flex align-center ga-3 flex-grow-1">
+                            <!-- 源模型徽章 -->
+                            <div class="model-badge source-badge pa-2 rounded-lg d-flex flex-column justify-center">
+                              <span class="badge-title">SOURCE</span>
+                              <span class="model-name text-truncate font-mono" :title="row.source">
+                                {{ row.source || 'source-model' }}
+                              </span>
+                            </div>
+
+                            <v-icon color="primary" class="arrow-icon" size="18">mdi-arrow-right</v-icon>
+
+                            <!-- 目标模型输入包装 -->
+                            <div class="target-wrapper flex-grow-1" style="position: relative;">
+                              <span class="badge-title inner-label">TARGET</span>
+                              <v-combobox
+                                v-model="row.target"
+                                :items="targetModelOptions"
+                                :loading="fetchingModels"
+                                density="compact"
+                                variant="outlined"
+                                hide-details
+                                placeholder="target-model"
+                                class="font-mono"
+                                eager
+                                @focus="handleTargetModelClick"
+                                @update:menu="onMenuUpdate"
+                              />
+                            </div>
+
+                            <!-- Reasoning 选择器 -->
+                            <v-select
+                              v-if="supportsOpenAIAdvancedOptions"
+                              v-model="row.reasoning"
+                              :items="[
+                                { title: '无', value: '' },
+                                { title: 'None', value: 'none' },
+                                { title: 'Low', value: 'low' },
+                                { title: 'Medium', value: 'medium' },
+                                { title: 'High', value: 'high' },
+                                { title: 'XHigh', value: 'xhigh' },
+                                { title: 'Max', value: 'max' }
+                              ]"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              placeholder="reasoning"
+                              class="flex-shrink-0"
+                              style="max-width: 120px;"
+                            />
+                          </div>
+
+                          <!-- 操作按钮组 -->
+                          <div class="action-group d-flex align-center ga-1 ml-3">
+                            <v-tooltip :text="row.noVision ? t('addChannel.visionDisabled') : t('addChannel.visionEnabled')" location="top" :open-delay="150">
+                              <template #activator="{ props: tip }">
+                                <v-btn
+                                  v-bind="tip"
+                                  size="small"
+                                  :color="row.noVision ? 'warning' : 'primary'"
+                                  icon
+                                  :variant="row.noVision ? 'tonal' : 'text'"
+                                  class="rounded-lg"
+                                  @click="toggleRowVision(row)"
+                                >
+                                  <v-icon :size="16">{{ row.noVision ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+                                </v-btn>
+                              </template>
+                            </v-tooltip>
+
+                            <v-btn
+                              size="small"
+                              color="error"
+                              icon
+                              variant="text"
+                              @click="removeModelMappingRow(index)"
+                            >
+                              <v-icon :size="16">mdi-close</v-icon>
+                            </v-btn>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 错误提示 -->
+                  <div v-if="sourceMappingError" class="text-error text-caption mt-2">
+                    {{ sourceMappingError }}
+                  </div>
+                  <div v-if="fetchModelsError" class="text-error text-caption mt-2">
+                    {{ fetchModelsError }}
+                  </div>
+                  <v-row v-if="supportsOpenAIAdvancedOptions" class="mt-4">
+                    <v-col cols="12" md="6">
+                      <div class="d-flex align-center justify-space-between h-100 advanced-switch-row">
+                        <div>
+                          <div class="text-body-2 font-weight-medium">{{ t('addChannel.fastMode') }}</div>
+                          <div class="text-caption text-medium-emphasis">{{ t('addChannel.fastModeHint') }}</div>
+                        </div>
+                        <v-switch
+                          v-model="form.fastMode"
+                          color="primary"
+                          hide-details
+                          inset
+                        />
+                      </div>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-select
+                        v-model="form.textVerbosity"
+                        :label="t('addChannel.textVerbosityLabel')"
+                        :items="textVerbosityOptions"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details
+                        clearable
+                        eager
+                        @update:menu="onMenuUpdate"
+                      />
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
+            </v-col>
+
+            <!-- Vision 回退模型（仅当有模型级 noVision 标记时显示） -->
+            <v-col v-if="form.noVisionModels.length > 0" cols="12">
+              <v-combobox
+                v-model="form.visionFallbackModel"
+                :label="t('addChannel.visionFallbackLabel')"
+                :placeholder="t('addChannel.visionFallbackPlaceholder')"
+                :hint="t('addChannel.visionFallbackHint')"
+                :items="targetModelOptions"
+                prepend-inner-icon="mdi-eye"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+                eager
+                @focus="ensureTargetModelsLoaded"
+                @update:menu="onMenuUpdate"
+              />
+            </v-col>
+
+            <!-- 历史图片轮次限制 -->
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.historicalImageTurnLimit"
+                :label="t('addChannel.historicalImageTurnLimitLabel')"
+                :placeholder="t('addChannel.historicalImageTurnLimitPlaceholder')"
+                :hint="t('addChannel.historicalImageTurnLimitHint')"
+                type="number"
+                min="0"
+                variant="outlined"
+                density="comfortable"
+                persistent-hint
+                clearable
+              />
+            </v-col>
+
+            <!-- 支持的模型白名单 -->
+            <v-col cols="12">
+              <v-combobox
+                v-model="form.supportedModels"
+                :label="t('addChannel.supportedModelsLabel')"
+                :placeholder="t('addChannel.supportedModelsPlaceholder')"
+                prepend-inner-icon="mdi-brain"
+                :hint="t('addChannel.supportedModelsHint')"
+                :error-messages="supportedModelsError ? [supportedModelsError] : []"
+                persistent-hint
+                clearable
+                multiple
+                chips
+                closable-chips
+                variant="outlined"
+                density="comfortable"
+                eager
+                @update:model-value="handleSupportedModelsChange"
+                @update:menu="onMenuUpdate"
+              />
+              <div class="d-flex align-center flex-wrap ga-2 mt-2">
+                <div class="text-caption text-primary">{{ t('addChannel.commonFilters') }}</div>
+                <v-chip
+                  v-for="filter in commonSupportedModelFilters"
+                  :key="filter"
+                  size="small"
+                  :color="isSupportedModelSelected(filter) ? 'primary' : 'default'"
+                  :variant="isSupportedModelSelected(filter) ? 'flat' : 'tonal'"
+                  @click="appendSupportedModelFilter(filter)"
+                >
+                  {{ filter }}
+                </v-chip>
+              </div>
+            </v-col>
+
+            <!-- API密钥管理 -->
+            <v-col cols="12">
+              <v-card variant="outlined" rounded="lg" :color="hasConfigurableKeys ? undefined : 'error'">
+                <v-card-title class="d-flex align-center justify-space-between pa-4 pb-2">
+                  <div class="d-flex align-center ga-2">
+                    <v-icon :color="hasConfigurableKeys ? 'primary' : 'error'">mdi-key</v-icon>
+                    <span class="section-title">{{ t('channelCard.apiKeyManagement') }} *</span>
+                    <v-chip v-if="!hasConfigurableKeys" size="x-small" color="error" variant="tonal">
+                      {{ t('addChannel.apiKeyRequired') }}
+                    </v-chip>
+                  </div>
+                  <v-chip size="small" color="info" variant="tonal"> {{ t('addChannel.apiKeyLoadBalance') }} </v-chip>
+                </v-card-title>
+
+                <v-card-text class="pt-2">
+                  <!-- 现有密钥列表 -->
+                  <div v-if="form.apiKeys.length" class="mb-4">
+                    <v-list density="compact" class="bg-transparent">
+                      <v-list-item
+                        v-for="(key, index) in form.apiKeys"
+                        :key="index"
+                        class="mb-2"
+                        rounded="lg"
+                        variant="tonal"
+                        :color="duplicateKeyIndex === index ? 'error' : 'surface-variant'"
+                        :class="{ 'animate-pulse': duplicateKeyIndex === index }"
+                      >
+                        <template #prepend>
+                          <v-icon size="small" :color="duplicateKeyIndex === index ? 'error' : 'primary'">
+                            {{ duplicateKeyIndex === index ? 'mdi-alert' : 'mdi-key' }}
+                          </v-icon>
+                        </template>
+
+                        <v-list-item-title>
+                          <div class="d-flex align-center justify-space-between">
+                            <code class="text-caption">{{ maskApiKey(key) }}</code>
+                            <div class="d-flex align-center ga-1">
+                              <!-- Models 状态标签 -->
+                              <v-chip
+                                v-if="keyModelsStatus.get(key)?.loading"
+                                size="x-small"
+                                color="info"
+                                variant="tonal"
+                              >
+                                <v-icon start size="12">mdi-loading</v-icon>
+                                {{ t('addChannel.checking') }}
+                              </v-chip>
+                              <v-chip
+                                v-else-if="keyModelsStatus.get(key)?.success"
+                                size="x-small"
+                                color="success"
+                                variant="tonal"
+                              >
+                                {{ t('addChannel.modelsCount', { statusCode: keyModelsStatus.get(key)?.statusCode ?? 'OK', count: keyModelsStatus.get(key)?.modelCount ?? 0 }) }}
+                              </v-chip>
+                              <v-tooltip
+                                v-else-if="keyModelsStatus.get(key)?.error"
+                                :text="keyModelsStatus.get(key)?.error"
+                                location="top"
+                                max-width="300"
+                                content-class="key-tooltip"
+                              >
+                                <template #activator="{ props: tooltipProps }">
+                                  <v-chip
+                                    v-bind="tooltipProps"
+                                    size="x-small"
+                                    color="error"
+                                    variant="tonal"
+                                  >
+                                    models {{ keyModelsStatus.get(key)?.statusCode || 'ERR' }}
+                                  </v-chip>
+                                </template>
+                              </v-tooltip>
+                              <!-- 重复密钥标签 -->
+                              <v-chip v-if="duplicateKeyIndex === index" size="x-small" color="error" variant="text">
+                                {{ t('addChannel.duplicateKey') }}
+                              </v-chip>
+                            </div>
+                          </div>
+                        </v-list-item-title>
+
+                        <template #append>
+                          <div class="d-flex align-center ga-1">
+                            <!-- 置顶/置底：仅首尾密钥显示 -->
+                            <v-tooltip
+                              v-if="index === form.apiKeys.length - 1 && form.apiKeys.length > 1"
+                              :text="t('channelCard.moveTop')"
+                              location="top"
+                              :open-delay="150"
+                              content-class="key-tooltip"
+                            >
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="small"
+                                  color="warning"
+                                  icon
+                                  variant="text"
+                                  rounded="md"
+                                  @click="moveApiKeyToTop(index)"
+                                >
+                                  <v-icon size="small">mdi-arrow-up-bold</v-icon>
+                                </v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
+                              v-if="index === 0 && form.apiKeys.length > 1"
+                              :text="t('channelCard.moveBottom')"
+                              location="top"
+                              :open-delay="150"
+                              content-class="key-tooltip"
+                            >
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="small"
+                                  color="warning"
+                                  icon
+                                  variant="text"
+                                  rounded="md"
+                                  @click="moveApiKeyToBottom(index)"
+                                >
+                                  <v-icon size="small">mdi-arrow-down-bold</v-icon>
+                                </v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
+                              :text="copiedKeyIndex === index ? t('channelCard.copied') : t('channelCard.copyKey')"
+                              location="top"
+                              :open-delay="150"
+                              content-class="key-tooltip"
+                            >
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="small"
+                                  :color="copiedKeyIndex === index ? 'success' : 'primary'"
+                                  icon
+                                  variant="text"
+                                  @click="copyApiKey(key, index)"
+                                >
+                                  <v-icon size="small">{{
+                                    copiedKeyIndex === index ? 'mdi-check' : 'mdi-content-copy'
+                                  }}</v-icon>
+                                </v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip :text="t('addChannel.deleteKey')" location="top" :open-delay="150" content-class="key-tooltip">
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="small"
+                                  color="error"
+                                  icon
+                                  variant="text"
+                                  @click="removeApiKey(index)"
+                                >
+                                  <v-icon size="small" color="error">mdi-close</v-icon>
+                                </v-btn>
+                              </template>
+                            </v-tooltip>
+                          </div>
+                        </template>
+                      </v-list-item>
+                    </v-list>
+                  </div>
+
+                  <!-- 添加新密钥 -->
+                  <div class="d-flex align-start ga-3">
+                    <v-text-field
+                      v-model="newApiKey"
+                      :label="t('addChannel.addNewApiKey')"
+                      :placeholder="t('addChannel.addNewApiKeyPlaceholder')"
+                      prepend-inner-icon="mdi-plus"
+                      variant="outlined"
+                      density="comfortable"
+                      type="password"
+                      :error="!!apiKeyError"
+                      :error-messages="apiKeyError"
+                      class="flex-grow-1"
+                      @keyup.enter="addApiKey"
+                      @input="handleApiKeyInput"
+                    />
+                    <v-btn
+                      color="primary"
+                      variant="elevated"
+                      size="large"
+                      height="40"
+                      :disabled="!newApiKey.trim()"
+                      class="mt-1"
+                      @click="addApiKey"
+                    >
+                      {{ t('app.actions.add') }}
+                    </v-btn>
+                  </div>
+
+                  <!-- 被拉黑的密钥（仅编辑模式） -->
+                  <div v-if="isEditing && visibleDisabledKeys.length" class="mt-4">
+                    <div class="d-flex align-center ga-2 mb-2">
+                      <v-icon size="small" color="error">mdi-key-remove</v-icon>
+                      <span class="text-body-2 font-weight-medium text-error">{{ t('channelCard.disabledKeys') }}</span>
+                      <v-chip size="x-small" color="error" variant="tonal">{{ visibleDisabledKeys.length }}</v-chip>
+                    </div>
+                    <v-list density="compact" class="rounded-lg" style="max-height: 150px; overflow-y: auto;">
+                      <v-list-item
+                        v-for="(dk, dkIdx) in visibleDisabledKeys"
+                        :key="'disabled-' + dkIdx"
+                        class="px-3"
+                        style="background: rgba(var(--v-theme-error), 0.04);"
+                      >
+                        <template #prepend>
+                          <v-icon size="small" color="error" class="mr-2">mdi-key-alert</v-icon>
+                        </template>
+                        <v-list-item-title class="text-caption font-weight-mono">
+                          {{ dk.key.length > 20 ? dk.key.slice(0, 8) + '***' + dk.key.slice(-5) : dk.key }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle class="d-flex align-center ga-1">
+                          <v-chip size="x-small" :color="dk.reason === 'insufficient_balance' ? 'warning' : 'error'" variant="tonal">
+                            {{ t(getRestoreDisabledKeyLabel(dk.reason)) }}
+                          </v-chip>
+                          <span class="text-caption">{{ new Date(dk.disabledAt).toLocaleDateString() }}</span>
+                        </v-list-item-subtitle>
+                        <template #append>
+                          <v-btn size="x-small" color="success" variant="tonal" rounded="lg" :loading="restoringKey === dk.key" @click="restoreDisabledKey(dk.key)">
+                            <v-icon start size="small">mdi-restore</v-icon>
+                            {{ t('channelCard.restoreKey') }}
+                          </v-btn>
+                        </template>
+                      </v-list-item>
+                    </v-list>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+
+            <!-- 描述 -->
+            <v-col cols="12">
+              <v-textarea
+                v-model="form.description"
+                :label="t('addChannel.descriptionLabel')"
+                :hint="t('addChannel.descriptionHint')"
+                persistent-hint
+                prepend-inner-icon="mdi-text"
+                variant="outlined"
+                density="comfortable"
+                rows="3"
+                no-resize
+              />
+            </v-col>
+
+            <!-- 跳过 TLS 证书验证 -->
+            <v-col cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="warning">mdi-shield-alert</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.skipTlsLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.skipTlsHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.insecureSkipVerify" inset color="warning" hide-details />
+              </div>
+            </v-col>
+
+            <!-- 低质量渠道标记 -->
+            <v-col cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="info">mdi-speedometer-slow</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.lowQualityLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.lowQualityHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.lowQuality" inset color="info" hide-details />
+              </div>
+            </v-col>
+
+            <v-col cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="warning">mdi-cash-remove</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.autoBlacklistBalanceLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.autoBlacklistBalanceHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.autoBlacklistBalance" inset color="warning" hide-details />
+              </div>
+            </v-col>
+
+            <v-col v-if="props.channelType === 'responses'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="primary">mdi-cog</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.codexNativeToolPassthroughLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.codexNativeToolPassthroughHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.codexNativeToolPassthrough" inset color="primary" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
+            <v-col v-if="props.channelType === 'responses'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="primary">mdi-cog</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.codexToolCompatLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.codexToolCompatHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.codexToolCompat" inset color="primary" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
+            <v-col v-if="props.channelType === 'responses' || props.channelType === 'chat'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="warning">mdi-filter-remove</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.stripImageGenerationToolLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.stripImageGenerationToolHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.stripImageGenerationTool" inset color="warning" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
+            <v-col v-if="props.channelType === 'messages' || props.channelType === 'responses'" cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="primary">mdi-identifier</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.normalizeMetadataUserIdLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.normalizeMetadataUserIdHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.normalizeMetadataUserId" inset color="primary" hide-details />
+              </div>
+            </v-col>
+
+            <v-col v-if="props.channelType === 'messages'" cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="warning">mdi-tag-off</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.stripBillingHeaderLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.stripBillingHeaderHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.stripBillingHeader" inset color="warning" hide-details />
+              </div>
+            </v-col>
+
+            <v-col v-if="supportsChatRoleNormalization" cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="primary">mdi-account-switch</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.normalizeNonstandardChatRolesLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.normalizeNonstandardChatRolesHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.normalizeNonstandardChatRoles" inset color="primary" hide-details />
+              </div>
+            </v-col>
+
+            <v-col v-if="supportsOpenAIAdvancedOptions" cols="12">
+              <div class="d-flex align-center justify-space-between ga-4">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="primary">mdi-tune</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.reasoningParamStyleLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.reasoningParamStyleHint') }}</div>
+                  </div>
+                </div>
+                <v-select
+                  v-model="form.reasoningParamStyle"
+                  :items="reasoningParamStyleOptions"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  class="channel-config-select"
+                  eager
+                  @update:menu="onMenuUpdate"
+                />
+              </div>
+            </v-col>
+
+            <!-- 注入 Dummy Thought Signature（上游为 Gemini 时显示） -->
+            <!-- 注：chat/responses 渠道当前默认始终注入，开关无效，仅 messages/gemini 渠道下按开关生效 -->
+            <v-col v-if="(props.channelType === 'gemini' || props.channelType === 'messages') && form.serviceType === 'gemini'" cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="secondary">mdi-signature</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.injectDummyThoughtSignatureLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.injectDummyThoughtSignatureHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.injectDummyThoughtSignature" inset color="secondary" hide-details />
+              </div>
+            </v-col>
+
+            <!-- 移除 Thought Signature（上游为 Gemini 时显示，覆盖所有可能落到 Gemini 的入口） -->
+            <v-col v-if="form.serviceType === 'gemini' && (props.channelType === 'gemini' || props.channelType === 'messages' || props.channelType === 'chat' || props.channelType === 'responses')" cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="error">mdi-close-circle</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.stripThoughtSignatureLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.stripThoughtSignatureHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.stripThoughtSignature" inset color="error" hide-details />
+              </div>
+            </v-col>
+
+            <!-- 回传 Reasoning Content（Messages/Chat/Responses 渠道 + claude 服务类型显示） -->
+            <v-col v-if="(props.channelType === 'messages' || props.channelType === 'chat' || props.channelType === 'responses') && form.serviceType === 'claude'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="secondary">mdi-brain</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.passbackReasoningContentLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.passbackReasoningContentHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.passbackReasoningContent" inset color="secondary" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
+            <!-- 回传 Thinking Blocks（Messages/Chat/Responses 渠道 + claude 服务类型显示） -->
+            <v-col v-if="(props.channelType === 'messages' || props.channelType === 'chat' || props.channelType === 'responses') && form.serviceType === 'claude'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="secondary">mdi-head-snowflake</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.passbackThinkingBlocksLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.passbackThinkingBlocksHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.passbackThinkingBlocks" inset color="secondary" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
+            <!-- 移除空 Text Block（仅 Messages 渠道 + claude 服务类型显示） -->
+            <v-col v-if="props.channelType === 'messages' && form.serviceType === 'claude'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="warning">mdi-filter-remove</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.stripEmptyTextBlocksLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.stripEmptyTextBlocksHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.stripEmptyTextBlocks" inset color="warning" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
+            <!-- 抽取 system 角色到顶层（Messages 渠道显示，不论上游类型；在 provider 分发前统一生效） -->
+            <v-col v-if="props.channelType === 'messages'" cols="12">
+              <div class="d-flex align-center justify-space-between ga-5">
+                <div class="d-flex align-center ga-2" style="min-width: 0; flex: 1 1 auto;">
+                  <v-icon color="warning">mdi-arrow-collapse-up</v-icon>
+                  <div style="min-width: 0;">
+                    <div class="section-title section-title--soft">{{ t('addChannel.normalizeSystemRoleToTopLevelLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis" style="word-break: break-word;">{{ t('addChannel.normalizeSystemRoleToTopLevelHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.normalizeSystemRoleToTopLevel" inset color="warning" hide-details style="flex-shrink: 0;" />
+              </div>
+            </v-col>
+
+            <!-- 自定义请求头 -->
+            <v-col cols="12">
+              <v-card variant="outlined">
+                <v-card-title class="section-card-title d-flex align-center ga-2">
+                  <v-icon size="small">mdi-web</v-icon>
+                  {{ t('addChannel.customHeadersLabel') }}
+                </v-card-title>
+                <v-card-text>
+                  <div class="text-caption text-medium-emphasis mb-3">
+                    {{ t('addChannel.customHeadersHint') }}
+                  </div>
+
+                  <!-- 已添加的请求头列表 -->
+                  <v-list v-if="Object.keys(form.customHeaders).length > 0" density="compact" class="mb-3">
+                    <v-list-item
+                      v-for="(value, key) in form.customHeaders"
+                      :key="key"
+                      class="px-2"
+                    >
+                      <template #prepend>
+                        <v-icon size="small" color="primary">mdi-tag</v-icon>
+                      </template>
+                      <v-list-item-title class="text-body-2">
+                        <code>{{ key }}</code>: <span class="text-medium-emphasis">{{ value }}</span>
+                      </v-list-item-title>
+                      <template #append>
+                        <v-btn
+                          icon="mdi-delete"
+                          size="x-small"
+                          variant="text"
+                          color="error"
+                          @click="removeCustomHeader(key as string)"
+                        />
+                      </template>
+                    </v-list-item>
+                  </v-list>
+
+                  <!-- 添加新请求头 -->
+                  <div class="d-flex ga-2 align-center">
+                    <v-text-field
+                      v-model="newHeaderKey"
+                      :label="t('addChannel.headerNameLabel')"
+                      placeholder="X-Custom-Header"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      style="flex: 1"
+                    />
+                    <v-text-field
+                      v-model="newHeaderValue"
+                      :label="t('addChannel.headerValueLabel')"
+                      placeholder="value"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      style="flex: 2"
+                    />
+                    <v-btn
+                      icon="mdi-plus"
+                      size="small"
+                      color="primary"
+                      variant="tonal"
+                      :disabled="!newHeaderKey.trim() || !newHeaderValue.trim()"
+                      @click="addCustomHeader"
+                    />
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+
+            <!-- 代理 URL -->
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.proxyUrl"
+                :label="t('addChannel.proxyUrlLabel')"
+                :placeholder="t('addChannel.proxyUrlPlaceholder')"
+                prepend-inner-icon="mdi-shield-lock-outline"
+                :hint="t('addChannel.proxyUrlHint')"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+              />
+            </v-col>
+
+            <!-- 请求超时 -->
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.requestTimeoutMs"
+                :label="t('addChannel.requestTimeoutMsLabel')"
+                :placeholder="t('addChannel.requestTimeoutMsPlaceholder')"
+                prepend-inner-icon="mdi-timer-sand"
+                :hint="t('addChannel.requestTimeoutMsHint')"
+                :rules="[rules.requestTimeoutMs]"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+                type="number"
+                min="1"
+                step="1000"
+              />
+            </v-col>
+
+            <!-- 流式超时覆盖 -->
+            <v-col cols="12">
+              <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
+                <span class="section-title">{{ t('addChannel.streamTimeoutStrategyLabel') }}</span>
+                <span class="text-caption text-medium-emphasis">
+                  {{ selectedStreamTimeoutStrategy === 'inherit' ? t('addChannel.streamTimeoutInheritHint') : t('addChannel.streamTimeoutOverrideHint') }}
+                </span>
+              </div>
+              <v-btn-toggle
+                :model-value="selectedStreamTimeoutStrategy"
+                divided
+                variant="outlined"
+                density="comfortable"
+                class="stream-timeout-strategy-toggle"
+                @update:model-value="applyStreamTimeoutStrategy"
+              >
+                <v-btn value="inherit">{{ t('addChannel.streamTimeoutStrategyInherit') }}</v-btn>
+                <v-btn value="gentle">{{ t('dialog.circuitBreaker.presetGentle') }}</v-btn>
+                <v-btn value="balanced">{{ t('dialog.circuitBreaker.presetBalanced') }}</v-btn>
+                <v-btn value="aggressive">{{ t('dialog.circuitBreaker.presetAggressive') }}</v-btn>
+              </v-btn-toggle>
+            </v-col>
+
+            <v-col cols="12">
+              <div class="timeout-control-grid">
+                <!-- 首字等待超时 -->
+                <div class="timeout-control" :class="{ 'timeout-control--disabled': !form.streamFirstContentTimeoutEnabled }">
+                  <div class="timeout-control-header">
+                    <span class="timeout-label">{{ t('addChannel.streamFirstContentTimeoutLabel') }}</span>
+                    <span class="timeout-value">{{ (form.streamFirstContentTimeoutMs / 1000) }}s</span>
+                  </div>
+                  <input
+                    v-model.number="form.streamFirstContentTimeoutMs"
+                    type="range"
+                    min="5000"
+                    max="300000"
+                    step="1000"
+                    class="timeout-slider"
+                    :disabled="!form.streamFirstContentTimeoutEnabled"
+                  />
+                  <div class="timeout-range">
+                    <span>5s</span><span>300s</span>
+                  </div>
+                </div>
+
+                <!-- 首字后断流超时 -->
+                <div class="timeout-control" :class="{ 'timeout-control--disabled': !form.streamInactivityTimeoutEnabled }">
+                  <div class="timeout-control-header">
+                    <span class="timeout-label">{{ t('addChannel.streamInactivityTimeoutLabel') }}</span>
+                    <span class="timeout-value">{{ (form.streamInactivityTimeoutMs / 1000) }}s</span>
+                  </div>
+                  <input
+                    v-model.number="form.streamInactivityTimeoutMs"
+                    type="range"
+                    min="1000"
+                    max="180000"
+                    step="1000"
+                    class="timeout-slider"
+                    :disabled="!form.streamInactivityTimeoutEnabled"
+                  />
+                  <div class="timeout-range">
+                    <span>1s</span><span>180s</span>
+                  </div>
+                </div>
+
+                <!-- 工具调用空闲超时 -->
+                <div class="timeout-control" :class="{ 'timeout-control--disabled': !form.streamToolCallIdleTimeoutEnabled }">
+                  <div class="timeout-control-header">
+                    <span class="timeout-label">{{ t('addChannel.streamToolCallIdleTimeoutLabel') }}</span>
+                    <span class="timeout-value">{{ (form.streamToolCallIdleTimeoutMs / 1000) }}s</span>
+                  </div>
+                  <input
+                    v-model.number="form.streamToolCallIdleTimeoutMs"
+                    type="range"
+                    min="30000"
+                    max="300000"
+                    step="1000"
+                    class="timeout-slider"
+                    :disabled="!form.streamToolCallIdleTimeoutEnabled"
+                  />
+                  <div class="timeout-range">
+                    <span>30s</span><span>300s</span>
+                  </div>
+                </div>
+              </div>
+            </v-col>
+
+            <!-- 主动限速 -->
+            <v-col cols="12">
+              <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
+                <span class="section-title">{{ t('addChannel.rateLimitSectionLabel') }}</span>
+                <span class="text-caption text-medium-emphasis">{{ t('addChannel.rateLimitSectionHint') }}</span>
+              </div>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="form.rateLimitRpm"
+                :label="t('addChannel.rateLimitRpmLabel')"
+                :placeholder="t('addChannel.rateLimitRpmPlaceholder')"
+                prepend-inner-icon="mdi-speedometer"
+                :hint="t('addChannel.rateLimitRpmHint')"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+                type="number"
+                min="1"
+              />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="form.rateLimitWindowMinutes"
+                :label="t('addChannel.rateLimitWindowMinutesLabel')"
+                :placeholder="t('addChannel.rateLimitWindowMinutesPlaceholder')"
+                prepend-inner-icon="mdi-clock-outline"
+                :hint="t('addChannel.rateLimitWindowMinutesHint')"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+                type="number"
+                min="1"
+              />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="form.rateLimitMaxConcurrent"
+                :label="t('addChannel.rateLimitMaxConcurrentLabel')"
+                :placeholder="t('addChannel.rateLimitMaxConcurrentPlaceholder')"
+                prepend-inner-icon="mdi-server-network"
+                :hint="t('addChannel.rateLimitMaxConcurrentHint')"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+                type="number"
+                min="1"
+              />
+            </v-col>
+            <v-col cols="12">
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center ga-2">
+                  <v-icon color="secondary">mdi-robot</v-icon>
+                  <div>
+                    <div class="section-title section-title--soft">{{ t('addChannel.rateLimitAutoFromHeadersLabel') }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ t('addChannel.rateLimitAutoFromHeadersHint') }}</div>
+                  </div>
+                </div>
+                <v-switch v-model="form.rateLimitAutoFromHeaders" inset color="secondary" hide-details />
+              </div>
+            </v-col>
+
+            <!-- 路由前缀 -->
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.routePrefix"
+                :label="t('addChannel.routePrefixLabel')"
+                :placeholder="t('addChannel.routePrefixPlaceholder')"
+                prepend-inner-icon="mdi-routes"
+                :hint="t('addChannel.routePrefixHint')"
+                persistent-hint
+                clearable
+                variant="outlined"
+                density="comfortable"
+              />
+            </v-col>
+
+          </v-row>
+        </v-form>
       </v-card-text>
 
-      <!-- 底部按钮 -->
-      <v-card-actions class="pa-6 pt-2">
+      <v-card-actions class="pa-6 pt-0">
         <v-spacer />
-        <v-btn variant="text" @click="handleCancel">
-          {{ t('app.actions.cancel') }}<span class="shortcut-hint ml-2 text-xs opacity-50">Esc</span>
-        </v-btn>
+        <v-btn variant="text" @click="handleCancel">{{ t('app.actions.cancel') }}<span class="shortcut-hint ml-2 text-xs opacity-50">Esc</span></v-btn>
         <v-btn
           v-if="!isEditing"
           color="primary"
           variant="elevated"
-          :disabled="!canSubmitQuick"
-          @click="handleQuickAdd"
+          :disabled="!isQuickFormValid"
+          prepend-icon="mdi-check"
+          @click="handleQuickSubmit"
         >
-          {{ t('app.actions.add') }}<span class="shortcut-hint ml-2 text-xs opacity-50">{{ isMac ? '⌘Enter' : 'Ctrl+Enter' }}</span>
+          {{ t('addChannel.createChannel') }}<span class="shortcut-hint ml-2 text-xs opacity-50">{{ isMac ? '⌘Enter' : 'Ctrl+Enter' }}</span>
         </v-btn>
         <v-btn
           v-else
           color="primary"
           variant="elevated"
           :disabled="!isFormValid"
-          :loading="submitting"
+          prepend-icon="mdi-check"
           @click="handleSubmit"
         >
-          {{ t('app.actions.save') }}<span class="shortcut-hint ml-2 text-xs opacity-50">{{ isMac ? '⌘Enter' : 'Ctrl+Enter' }}</span>
+          {{ isEditing ? t('addChannel.updateChannel') : t('addChannel.createChannel') }}<span class="shortcut-hint ml-2 text-xs opacity-50">{{ isMac ? '⌘Enter' : 'Ctrl+Enter' }}</span>
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -205,18 +1405,6 @@ import {
 } from '../utils/add-channel-modal-state'
 import { streamTimeoutPresets } from '../utils/streamTimeoutPresets'
 import { useI18n } from '../i18n'
-
-// 子组件导入
-import AddChannelHeader from './add-channel/AddChannelHeader.vue'
-import AddChannelSidebarNav from './add-channel/AddChannelSidebarNav.vue'
-import QuickInputSection from './add-channel/QuickInputSection.vue'
-import BasicInfoSection from './add-channel/BasicInfoSection.vue'
-import ApiKeyManagementSection from './add-channel/ApiKeyManagementSection.vue'
-import ModelMappingSection from './add-channel/ModelMappingSection.vue'
-import SupportedModelsFilter from './add-channel/SupportedModelsFilter.vue'
-import CustomHeadersSection from './add-channel/CustomHeadersSection.vue'
-import StreamTimeoutSection from './add-channel/StreamTimeoutSection.vue'
-import AdvancedOptionsSection from './add-channel/AdvancedOptionsSection.vue'
 
 interface Props {
   show: boolean
@@ -260,54 +1448,6 @@ const getImagesServiceType = (_serviceType: 'openai' | 'gemini' | 'claude' | 're
 // 详细表单预期请求 URL 预览（防止输入时抖动）
 const formBaseUrlPreview = ref('')
 let formBaseUrlPreviewTimer: number | null = null
-
-// 垂直导航激活 Section
-const activeSection = ref('basic')
-const sectionRefs = ref<Record<string, HTMLElement | null>>({})
-let scrollRoot: Element | null = null
-let scrollHandler: (() => void) | null = null
-
-// 导航 section 定义
-const sections = [
-  { id: 'basic', icon: 'mdi-information', label: t('addChannel.basicInfo') },
-  { id: 'model-mapping', icon: 'mdi-swap-horizontal', label: t('addChannel.modelMapping') },
-  { id: 'filters', icon: 'mdi-filter', label: t('addChannel.modelFilters') },
-  { id: 'auth', icon: 'mdi-key', label: t('addChannel.authentication') },
-  { id: 'advanced', icon: 'mdi-tune', label: t('addChannel.advancedOptions') },
-  { id: 'headers', icon: 'mdi-web', label: t('addChannel.customHeaders') },
-  { id: 'timeout', icon: 'mdi-timer', label: t('addChannel.streamTimeout') },
-]
-
-function scrollToSection(id: string) {
-  activeSection.value = id
-  const el = sectionRefs.value[id]
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-}
-
-function setSectionRef(id: string, el: any) {
-  sectionRefs.value[id] = el as HTMLElement | null
-}
-
-function updateActiveSectionFromScroll() {
-  if (!scrollRoot) return
-  const rootTop = scrollRoot.getBoundingClientRect().top
-  let current = sections[0]?.id || 'basic'
-
-  for (const s of sections) {
-    const el = sectionRefs.value[s.id]
-    if (!el) continue
-    const top = el.getBoundingClientRect().top - rootTop
-    if (top <= 120) {
-      current = s.id
-    } else {
-      break
-    }
-  }
-
-  activeSection.value = current
-}
 
 // 解析快速输入内容
 const parseQuickInput = () => {
@@ -1815,46 +2955,10 @@ const moveApiKeyToBottom = (index: number) => {
 const restoringKey = ref('')
 const localRestoredKeys = ref(new Set<string>())
 
-// 提交状态
-const submitting = ref(false)
-
-// 被拉黑的密钥（直接从 props.channel 读取）
-const disabledKeys = computed(() => props.channel?.disabledApiKeys || [])
-
 // 本地过滤已恢复的 key，不直接修改 props
 const visibleDisabledKeys = computed(() =>
   (props.channel?.disabledApiKeys || []).filter(dk => !localRestoredKeys.value.has(dk.key))
 )
-
-// 预期请求 URL 列表
-const expectedRequestUrls = computed(() => {
-  if (!baseUrlsText.value || !form.serviceType) return []
-  const urls = baseUrlsText.value.split('\n').filter(u => u.trim())
-  const endpoint = props.channelType === 'messages' ? '/v1/messages' :
-                   props.channelType === 'chat' ? '/v1/chat/completions' :
-                   props.channelType === 'responses' ? '/v1/responses' :
-                   props.channelType === 'gemini' ? '/v1beta/models' :
-                   '/v1/images/generations'
-  return urls.map(url => ({
-    expectedUrl: buildExpectedRequestUrl(form.serviceType, endpoint, url.trim())
-  }))
-})
-
-// 自定义请求头转换（Record <-> Array）
-const customHeadersArray = computed(() => {
-  return Object.entries(form.customHeaders).map(([key, value]) => ({ key, value }))
-})
-
-const updateCustomHeaders = (headers: Array<{ key: string; value: string }>) => {
-  const newHeaders: Record<string, string> = {}
-  headers.forEach(h => {
-    if (h.key && h.value) {
-      newHeaders[h.key] = h.value
-    }
-  })
-  form.customHeaders = newHeaders
-}
-
 
 const restoreDisabledKey = async (apiKey: string) => {
   if (!props.channel) return
@@ -2175,40 +3279,6 @@ const fetchTargetModels = async () => {
   }
 }
 
-// 辅助函数：更新表单字段
-const updateForm = (partial: Record<string, any>) => {
-  Object.assign(form, partial)
-}
-
-// 辅助函数：同步上游模型
-const syncUpstreamModels = () => {
-  fetchTargetModels()
-}
-
-// 辅助函数：应用预设
-const applyPreset = (presetName: string) => {
-  // 根据预设名称判断调用哪个函数
-  if (presetName === 'gpt-5.5' || presetName === 'gpt-5.4') {
-    applyModelMappingPreset(presetName)
-  } else if (props.channelType === 'messages' && (presetName === 'mimo' || presetName === 'deepseek')) {
-    applyClaudeChannelPreset(presetName as 'mimo' | 'deepseek')
-  } else if (props.channelType === 'responses') {
-    applyCodexResponsesChannelPreset(presetName as 'mimo' | 'deepseek' | 'minimax')
-  } else {
-    applyClaudeChannelPreset(presetName as 'mimo' | 'deepseek' | 'minimax')
-  }
-}
-
-// 辅助函数：检查是否可以快速提交
-const canSubmitQuick = computed(() => {
-  return isQuickFormValid.value
-})
-
-// 快速添加按钮处理（实际调用原有的 handleQuickSubmit）
-const handleQuickAdd = () => {
-  handleQuickSubmit()
-}
-
 const handleSubmit = async () => {
   if (!formRef.value) return
 
@@ -2365,24 +3435,10 @@ const handleKeydown = (event: Event) => {
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
-
-  // 按滚动位置同步左侧导航高亮；长 section 内滚动也需要实时更新
-  nextTick(() => {
-    scrollRoot = document.querySelector('.content-area')
-    if (!scrollRoot) return
-    scrollHandler = () => updateActiveSectionFromScroll()
-    scrollRoot.addEventListener('scroll', scrollHandler, { passive: true })
-    updateActiveSectionFromScroll()
-  })
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
-  if (scrollRoot && scrollHandler) {
-    scrollRoot.removeEventListener('scroll', scrollHandler)
-  }
-  scrollRoot = null
-  scrollHandler = null
   if (formBaseUrlPreviewTimer !== null) {
     window.clearTimeout(formBaseUrlPreviewTimer)
   }
@@ -2457,7 +3513,7 @@ onUnmounted(() => {
   }
 }
 
-:global(.key-tooltip) {
+:deep(.key-tooltip) {
   color: rgba(var(--v-theme-on-surface), 0.92);
   background-color: rgba(var(--v-theme-surface), 0.98);
   border: 1px solid rgba(var(--v-theme-primary), 0.45);
@@ -2794,87 +3850,4 @@ onUnmounted(() => {
   font-family: 'SF Mono', 'Fira Code', Monaco, Consolas, monospace !important;
 }
 
-/* 垂直导航布局 */
-.content-row {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-}
-
-.nav-sidebar {
-  width: 220px;
-  min-width: 220px;
-  flex-shrink: 0;
-  border-right: 1px solid rgba(var(--v-border-color), 0.12);
-  background: rgba(var(--v-theme-surface-variant), 0.3);
-  overflow-y: auto;
-  padding: 16px 8px;
-}
-
-.nav-sidebar-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(var(--v-theme-on-surface), 0.4);
-  padding: 0 12px 8px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 12px 12px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: normal;
-  text-transform: none;
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  text-align: left;
-}
-
-.nav-item:hover {
-  background: rgba(var(--v-theme-primary), 0.06);
-  color: rgb(var(--v-theme-on-surface));
-}
-
-.nav-item--active {
-  background: rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
-  font-weight: 600;
-}
-
-.nav-item--active .nav-item-icon {
-  color: rgb(var(--v-theme-primary));
-}
-
-.nav-item-icon {
-  margin-right: 8px;
-  opacity: 0.7;
-}
-
-.nav-item--active .nav-item-icon {
-  opacity: 1;
-}
-
-.content-area {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-}
-
-@media (max-width: 960px) {
-  .content-row {
-    flex-direction: column;
-  }
-
-  .nav-sidebar {
-    display: none;
-  }
-}
 </style>
