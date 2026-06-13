@@ -18,6 +18,31 @@ type nopFlusher struct{}
 
 func (nopFlusher) Flush() {}
 
+func TestBuildStreamErrorEvent_EmptyStreamUsesRetryMessage(t *testing.T) {
+	tests := []error{
+		ErrEmptyStreamResponse,
+		ErrStreamPostCommitStalled,
+	}
+
+	for _, err := range tests {
+		event := BuildStreamErrorEvent(err)
+		expectedMessage := `"message":"Empty response from upstream; please try again."`
+		if !strings.Contains(event, expectedMessage) {
+			t.Fatalf("BuildStreamErrorEvent(%v) = %s, want retry message", err, event)
+		}
+		if strings.Contains(event, err.Error()) {
+			t.Fatalf("BuildStreamErrorEvent(%v) leaked internal error: %s", err, event)
+		}
+	}
+}
+
+func TestBuildStreamErrorEvent_GenericErrorKeepsDiagnostic(t *testing.T) {
+	event := BuildStreamErrorEvent(errors.New("provider disconnected"))
+	if !strings.Contains(event, `"message":"Stream processing error: provider disconnected"`) {
+		t.Fatalf("BuildStreamErrorEvent generic error = %s, want diagnostic message", event)
+	}
+}
+
 func TestResolveStreamPreflightTimeouts_ToolCallIdleTimeoutIsIndependent(t *testing.T) {
 	upstream := &config.UpstreamConfig{}
 	global := metrics.CircuitBreakerParams{
