@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Eye,
@@ -60,7 +59,30 @@ interface HeaderRow {
 }
 
 let rowId = 0
-const activeTab = ref('basic')
+const activeSection = ref('basic')
+const sectionRefs = ref<Record<string, HTMLElement | null>>({})
+let sectionObserver: IntersectionObserver | null = null
+
+// 导航 section 定义
+const sections = [
+  { id: 'basic', label: '基础配置' },
+  { id: 'auth', label: '认证管理' },
+  { id: 'redirect', label: '模型重定向' },
+  { id: 'advanced', label: '高级选项' },
+  { id: 'headers', label: '自定义参数' },
+]
+
+function scrollToSection(id: string) {
+  activeSection.value = id
+  const el = sectionRefs.value[id]
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+function setSectionRef(id: string, el: any) {
+  sectionRefs.value[id] = el as HTMLElement | null
+}
 const modelMappingRows = ref<ModelMappingRow[]>([])
 const newModelMapping = reactive<ModelMappingRow>({ id: 0, source: '', target: '', reasoning: '', noVision: false })
 const headerRows = ref<HeaderRow[]>([])
@@ -542,10 +564,33 @@ const handleGlobalKeydown = (e: KeyboardEvent) => {
 // 组件挂载即注册快捷键（新建和编辑模式都需要）
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown)
+
+  // IntersectionObserver：滚动时同步左侧导航高亮
+  nextTick(() => {
+    const viewport = document.querySelector('[data-slot="scroll-area-viewport"]')
+    if (!viewport) return
+    sectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = (entry.target as HTMLElement).dataset.sectionId
+            if (id) activeSection.value = id
+          }
+        }
+      },
+      { root: viewport, rootMargin: '-10% 0px -70% 0px', threshold: 0 }
+    )
+    for (const s of sections) {
+      const el = sectionRefs.value[s.id]
+      if (el) sectionObserver!.observe(el)
+    }
+  })
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
+  sectionObserver?.disconnect()
+  sectionObserver = null
 })
 
 // ── API Key 操作 ──
@@ -1300,18 +1345,21 @@ void fromSelectValue
             </div>
           </div>
 
-          <!-- 主内容区域：Tabs 布局 -->
+          <!-- 主内容区域：滚动定位导航 -->
           <div class="min-h-0 flex-1 flex">
-            <Tabs v-model="activeTab" orientation="vertical" class="flex flex-1">
-              <!-- 左侧导航 -->
-              <TabsList class="hidden md:flex w-48 shrink-0 flex-col items-stretch gap-1 rounded-none border-r border-border/50 bg-card/20 p-4">
-                <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 mb-2">配置大纲</div>
-                <TabsTrigger value="basic" class="justify-start text-xs">基础配置</TabsTrigger>
-                <TabsTrigger value="auth" class="justify-start text-xs">认证管理</TabsTrigger>
-                <TabsTrigger value="redirect" class="justify-start text-xs">模型重定向</TabsTrigger>
-                <TabsTrigger value="advanced" class="justify-start text-xs">高级选项</TabsTrigger>
-                <TabsTrigger value="headers" class="justify-start text-xs">自定义参数</TabsTrigger>
-              </TabsList>
+            <!-- 左侧导航 -->
+            <nav class="hidden md:flex w-48 shrink-0 flex-col items-stretch gap-1 rounded-none border-r border-border/50 bg-card/20 p-4">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 mb-2">配置大纲</div>
+              <button
+                v-for="s in sections"
+                :key="s.id"
+                class="flex items-center justify-start rounded-md border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50"
+                :class="activeSection === s.id
+                  ? 'bg-background text-foreground shadow-sm border-input'
+                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-accent/50'"
+                @click="scrollToSection(s.id)"
+              >{{ s.label }}</button>
+            </nav>
 
               <!-- 右侧内容面板 -->
               <div class="flex-1 overflow-hidden">
@@ -1322,8 +1370,8 @@ void fromSelectValue
                       {{ error }}
                     </div>
 
-                    <!-- Tab: 基础配置 -->
-                    <TabsContent value="basic" class="mt-0">
+                    <!-- Section: 基础配置 -->
+                    <section :ref="(el: any) => setSectionRef('basic', el)" data-section-id="basic" class="scroll-mt-4">
                       <BasicConfigPanel
                         :form="form"
                         :errors="errors"
@@ -1338,10 +1386,10 @@ void fromSelectValue
                         @update:quick-input="quickInput = $event"
                         @quick-paste="handleQuickPaste"
                       />
-                    </TabsContent>
+                    </section>
 
-                    <!-- Tab: 认证管理 -->
-                    <TabsContent value="auth" class="mt-0">
+                    <!-- Section: 认证管理 -->
+                    <section :ref="(el: any) => setSectionRef('auth', el)" data-section-id="auth" class="scroll-mt-4">
                       <AuthPanel
                         :existing-api-keys="existingApiKeys"
                         :new-api-keys-text="newApiKeysText"
@@ -1359,10 +1407,10 @@ void fromSelectValue
                         @copy-api-key="copyApiKey"
                         @handle-disabled-key-restore="handleDisabledKeyRestore"
                       />
-                    </TabsContent>
+                    </section>
 
-                    <!-- Tab: 模型重定向 -->
-                    <TabsContent value="redirect" class="mt-0">
+                    <!-- Section: 模型重定向 -->
+                    <section :ref="(el: any) => setSectionRef('redirect', el)" data-section-id="redirect" class="scroll-mt-4">
                       <ModelMappingPanel
                         :model-mapping-rows="modelMappingRows"
                         :new-model-mapping="newModelMapping"
@@ -1384,10 +1432,10 @@ void fromSelectValue
                         @select-target-model="selectTargetModel"
                         @handle-target-focus="handleTargetFocus"
                       />
-                    </TabsContent>
+                    </section>
 
-                    <!-- Tab: 高级选项 -->
-                    <TabsContent value="advanced" class="mt-0">
+                    <!-- Section: 高级选项 -->
+                    <section :ref="(el: any) => setSectionRef('advanced', el)" data-section-id="advanced" class="scroll-mt-4">
                       <AdvancedPanel
                         :form="form"
                         :channel-type="channelType"
@@ -1396,10 +1444,10 @@ void fromSelectValue
                         :DEFAULT_SELECT_VALUE="DEFAULT_SELECT_VALUE"
                         @update:form="(updates) => Object.assign(form, updates)"
                       />
-                    </TabsContent>
+                    </section>
 
-                    <!-- Tab: 自定义参数 -->
-                    <TabsContent value="headers" class="mt-0">
+                    <!-- Section: 自定义参数 -->
+                    <section :ref="(el: any) => setSectionRef('headers', el)" data-section-id="headers" class="scroll-mt-4">
                       <CustomHeadersPanel
                         :header-rows="headerRows"
                         :new-header="newHeader"
@@ -1408,11 +1456,10 @@ void fromSelectValue
                         @remove-header-row="removeHeaderRow"
                         @update-header-row="updateHeaderRow"
                       />
-                    </TabsContent>
+                    </section>
                   </form>
                 </ScrollArea>
               </div>
-            </Tabs>
           </div>
 
           <!-- 底部按钮栏 -->

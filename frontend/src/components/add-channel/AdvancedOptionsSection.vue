@@ -251,6 +251,8 @@
         </div>
       </v-col>
 
+      <slot name="custom-headers" />
+
       <!-- 代理 URL -->
       <v-col cols="12">
         <v-text-field
@@ -287,66 +289,78 @@
         />
       </v-col>
 
-      <!-- 主动限速配置 -->
+      <slot name="stream-timeout" />
+
+      <!-- 主动限速 -->
       <v-col cols="12">
-        <v-card variant="outlined" class="rate-limit-card">
-          <v-card-title class="d-flex align-center ga-2">
-            <v-icon size="small">mdi-speedometer</v-icon>
-            {{ t('addChannel.rateLimitTitle') }}
-          </v-card-title>
-          <v-card-text>
-            <v-row dense>
-              <!-- RPM -->
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="form.rateLimitRpm"
-                  :label="t('addChannel.rpmLimitLabel')"
-                  :hint="t('addChannel.rpmLimitHint')"
-                  persistent-hint
-                  variant="outlined"
-                  density="compact"
-                  type="number"
-                  min="0"
-                  @update:model-value="updateField('rateLimitRpm', $event ? parseInt($event) : null)"
-                />
-              </v-col>
-
-              <!-- TPM -->
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="form.rateLimitWindowMinutes"
-                  :label="t('addChannel.tpmLimitLabel')"
-                  :hint="t('addChannel.tpmLimitHint')"
-                  persistent-hint
-                  variant="outlined"
-                  density="compact"
-                  type="number"
-                  min="0"
-                  @update:model-value="updateField('rateLimitWindowMinutes', $event ? parseInt($event) : null)"
-                />
-              </v-col>
-
-              <!-- 并发 -->
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="form.rateLimitMaxConcurrent"
-                  :label="t('addChannel.maxConcurrencyLabel')"
-                  :hint="t('addChannel.maxConcurrencyHint')"
-                  persistent-hint
-                  variant="outlined"
-                  density="compact"
-                  type="number"
-                  min="0"
-                  @update:model-value="updateField('rateLimitMaxConcurrent', $event ? parseInt($event) : null)"
-                />
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
+          <span class="section-title">{{ t('addChannel.rateLimitSectionLabel') }}</span>
+          <span class="text-caption text-medium-emphasis">{{ t('addChannel.rateLimitSectionHint') }}</span>
+        </div>
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-text-field
+          :model-value="form.rateLimitRpm"
+          :label="t('addChannel.rateLimitRpmLabel')"
+          :placeholder="t('addChannel.rateLimitRpmPlaceholder')"
+          prepend-inner-icon="mdi-speedometer"
+          :hint="t('addChannel.rateLimitRpmHint')"
+          persistent-hint
+          clearable
+          variant="outlined"
+          density="comfortable"
+          type="number"
+          min="1"
+          @update:model-value="updateField('rateLimitRpm', $event ? parseInt($event) : null)"
+        />
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-text-field
+          :model-value="form.rateLimitWindowMinutes"
+          :label="t('addChannel.rateLimitWindowMinutesLabel')"
+          :placeholder="t('addChannel.rateLimitWindowMinutesPlaceholder')"
+          prepend-inner-icon="mdi-clock-outline"
+          :hint="t('addChannel.rateLimitWindowMinutesHint')"
+          persistent-hint
+          clearable
+          variant="outlined"
+          density="comfortable"
+          type="number"
+          min="1"
+          @update:model-value="updateField('rateLimitWindowMinutes', $event ? parseInt($event) : null)"
+        />
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-text-field
+          :model-value="form.rateLimitMaxConcurrent"
+          :label="t('addChannel.rateLimitMaxConcurrentLabel')"
+          :placeholder="t('addChannel.rateLimitMaxConcurrentPlaceholder')"
+          prepend-inner-icon="mdi-server-network"
+          :hint="t('addChannel.rateLimitMaxConcurrentHint')"
+          persistent-hint
+          clearable
+          variant="outlined"
+          density="comfortable"
+          type="number"
+          min="1"
+          @update:model-value="updateField('rateLimitMaxConcurrent', $event ? parseInt($event) : null)"
+        />
+      </v-col>
+      <v-col cols="12">
+        <div class="d-flex align-center justify-space-between">
+          <div class="d-flex align-center ga-2">
+            <v-icon color="secondary">mdi-robot</v-icon>
+            <div>
+              <div class="section-title section-title--soft">{{ t('addChannel.rateLimitAutoFromHeadersLabel') }}</div>
+              <div class="text-caption text-medium-emphasis">{{ t('addChannel.rateLimitAutoFromHeadersHint') }}</div>
+            </div>
+          </div>
+          <v-switch :model-value="form.rateLimitAutoFromHeaders" inset color="secondary" hide-details @update:model-value="updateField('rateLimitAutoFromHeaders', $event)" />
+        </div>
       </v-col>
 
       <!-- 路由前缀 -->
-      <v-col v-if="channelType === 'messages' || channelType === 'chat'" cols="12">
+      <v-col cols="12">
         <v-text-field
           :model-value="form.routePrefix"
           :label="t('addChannel.routePrefixLabel')"
@@ -390,6 +404,7 @@ interface FormData {
   rateLimitRpm: string | number | null
   rateLimitWindowMinutes: string | number | null
   rateLimitMaxConcurrent: string | number | null
+  rateLimitAutoFromHeaders: boolean
   routePrefix?: string
   serviceType: string
 }

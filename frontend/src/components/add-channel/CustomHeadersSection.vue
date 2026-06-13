@@ -1,66 +1,76 @@
 <template>
   <div class="custom-headers-section">
-    <div class="section-header">
-      <h3 class="text-h6">{{ t('addChannel.customHeadersTitle') }}</h3>
-      <p class="text-caption text-medium-emphasis">
-        {{ t('addChannel.customHeadersHint') }}
-      </p>
-    </div>
+    <v-card variant="outlined">
+      <v-card-title class="section-card-title d-flex align-center ga-2">
+        <v-icon size="small">mdi-web</v-icon>
+        {{ t('addChannel.customHeadersLabel') }}
+      </v-card-title>
+      <v-card-text>
+        <div class="text-caption text-medium-emphasis mb-3">
+          {{ t('addChannel.customHeadersHint') }}
+        </div>
 
-    <v-list class="headers-list">
-      <v-list-item
-        v-for="(header, index) in headers"
-        :key="index"
-        class="header-item"
-      >
-        <v-row dense>
-          <v-col cols="12" md="5">
-            <v-text-field
-              :model-value="header.key"
-              :label="t('addChannel.headerKeyLabel')"
-              :placeholder="t('addChannel.headerKeyPlaceholder')"
-              variant="outlined"
-              density="compact"
-              hide-details
-              @update:model-value="updateHeader(index, 'key', $event)"
-            />
-          </v-col>
-          <v-col cols="12" md="5">
-            <v-text-field
-              :model-value="header.value"
-              :label="t('addChannel.headerValueLabel')"
-              :placeholder="t('addChannel.headerValuePlaceholder')"
-              variant="outlined"
-              density="compact"
-              hide-details
-              @update:model-value="updateHeader(index, 'value', $event)"
-            />
-          </v-col>
-          <v-col cols="12" md="2" class="d-flex align-center">
-            <v-btn
-              icon="mdi-delete"
-              size="small"
-              variant="text"
-              color="error"
-              @click="removeHeader(index)"
-            />
-          </v-col>
-        </v-row>
-      </v-list-item>
-    </v-list>
+        <!-- 已添加的请求头列表 -->
+        <v-list v-if="headers.length > 0" density="compact" class="mb-3">
+          <v-list-item
+            v-for="(header, index) in headers"
+            :key="`${header.key}-${index}`"
+            class="px-2"
+          >
+            <template #prepend>
+              <v-icon size="small" color="primary">mdi-tag</v-icon>
+            </template>
+            <v-list-item-title class="text-body-2">
+              <code>{{ header.key }}</code>: <span class="text-medium-emphasis">{{ header.value }}</span>
+            </v-list-item-title>
+            <template #append>
+              <v-btn
+                icon="mdi-delete"
+                size="x-small"
+                variant="text"
+                color="error"
+                @click="removeHeader(index)"
+              />
+            </template>
+          </v-list-item>
+        </v-list>
 
-    <v-btn
-      prepend-icon="mdi-plus"
-      variant="outlined"
-      color="primary"
-      @click="addHeader"
-    >
-      {{ t('addChannel.addHeaderButton') }}
-    </v-btn>
+        <!-- 添加新请求头 -->
+        <div class="d-flex ga-2 align-center">
+          <v-text-field
+            v-model="newHeaderKey"
+            :label="t('addChannel.headerNameLabel')"
+            placeholder="X-Custom-Header"
+            variant="outlined"
+            density="compact"
+            hide-details
+            style="flex: 1"
+          />
+          <v-text-field
+            v-model="newHeaderValue"
+            :label="t('addChannel.headerValueLabel')"
+            placeholder="value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            style="flex: 2"
+          />
+          <v-btn
+            icon="mdi-plus"
+            size="small"
+            color="primary"
+            variant="tonal"
+            :disabled="!newHeaderKey.trim() || !newHeaderValue.trim()"
+            @click="addHeader"
+          />
+        </div>
+      </v-card-text>
+    </v-card>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from '../../i18n'
 
 interface CustomHeader {
@@ -79,15 +89,16 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-const updateHeader = (index: number, field: 'key' | 'value', value: string) => {
-  const updated = [...props.headers]
-  updated[index] = { ...updated[index], [field]: value }
-  emit('update:headers', updated)
-}
+const newHeaderKey = ref('')
+const newHeaderValue = ref('')
 
 const addHeader = () => {
-  emit('update:headers', [...props.headers, { key: '', value: '' }])
+  const key = newHeaderKey.value.trim()
+  const value = newHeaderValue.value.trim()
+  if (!key || !value) return
+  emit('update:headers', [...props.headers, { key, value }])
+  newHeaderKey.value = ''
+  newHeaderValue.value = ''
 }
 
 const removeHeader = (index: number) => {
@@ -97,16 +108,9 @@ const removeHeader = (index: number) => {
 </script>
 
 <style scoped>
-.section-header {
-  margin-bottom: 16px;
-}
-
-.headers-list {
-  margin-bottom: 16px;
-  background: transparent;
-}
-
-.header-item {
-  padding: 8px 0;
+.section-card-title {
+  font-size: 0.875rem !important;
+  line-height: 1.4;
+  font-weight: 600;
 }
 </style>

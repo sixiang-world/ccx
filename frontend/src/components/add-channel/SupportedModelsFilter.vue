@@ -4,29 +4,32 @@
       :model-value="modelValue"
       :label="t('addChannel.supportedModelsLabel')"
       :placeholder="t('addChannel.supportedModelsPlaceholder')"
-      prepend-inner-icon="mdi-filter"
-      variant="outlined"
-      density="comfortable"
+      prepend-inner-icon="mdi-brain"
+      :hint="t('addChannel.supportedModelsHint')"
+      :error-messages="error ? [error] : []"
+      persistent-hint
+      clearable
       multiple
       chips
       closable-chips
-      hide-details="auto"
+      variant="outlined"
+      density="comfortable"
+      eager
       @update:model-value="$emit('update:modelValue', $event)"
-    >
-      <template #chip="{ item, props: chipProps }">
-        <v-chip
-          v-bind="chipProps"
-          closable
-          size="small"
-        >
-          {{ item.title }}
-        </v-chip>
-      </template>
-    </v-combobox>
-    <div class="hint-text">
-      <span class="text-caption text-medium-emphasis">
-        {{ t('addChannel.supportedModelsHint') }}
-      </span>
+      @update:menu="$emit('menu-update', $event)"
+    />
+    <div class="d-flex align-center flex-wrap ga-2 mt-2">
+      <div class="text-caption text-primary">{{ t('addChannel.commonFilters') }}</div>
+      <v-chip
+        v-for="filter in commonFilters"
+        :key="filter"
+        size="small"
+        :color="selectedFilters.includes(filter) ? 'primary' : 'default'"
+        :variant="selectedFilters.includes(filter) ? 'flat' : 'tonal'"
+        @click="$emit('append-filter', filter)"
+      >
+        {{ filter }}
+      </v-chip>
     </div>
   </div>
 </template>
@@ -36,20 +39,18 @@ import { useI18n } from '../../i18n'
 
 interface Props {
   modelValue: string[]
+  error?: string
+  commonFilters: string[]
+  selectedFilters: string[]
 }
 
 defineProps<Props>()
 
 defineEmits<{
   'update:modelValue': [string[]]
+  'append-filter': [string]
+  'menu-update': [boolean]
 }>()
 
 const { t } = useI18n()
 </script>
-
-<style scoped>
-.hint-text {
-  margin-top: 8px;
-  padding-left: 12px;
-}
-</style>

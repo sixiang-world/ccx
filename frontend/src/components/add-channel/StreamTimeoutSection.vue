@@ -1,245 +1,290 @@
 <template>
   <div class="stream-timeout-section">
-    <div class="section-header">
-      <h3 class="text-h6">{{ t('addChannel.streamTimeoutTitle') }}</h3>
-      <p class="text-caption text-medium-emphasis">
-        {{ t('addChannel.streamTimeoutDescription') }}
-      </p>
-    </div>
+    <!-- 流式超时覆盖 -->
+    <v-row dense>
+      <v-col cols="12">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
+          <span class="section-title">{{ t('addChannel.streamTimeoutStrategyLabel') }}</span>
+          <span class="text-caption text-medium-emphasis">
+            {{ selectedStrategy === 'inherit' ? t('addChannel.streamTimeoutInheritHint') : t('addChannel.streamTimeoutOverrideHint') }}
+          </span>
+        </div>
+        <v-btn-toggle
+          :model-value="selectedStrategy"
+          divided
+          variant="outlined"
+          density="comfortable"
+          class="stream-timeout-strategy-toggle"
+          @update:model-value="$emit('apply-strategy', String($event))"
+        >
+          <v-btn value="inherit">{{ t('addChannel.streamTimeoutStrategyInherit') }}</v-btn>
+          <v-btn value="gentle">{{ t('dialog.circuitBreaker.presetGentle') }}</v-btn>
+          <v-btn value="balanced">{{ t('dialog.circuitBreaker.presetBalanced') }}</v-btn>
+          <v-btn value="aggressive">{{ t('dialog.circuitBreaker.presetAggressive') }}</v-btn>
+        </v-btn-toggle>
+      </v-col>
 
-    <!-- 预设按钮组 -->
-    <div class="preset-buttons mb-6">
-      <v-btn-toggle
-        :model-value="currentPreset"
-        mandatory
-        variant="outlined"
-        color="primary"
-        @update:model-value="applyPreset"
-      >
-        <v-btn value="default">
-          {{ t('addChannel.timeoutPresetDefault') }}
-        </v-btn>
-        <v-btn value="relaxed">
-          {{ t('addChannel.timeoutPresetRelaxed') }}
-        </v-btn>
-        <v-btn value="strict">
-          {{ t('addChannel.timeoutPresetStrict') }}
-        </v-btn>
-        <v-btn value="custom">
-          {{ t('addChannel.timeoutPresetCustom') }}
-        </v-btn>
-      </v-btn-toggle>
-    </div>
+      <v-col cols="12">
+        <div class="timeout-control-grid">
+          <!-- 首字等待超时 -->
+          <div class="timeout-control" :class="{ 'timeout-control--disabled': !firstContentEnabled }">
+            <div class="timeout-control-header">
+              <span class="timeout-label">{{ t('addChannel.streamFirstContentTimeoutLabel') }}</span>
+              <span class="timeout-value">{{ firstContentMs / 1000 }}s</span>
+            </div>
+            <input
+              :value="firstContentMs"
+              type="range"
+              min="5000"
+              max="300000"
+              step="1000"
+              class="timeout-slider"
+              :disabled="!firstContentEnabled"
+              @input="$emit('update:firstContentMs', Number(($event.target as HTMLInputElement).value))"
+            />
+            <div class="timeout-range">
+              <span>5s</span><span>300s</span>
+            </div>
+          </div>
 
-    <!-- 首次响应超时 -->
-    <div class="timeout-control mb-6">
-      <label class="control-label">
-        {{ t('addChannel.streamFirstByteTimeoutLabel') }}
-        <span class="value-display">{{ firstByteTimeout }}s</span>
-      </label>
-      <div class="slider-container neo-brutalism">
-        <input
-          type="range"
-          :value="firstByteTimeout"
-          min="5"
-          max="120"
-          step="5"
-          class="timeout-slider"
-          @input="updateTimeout('firstByte', $event)"
-        />
-      </div>
-      <div class="hint-text">
-        <span class="text-caption text-medium-emphasis">
-          {{ t('addChannel.streamFirstByteTimeoutHint') }}
-        </span>
-      </div>
-    </div>
+          <!-- 首字后断流超时 -->
+          <div class="timeout-control" :class="{ 'timeout-control--disabled': !inactivityEnabled }">
+            <div class="timeout-control-header">
+              <span class="timeout-label">{{ t('addChannel.streamInactivityTimeoutLabel') }}</span>
+              <span class="timeout-value">{{ inactivityMs / 1000 }}s</span>
+            </div>
+            <input
+              :value="inactivityMs"
+              type="range"
+              min="1000"
+              max="180000"
+              step="1000"
+              class="timeout-slider"
+              :disabled="!inactivityEnabled"
+              @input="$emit('update:inactivityMs', Number(($event.target as HTMLInputElement).value))"
+            />
+            <div class="timeout-range">
+              <span>1s</span><span>180s</span>
+            </div>
+          </div>
 
-    <!-- 持续响应超时 -->
-    <div class="timeout-control mb-6">
-      <label class="control-label">
-        {{ t('addChannel.streamChunkIntervalTimeoutLabel') }}
-        <span class="value-display">{{ chunkIntervalTimeout }}s</span>
-      </label>
-      <div class="slider-container neo-brutalism">
-        <input
-          type="range"
-          :value="chunkIntervalTimeout"
-          min="10"
-          max="180"
-          step="10"
-          class="timeout-slider"
-          @input="updateTimeout('chunkInterval', $event)"
-        />
-      </div>
-      <div class="hint-text">
-        <span class="text-caption text-medium-emphasis">
-          {{ t('addChannel.streamChunkIntervalTimeoutHint') }}
-        </span>
-      </div>
-    </div>
-
-    <!-- 整体超时 -->
-    <div class="timeout-control">
-      <label class="control-label">
-        {{ t('addChannel.streamOverallTimeoutLabel') }}
-        <span class="value-display">{{ overallTimeout }}s</span>
-      </label>
-      <div class="slider-container neo-brutalism">
-        <input
-          type="range"
-          :value="overallTimeout"
-          min="60"
-          max="600"
-          step="30"
-          class="timeout-slider"
-          @input="updateTimeout('overall', $event)"
-        />
-      </div>
-      <div class="hint-text">
-        <span class="text-caption text-medium-emphasis">
-          {{ t('addChannel.streamOverallTimeoutHint') }}
-        </span>
-      </div>
-    </div>
+          <!-- 工具调用空闲超时 -->
+          <div class="timeout-control" :class="{ 'timeout-control--disabled': !toolCallIdleEnabled }">
+            <div class="timeout-control-header">
+              <span class="timeout-label">{{ t('addChannel.streamToolCallIdleTimeoutLabel') }}</span>
+              <span class="timeout-value">{{ toolCallIdleMs / 1000 }}s</span>
+            </div>
+            <input
+              :value="toolCallIdleMs"
+              type="range"
+              min="30000"
+              max="300000"
+              step="1000"
+              class="timeout-slider"
+              :disabled="!toolCallIdleEnabled"
+              @input="$emit('update:toolCallIdleMs', Number(($event.target as HTMLInputElement).value))"
+            />
+            <div class="timeout-range">
+              <span>30s</span><span>300s</span>
+            </div>
+          </div>
+        </div>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useI18n } from '../../i18n'
 
 interface Props {
-  firstByteTimeout: number
-  chunkIntervalTimeout: number
-  overallTimeout: number
+  selectedStrategy: string
+  firstContentEnabled: boolean
+  firstContentMs: number
+  inactivityEnabled: boolean
+  inactivityMs: number
+  toolCallIdleEnabled: boolean
+  toolCallIdleMs: number
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
-const emit = defineEmits<{
-  'update:firstByteTimeout': [number]
-  'update:chunkIntervalTimeout': [number]
-  'update:overallTimeout': [number]
+defineEmits<{
+  'apply-strategy': [string]
+  'update:firstContentMs': [number]
+  'update:inactivityMs': [number]
+  'update:toolCallIdleMs': [number]
 }>()
 
 const { t } = useI18n()
-
-// 预设配置
-const PRESETS = {
-  default: { firstByte: 30, chunkInterval: 60, overall: 300 },
-  relaxed: { firstByte: 60, chunkInterval: 120, overall: 600 },
-  strict: { firstByte: 15, chunkInterval: 30, overall: 180 },
-}
-
-// 检测当前预设
-const currentPreset = computed(() => {
-  for (const [key, preset] of Object.entries(PRESETS)) {
-    if (
-      props.firstByteTimeout === preset.firstByte &&
-      props.chunkIntervalTimeout === preset.chunkInterval &&
-      props.overallTimeout === preset.overall
-    ) {
-      return key
-    }
-  }
-  return 'custom'
-})
-
-const applyPreset = (preset: string) => {
-  if (preset === 'custom') return
-
-  const config = PRESETS[preset as keyof typeof PRESETS]
-  if (config) {
-    emit('update:firstByteTimeout', config.firstByte)
-    emit('update:chunkIntervalTimeout', config.chunkInterval)
-    emit('update:overallTimeout', config.overall)
-  }
-}
-
-const updateTimeout = (type: 'firstByte' | 'chunkInterval' | 'overall', event: Event) => {
-  const value = parseInt((event.target as HTMLInputElement).value, 10)
-
-  if (type === 'firstByte') {
-    emit('update:firstByteTimeout', value)
-  } else if (type === 'chunkInterval') {
-    emit('update:chunkIntervalTimeout', value)
-  } else {
-    emit('update:overallTimeout', value)
-  }
-}
 </script>
 
 <style scoped>
-.section-header {
-  margin-bottom: 24px;
+.section-title {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.preset-buttons {
+.stream-timeout-strategy-toggle {
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.stream-timeout-strategy-toggle :deep(.v-btn) {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.timeout-control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin-bottom: 16px;
+  border: 2px solid rgb(var(--v-theme-on-surface));
+  background: rgb(var(--v-theme-surface));
+}
+
+.v-theme--dark .timeout-control-grid {
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .timeout-control {
-  margin-bottom: 24px;
+  padding: 12px 14px;
+  position: relative;
+  transition: opacity 0.2s ease;
 }
 
-.control-label {
+.timeout-control--disabled {
+  opacity: 0.4;
+}
+
+.timeout-control:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: rgb(var(--v-theme-on-surface));
+  opacity: 0.18;
+}
+
+.v-theme--dark .timeout-control:not(:last-child)::after {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.timeout-control-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 6px;
 }
 
-.value-display {
+.timeout-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface) / 70%);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+.timeout-value {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--v-theme-primary));
+  padding: 2px 8px;
+  border: 2px solid rgb(var(--v-theme-on-surface));
+  background: rgb(var(--v-theme-surface));
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: center;
 }
 
-/* Neo-Brutalism 滑块样式 */
-.slider-container.neo-brutalism {
-  padding: 16px;
-  background: rgba(var(--v-theme-surface), 1);
-  border: 3px solid rgb(var(--v-theme-on-surface));
-  border-radius: 0;
-  box-shadow: 6px 6px 0 rgb(var(--v-theme-on-surface));
+.v-theme--dark .timeout-value {
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .timeout-slider {
-  width: 100%;
-  height: 8px;
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(var(--v-theme-primary), 0.2);
+  width: 100%;
+  height: 8px;
+  border-radius: 0;
+  border: 2px solid rgb(var(--v-theme-on-surface) / 20%);
+  background: rgb(var(--v-theme-on-surface) / 8%);
   outline: none;
-  border: 2px solid rgb(var(--v-theme-on-surface));
+  cursor: pointer;
 }
 
 .timeout-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
   background: rgb(var(--v-theme-primary));
-  border: 3px solid rgb(var(--v-theme-on-surface));
   cursor: pointer;
-  box-shadow: 3px 3px 0 rgb(var(--v-theme-on-surface));
+  border: 2px solid rgb(var(--v-theme-on-surface));
+  box-shadow: 2px 2px 0 0 rgb(var(--v-theme-on-surface));
+  transition: box-shadow 0.1s ease;
+}
+
+.timeout-slider::-webkit-slider-thumb:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 rgb(var(--v-theme-on-surface));
 }
 
 .timeout-slider::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
-  background: rgb(var(--v-theme-primary));
-  border: 3px solid rgb(var(--v-theme-on-surface));
-  cursor: pointer;
-  box-shadow: 3px 3px 0 rgb(var(--v-theme-on-surface));
+  width: 20px;
+  height: 20px;
   border-radius: 0;
+  background: rgb(var(--v-theme-primary));
+  cursor: pointer;
+  border: 2px solid rgb(var(--v-theme-on-surface));
+  box-shadow: 2px 2px 0 0 rgb(var(--v-theme-on-surface));
 }
 
-.hint-text {
-  margin-top: 8px;
-  padding-left: 4px;
+.timeout-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.v-theme--dark .timeout-slider {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.v-theme--dark .timeout-slider::-webkit-slider-thumb {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 2px 2px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+.v-theme--dark .timeout-slider::-moz-range-thumb {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 2px 2px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+.timeout-range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+  color: rgb(var(--v-theme-on-surface) / 50%);
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .timeout-control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeout-control:not(:last-child)::after {
+    display: none;
+  }
 }
 </style>

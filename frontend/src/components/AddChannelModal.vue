@@ -54,142 +54,131 @@
         <!-- 编辑模式：左侧导航 + 右侧面板 -->
         <div v-else class="content-row" style="height: 100%;">
           <!-- 左侧垂直导航 -->
-          <div class="nav-sidebar">
-            <v-tabs
-              v-model="activeTab"
-              direction="vertical"
-              color="primary"
+          <nav class="nav-sidebar">
+            <div class="nav-sidebar-title">配置大纲</div>
+            <button
+              v-for="s in sections"
+              :key="s.id"
+              class="nav-item"
+              :class="{ 'nav-item--active': activeSection === s.id }"
+              @click="scrollToSection(s.id)"
             >
-              <v-tab value="basic">
-                <v-icon start>mdi-information</v-icon>
-                {{ t('addChannel.basicInfo') }}
-              </v-tab>
-              <v-tab value="auth">
-                <v-icon start>mdi-key</v-icon>
-                {{ t('addChannel.authentication') }}
-              </v-tab>
-              <v-tab value="model-mapping">
-                <v-icon start>mdi-swap-horizontal</v-icon>
-                {{ t('addChannel.modelMapping') }}
-              </v-tab>
-              <v-tab value="filters">
-                <v-icon start>mdi-filter</v-icon>
-                {{ t('addChannel.modelFilters') }}
-              </v-tab>
-              <v-tab value="headers">
-                <v-icon start>mdi-web</v-icon>
-                {{ t('addChannel.customHeaders') }}
-              </v-tab>
-              <v-tab value="timeout">
-                <v-icon start>mdi-timer</v-icon>
-                {{ t('addChannel.streamTimeout') }}
-              </v-tab>
-              <v-tab value="advanced">
-                <v-icon start>mdi-tune</v-icon>
-                {{ t('addChannel.advancedOptions') }}
-              </v-tab>
-            </v-tabs>
-          </div>
+              <v-icon size="20" class="nav-item-icon">{{ s.icon }}</v-icon>
+              {{ s.label }}
+            </button>
+          </nav>
 
           <!-- 右侧内容面板 -->
           <div class="content-area">
-            <v-window v-model="activeTab" class="fill-height">
-              <!-- 基本信息 -->
-              <v-window-item value="basic" class="pa-6">
-                <BasicInfoSection
-                  :form="form"
-                  :base-urls-text="baseUrlsText"
-                  :expected-request-urls="expectedRequestUrls"
-                  :base-url-has-error="baseUrlHasError"
-                  :service-type-options="serviceTypeOptions"
-                  :errors="errors"
-                  :rules="rules"
-                  @update:form="updateForm"
-                  @update:base-urls-text="baseUrlsText = $event"
-                  @menu-update="onMenuUpdate"
-                />
-              </v-window-item>
+            <!-- 基本信息 -->
+            <section :ref="(el: any) => setSectionRef('basic', el)" data-section-id="basic" class="pa-6 scroll-mt-4">
+              <BasicInfoSection
+                :form="form"
+                :base-urls-text="baseUrlsText"
+                :expected-request-urls="expectedRequestUrls"
+                :base-url-has-error="baseUrlHasError"
+                :service-type-options="serviceTypeOptions"
+                :errors="errors"
+                :rules="rules"
+                @update:form="updateForm"
+                @update:base-urls-text="baseUrlsText = $event"
+                @menu-update="onMenuUpdate"
+              />
+            </section>
 
-              <!-- 身份认证 -->
-              <v-window-item value="auth" class="pa-6">
-                <ApiKeyManagementSection
-                  :api-keys="form.apiKeys"
-                  :disabled-keys="disabledKeys"
-                  :key-models-status="keyModelsStatus"
-                  :is-editing="isEditing"
-                  :restoring-key="restoringKey"
-                  @update:api-keys="form.apiKeys = $event"
-                  @restore-key="restoreDisabledKey"
-                />
-              </v-window-item>
+            <!-- 模型映射 -->
+            <section :ref="(el: any) => setSectionRef('model-mapping', el)" data-section-id="model-mapping" class="pa-6 scroll-mt-4">
+              <ModelMappingSection
+                v-if="form.serviceType"
+                :mappingRows="modelMappingRows"
+                :sourceModelOptions="sourceModelOptions"
+                :targetModelOptions="targetModelOptions"
+                :fetchingModels="fetchingModels"
+                :sourceMappingError="sourceMappingError"
+                :fetchModelsError="fetchModelsError"
+                :modelMappingHint="modelMappingHint"
+                :targetModelPlaceholder="targetModelPlaceholder"
+                :showModelMappingPresets="showModelMappingPresets"
+                :showMessagesOpenAIChannelPresets="showMessagesOpenAIChannelPresets"
+                :showClaudeChannelPresets="showClaudeChannelPresets"
+                :showCodexResponsesChannelPresets="showCodexResponsesChannelPresets"
+                :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
+                :reasoningEffortOptions="reasoningEffortOptions"
+                @update:mappingRows="modelMappingRows = ($event as any)"
+                @sync-upstream="syncUpstreamModels"
+                @apply-preset="applyPreset"
+                @menu-update="onMenuUpdate"
+              />
+            </section>
 
-              <!-- 模型映射 -->
-              <v-window-item value="model-mapping" class="pa-6">
-                <ModelMappingSection
-                  v-if="form.serviceType"
-                  :mappingRows="modelMappingRows"
-                  :sourceModelOptions="sourceModelOptions"
-                  :targetModelOptions="targetModelOptions"
-                  :fetchingModels="fetchingModels"
-                  :sourceMappingError="sourceMappingError"
-                  :fetchModelsError="fetchModelsError"
-                  :modelMappingHint="modelMappingHint"
-                  :targetModelPlaceholder="targetModelPlaceholder"
-                  :showModelMappingPresets="showModelMappingPresets"
-                  :showMessagesOpenAIChannelPresets="showMessagesOpenAIChannelPresets"
-                  :showClaudeChannelPresets="showClaudeChannelPresets"
-                  :showCodexResponsesChannelPresets="showCodexResponsesChannelPresets"
-                  :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
-                  :reasoningEffortOptions="reasoningEffortOptions"
-                  @update:mappingRows="modelMappingRows = ($event as any)"
-                  @sync-upstream="syncUpstreamModels"
-                  @apply-preset="applyPreset"
-                  @menu-update="onMenuUpdate"
-                />
-              </v-window-item>
+            <!-- 模型过滤 -->
+            <section :ref="(el: any) => setSectionRef('filters', el)" data-section-id="filters" class="pa-6 scroll-mt-4">
+              <SupportedModelsFilter
+                :model-value="form.supportedModels"
+                :error="supportedModelsError"
+                :common-filters="commonSupportedModelFilters"
+                :selected-filters="Array.from(selectedSupportedModelSet)"
+                @update:model-value="handleSupportedModelsChange($event as any)"
+                @append-filter="appendSupportedModelFilter"
+                @menu-update="onMenuUpdate"
+              />
+            </section>
 
-              <!-- 模型过滤 -->
-              <v-window-item value="filters" class="pa-6">
-                <SupportedModelsFilter
-                  :model-value="form.supportedModels"
-                  @update:model-value="form.supportedModels = $event"
-                />
-              </v-window-item>
+            <!-- 身份认证 -->
+            <section :ref="(el: any) => setSectionRef('auth', el)" data-section-id="auth" class="pa-6 scroll-mt-4">
+              <ApiKeyManagementSection
+                :api-keys="form.apiKeys"
+                :disabled-keys="disabledKeys"
+                :key-models-status="keyModelsStatus"
+                :is-editing="isEditing"
+                :restoring-key="restoringKey"
+                @update:api-keys="form.apiKeys = $event"
+                @restore-key="restoreDisabledKey"
+              />
+            </section>
 
-              <!-- 自定义请求头 -->
-              <v-window-item value="headers" class="pa-6">
-                <CustomHeadersSection
-                  :headers="customHeadersArray"
-                  @update:headers="updateCustomHeaders"
-                />
-              </v-window-item>
+            <!-- 高级选项 -->
+            <section :ref="(el: any) => setSectionRef('advanced', el)" data-section-id="advanced" class="pa-6 scroll-mt-4">
+              <AdvancedOptionsSection
+                :form="form"
+                :channelType="props.channelType"
+                :supportsChatRoleNormalization="supportsChatRoleNormalization"
+                :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
+                :reasoningParamStyleOptions="reasoningParamStyleOptions"
+                :rules="rules"
+                @update:form="updateForm"
+                @menu-update="onMenuUpdate"
+              >
+                <template #custom-headers>
+                  <!-- 自定义请求头 -->
+                  <v-col :ref="(el: any) => setSectionRef('headers', el)" data-section-id="headers" class="scroll-mt-4" cols="12">
+                    <CustomHeadersSection
+                      :headers="customHeadersArray"
+                      @update:headers="updateCustomHeaders"
+                    />
+                  </v-col>
+                </template>
 
-              <!-- 流式超时 -->
-              <v-window-item value="timeout" class="pa-6">
-                <StreamTimeoutSection
-                  :first-byte-timeout="form.streamFirstContentTimeoutMs / 1000"
-                  :chunk-interval-timeout="form.streamInactivityTimeoutMs / 1000"
-                  :overall-timeout="form.streamToolCallIdleTimeoutMs / 1000"
-                  @update:first-byte-timeout="form.streamFirstContentTimeoutMs = $event * 1000"
-                  @update:chunk-interval-timeout="form.streamInactivityTimeoutMs = $event * 1000"
-                  @update:overall-timeout="form.streamToolCallIdleTimeoutMs = $event * 1000"
-                />
-              </v-window-item>
-
-              <!-- 高级选项 -->
-              <v-window-item value="advanced" class="pa-6">
-                <AdvancedOptionsSection
-                  :form="form"
-                  :channelType="props.channelType"
-                  :supportsChatRoleNormalization="supportsChatRoleNormalization"
-                  :supportsOpenAIAdvancedOptions="supportsOpenAIAdvancedOptions"
-                  :reasoningParamStyleOptions="reasoningParamStyleOptions"
-                  :rules="rules"
-                  @update:form="updateForm"
-                  @menu-update="onMenuUpdate"
-                />
-              </v-window-item>
-            </v-window>
+                <template #stream-timeout>
+                  <!-- 流式超时 -->
+                  <v-col :ref="(el: any) => setSectionRef('timeout', el)" data-section-id="timeout" class="scroll-mt-4" cols="12">
+                    <StreamTimeoutSection
+                      :selected-strategy="selectedStreamTimeoutStrategy"
+                      :first-content-enabled="form.streamFirstContentTimeoutEnabled"
+                      :first-content-ms="form.streamFirstContentTimeoutMs"
+                      :inactivity-enabled="form.streamInactivityTimeoutEnabled"
+                      :inactivity-ms="form.streamInactivityTimeoutMs"
+                      :tool-call-idle-enabled="form.streamToolCallIdleTimeoutEnabled"
+                      :tool-call-idle-ms="form.streamToolCallIdleTimeoutMs"
+                      @apply-strategy="applyStreamTimeoutStrategy"
+                      @update:first-content-ms="form.streamFirstContentTimeoutMs = $event"
+                      @update:inactivity-ms="form.streamInactivityTimeoutMs = $event"
+                      @update:tool-call-idle-ms="form.streamToolCallIdleTimeoutMs = $event"
+                    />
+                  </v-col>
+                </template>
+              </AdvancedOptionsSection>
+            </section>
           </div>
         </div>
       </v-card-text>
@@ -302,8 +291,33 @@ const getImagesServiceType = (_serviceType: 'openai' | 'gemini' | 'claude' | 're
 const formBaseUrlPreview = ref('')
 let formBaseUrlPreviewTimer: number | null = null
 
-// 垂直导航激活 Tab
-const activeTab = ref('basic')
+// 垂直导航激活 Section
+const activeSection = ref('basic')
+const sectionRefs = ref<Record<string, HTMLElement | null>>({})
+let sectionObserver: IntersectionObserver | null = null
+
+// 导航 section 定义
+const sections = [
+  { id: 'basic', icon: 'mdi-information', label: t('addChannel.basicInfo') },
+  { id: 'model-mapping', icon: 'mdi-swap-horizontal', label: t('addChannel.modelMapping') },
+  { id: 'filters', icon: 'mdi-filter', label: t('addChannel.modelFilters') },
+  { id: 'auth', icon: 'mdi-key', label: t('addChannel.authentication') },
+  { id: 'advanced', icon: 'mdi-tune', label: t('addChannel.advancedOptions') },
+  { id: 'headers', icon: 'mdi-web', label: t('addChannel.customHeaders') },
+  { id: 'timeout', icon: 'mdi-timer', label: t('addChannel.streamTimeout') },
+]
+
+function scrollToSection(id: string) {
+  activeSection.value = id
+  const el = sectionRefs.value[id]
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+function setSectionRef(id: string, el: any) {
+  sectionRefs.value[id] = el as HTMLElement | null
+}
 
 // 解析快速输入内容
 const parseQuickInput = () => {
@@ -2361,10 +2375,33 @@ const handleKeydown = (event: Event) => {
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
+
+  // IntersectionObserver：滚动时同步左侧导航高亮
+  nextTick(() => {
+    const viewport = document.querySelector('.content-area')
+    if (!viewport) return
+    sectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = (entry.target as HTMLElement).dataset.sectionId
+            if (id) activeSection.value = id
+          }
+        }
+      },
+      { root: viewport, rootMargin: '-10% 0px -70% 0px', threshold: 0 }
+    )
+    for (const s of sections) {
+      const el = sectionRefs.value[s.id]
+      if (el) sectionObserver!.observe(el)
+    }
+  })
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
+  sectionObserver?.disconnect()
+  sectionObserver = null
   if (formBaseUrlPreviewTimer !== null) {
     window.clearTimeout(formBaseUrlPreviewTimer)
   }
@@ -2790,35 +2827,63 @@ onUnmounted(() => {
   border-right: 1px solid rgba(var(--v-border-color), 0.12);
   background: rgba(var(--v-theme-surface-variant), 0.3);
   overflow-y: auto;
+  padding: 16px 8px;
 }
 
-.nav-sidebar :deep(.v-tabs) {
-  height: 100%;
+.nav-sidebar-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.4);
+  padding: 0 12px 8px;
 }
 
-.nav-sidebar :deep(.v-tab) {
-  justify-content: flex-start;
-  text-transform: none;
-  letter-spacing: normal;
+.nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 8px;
   font-size: 0.875rem;
-  min-height: 48px;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
 }
 
-.nav-sidebar :deep(.v-tab .v-icon) {
+.nav-item:hover {
+  background: rgba(var(--v-theme-primary), 0.06);
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.nav-item--active {
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+  font-weight: 600;
+}
+
+.nav-item--active .nav-item-icon {
+  color: rgb(var(--v-theme-primary));
+}
+
+.nav-item-icon {
   margin-right: 8px;
+  opacity: 0.7;
+}
+
+.nav-item--active .nav-item-icon {
+  opacity: 1;
 }
 
 .content-area {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-}
-
-.content-area :deep(.v-window-item) {
-  overflow-y: auto;
-}
-
-.content-area :deep(.v-window) {
-  height: 100%;
 }
 </style>
