@@ -632,26 +632,32 @@ func (cm *ConfigManager) SetHistoricalImageTurnLimit(limit int) error {
 func (cm *ConfigManager) SetOverrideTTLMinutes(minutes int) error {
 	cm.mu.Lock()
 
-	// 限制范围：-1（永不恢复）或 1-1440 分钟（1 分钟到 24 小时）
-	if minutes != -1 {
-		if minutes < 1 {
-			minutes = 1
-		} else if minutes > 1440 {
-			minutes = 1440
+	// 标准化为界面提供的固定选项，不合适的值使用默认 30 分钟
+	// 有效选项：-1（永不恢复）, 15, 30, 60, 120, 240, 480, 720, 1440 分钟
+	validOptions := []int{-1, 15, 30, 60, 120, 240, 480, 720, 1440}
+	normalized := 30 // 默认 30 分钟
+	for _, option := range validOptions {
+		if minutes == option {
+			normalized = minutes
+			break
 		}
 	}
 
-	cm.config.OverrideTTLMinutes = minutes
+	cm.config.OverrideTTLMinutes = normalized
 
 	if err := cm.saveConfigLocked(cm.config); err != nil {
 		cm.mu.Unlock()
 		return err
 	}
 
-	if minutes == -1 {
+	if normalized == -1 {
 		log.Printf("[Config-OverrideTTL] 驾驶舱 override 默认有效期已设置为永不恢复")
 	} else {
-		log.Printf("[Config-OverrideTTL] 驾驶舱 override 默认有效期已设置为 %d 分钟", minutes)
+		if minutes != normalized {
+			log.Printf("[Config-OverrideTTL] 驾驶舱 override 默认有效期已标准化为 %d 分钟（原值: %d）", normalized, minutes)
+		} else {
+			log.Printf("[Config-OverrideTTL] 驾驶舱 override 默认有效期已设置为 %d 分钟", normalized)
+		}
 	}
 
 	cm.fireConfigChangeCallbacks()

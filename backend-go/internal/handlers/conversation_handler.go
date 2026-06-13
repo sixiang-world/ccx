@@ -163,24 +163,23 @@ func UpdateConversationSettings(deps *ConversationHandlerDeps) gin.HandlerFunc {
 
 		if req.OverrideTTLMinutes != nil {
 			ttl := *req.OverrideTTLMinutes
-			// 范围：1-1440 分钟，或 -1 表示永不恢复
-			if ttl != -1 && (ttl < 1 || ttl > 1440) {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "overrideTtlMinutes must be -1 (never) or between 1 and 1440"})
-				return
-			}
 
-			// 更新配置文件
+			// 更新配置文件（内部会标准化为有效选项，不合适的值使用默认 30 分钟）
 			if err := deps.ConfigManager.SetOverrideTTLMinutes(ttl); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update config: " + err.Error()})
 				return
 			}
 
+			// 获取标准化后的值
+			cfg := deps.ConfigManager.GetConfig()
+			normalizedTTL := cfg.OverrideTTLMinutes
+
 			// 动态更新 OverrideManager 的默认 TTL
-			if ttl == -1 {
+			if normalizedTTL == -1 {
 				// -1 表示永不过期
 				deps.OverrideManager.SetDefaultTTL(-1)
 			} else {
-				deps.OverrideManager.SetDefaultTTL(time.Duration(ttl) * time.Minute)
+				deps.OverrideManager.SetDefaultTTL(time.Duration(normalizedTTL) * time.Minute)
 			}
 		}
 

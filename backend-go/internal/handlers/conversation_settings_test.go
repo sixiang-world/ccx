@@ -104,10 +104,10 @@ func TestConversationSettings(t *testing.T) {
 		}
 	})
 
-	// 测试边界验证
-	t.Run("UpdateSettings_InvalidValue_TooLarge", func(t *testing.T) {
+	// 测试边界验证和标准化
+	t.Run("UpdateSettings_NormalizeToDefault", func(t *testing.T) {
 		reqBody := map[string]interface{}{
-			"overrideTtlMinutes": 2000, // 超出最大值 1440
+			"overrideTtlMinutes": 45, // 不在有效选项中，应该标准化为 30
 		}
 		reqJSON, _ := json.Marshal(reqBody)
 
@@ -118,8 +118,38 @@ func TestConversationSettings(t *testing.T) {
 
 		UpdateConversationSettings(deps)(c)
 
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("期望状态码 400，得到 %d", w.Code)
+		if w.Code != http.StatusOK {
+			t.Errorf("期望状态码 200（标准化为默认值），得到 %d", w.Code)
+		}
+
+		// 验证配置已标准化为 30
+		cfg := cfgManager.GetConfig()
+		if cfg.OverrideTTLMinutes != 30 {
+			t.Errorf("期望配置中 OverrideTTLMinutes 标准化为 30，得到 %d", cfg.OverrideTTLMinutes)
+		}
+	})
+
+	t.Run("UpdateSettings_NormalizeOutOfRange", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"overrideTtlMinutes": 2000, // 超出范围，应该标准化为 30
+		}
+		reqJSON, _ := json.Marshal(reqBody)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest("PUT", "/api/conversations/settings", bytes.NewReader(reqJSON))
+		c.Request.Header.Set("Content-Type", "application/json")
+
+		UpdateConversationSettings(deps)(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("期望状态码 200（标准化为默认值），得到 %d", w.Code)
+		}
+
+		// 验证配置已标准化为 30
+		cfg := cfgManager.GetConfig()
+		if cfg.OverrideTTLMinutes != 30 {
+			t.Errorf("期望配置中 OverrideTTLMinutes 标准化为 30，得到 %d", cfg.OverrideTTLMinutes)
 		}
 	})
 
