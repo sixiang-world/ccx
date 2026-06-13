@@ -2997,7 +2997,9 @@ const addModelMapping = () => {
   sourceMappingError.value = ''
 
   if (source && target && !form.modelMapping[source]) {
-    form.modelMapping[source] = target
+    // 强制规整为字符串：v-combobox 在选中下拉项后 v-model 可能为 { title, value } 对象，
+    // 直接写入会让 modelMapping 混入非字符串值，导致后端 PUT 失败。
+    form.modelMapping[source] = String(target)
     if (supportsOpenAIAdvancedOptions.value && newMapping.reasoningEffort) {
       form.reasoningMapping[source] = newMapping.reasoningEffort
     } else {
