@@ -2348,13 +2348,22 @@ func abs(x int) int {
 	return x
 }
 
+const streamEmptyRetryClientMessage = "Empty response from upstream; please try again."
+
+func streamErrorClientMessage(err error) string {
+	if errors.Is(err, ErrStreamPostCommitStalled) || errors.Is(err, ErrEmptyStreamResponse) {
+		return streamEmptyRetryClientMessage
+	}
+	return fmt.Sprintf("Stream processing error: %v", err)
+}
+
 // BuildStreamErrorEvent 构建流错误 SSE 事件
 func BuildStreamErrorEvent(err error) string {
 	errorEvent := map[string]interface{}{
 		"type": "error",
 		"error": map[string]interface{}{
 			"type":    "stream_error",
-			"message": fmt.Sprintf("Stream processing error: %v", err),
+			"message": streamErrorClientMessage(err),
 		},
 	}
 	eventJSON, _ := json.Marshal(errorEvent)
@@ -2369,7 +2378,7 @@ func BuildUsageEvent(requestBody []byte, outputText string) string {
 	event := map[string]interface{}{
 		"type": "message_delta",
 		"delta": map[string]interface{}{
-			"stop_reason":  "end_turn",
+			"stop_reason":   "end_turn",
 			"stop_sequence": nil,
 			"stop_details":  nil,
 		},
