@@ -144,8 +144,9 @@ function fromSelectValue(value: string): string {
         {{ tf('console.form.advancedOptions', '高级扩展选项') }}
       </h4>
 
-      <!-- 协议规范化 -->
-      <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-2.5">
+      <div class="space-y-5">
+        <!-- 协议规范化 -->
+        <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-2.5">
         <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
           Compatibility 协议规范化
         </div>
@@ -203,6 +204,7 @@ function fromSelectValue(value: string): string {
             />
           </div>
         </div>
+      </div>
       </div>
 
       <!-- Rate Limit -->

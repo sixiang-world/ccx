@@ -596,22 +596,31 @@ onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown)
 
   // 按滚动位置同步左侧导航高亮；长 section 内滚动也需要实时更新
+  // 使用多次 nextTick + setTimeout 确保 Teleport + reka-ui 完全渲染
   nextTick(() => {
-    // 等待 DOM 完全渲染后再查询（reka-ui 可能需要更多时间）
-    setTimeout(() => {
-      // 从对话框内部查找滚动容器，避免选中其他对话框的容器
-      scrollRoot = dialogRef.value?.querySelector('[data-slot="scroll-area-viewport"]') || null
-      if (!scrollRoot) {
-        console.warn('[ChannelEditDialog] 未找到滚动容器')
-        console.log('[ChannelEditDialog] dialogRef:', dialogRef.value)
-        console.log('[ChannelEditDialog] 全局查询结果:', document.querySelectorAll('[data-slot="scroll-area-viewport"]').length)
-        return
-      }
-      console.log('[ChannelEditDialog] 滚动容器已绑定')
-      scrollHandler = () => updateActiveSectionFromScroll()
-      scrollRoot.addEventListener('scroll', scrollHandler, { passive: true })
-      updateActiveSectionFromScroll()
-    }, 100)
+    nextTick(() => {
+      setTimeout(() => {
+        // 优先从 dialogRef 查找，失败则全局查找（Teleport 可能导致 ref 为 null）
+        let viewport = dialogRef.value?.querySelector('[data-slot="scroll-area-viewport"]') as Element | null
+        if (!viewport) {
+          console.warn('[ChannelEditDialog] dialogRef 查询失败，尝试全局查询')
+          // Teleport to body 后，需要从 document 查找；但可能有多个对话框，取最后一个（最新打开的）
+          const all = document.querySelectorAll('[data-slot="scroll-area-viewport"]')
+          viewport = all.length > 0 ? all[all.length - 1] : null
+        }
+
+        if (!viewport) {
+          console.error('[ChannelEditDialog] 未找到滚动容器')
+          return
+        }
+
+        scrollRoot = viewport
+        console.log('[ChannelEditDialog] 滚动容器已绑定', scrollRoot)
+        scrollHandler = () => updateActiveSectionFromScroll()
+        scrollRoot.addEventListener('scroll', scrollHandler, { passive: true })
+        updateActiveSectionFromScroll()
+      }, 200)
+    })
   })
 })
 
@@ -1452,7 +1461,11 @@ void fromSelectValue
                         :active-target-input-id="activeTargetInputId"
                         :target-input-filter="targetInputFilter"
                         :DEFAULT_SELECT_VALUE="DEFAULT_SELECT_VALUE"
+                        :no-vision-models-text="form.noVisionModelsText"
+                        :vision-fallback-model="form.visionFallbackModel"
                         @update:new-model-mapping="(updates) => Object.assign(newModelMapping, updates)"
+                        @update:no-vision-models-text="form.noVisionModelsText = $event"
+                        @update:vision-fallback-model="form.visionFallbackModel = $event"
                         @add-model-mapping-row="addModelMappingRow"
                         @remove-model-mapping-row="removeModelMappingRow"
                         @update-mapping-row="updateMappingRow"

@@ -125,72 +125,6 @@
 
         <!-- 映射容器 -->
         <div class="mapping-container rounded-xl pa-3">
-          <!-- 添加新映射（置顶） -->
-          <div class="add-mapping-row d-flex align-center ga-3 pa-3 mb-3 rounded-lg">
-            <v-combobox
-              v-model="newMapping.source"
-              :label="t('addChannel.sourceModelLabel')"
-              :items="sourceModelOptions"
-              variant="outlined"
-              density="compact"
-              hide-details
-              class="flex-grow-1 font-mono"
-              :placeholder="t('addChannel.sourceModelPlaceholder')"
-              clearable
-              :error="!!sourceMappingError"
-              eager
-              @update:model-value="handleSourceChange"
-              @update:menu="$emit('menu-update', $event)"
-              @keyup.enter="handleAddMapping"
-            />
-
-            <v-icon color="primary" size="18" class="arrow-icon">mdi-arrow-right</v-icon>
-
-            <v-combobox
-              v-model="newMapping.target"
-              :label="t('addChannel.targetModelLabel')"
-              :placeholder="targetModelPlaceholder"
-              :items="targetModelOptions"
-              :loading="fetchingModels"
-              variant="outlined"
-              density="compact"
-              hide-details
-              class="flex-grow-1 font-mono"
-              clearable
-              eager
-              @focus="$emit('sync-upstream')"
-              @update:menu="$emit('menu-update', $event)"
-              @keyup.enter="handleAddMapping"
-            />
-
-            <v-select
-              v-if="supportsOpenAIAdvancedOptions"
-              v-model="newMapping.reasoningEffort"
-              :label="t('addChannel.reasoningEffortLabel')"
-              :items="reasoningEffortOptions"
-              variant="outlined"
-              density="compact"
-              hide-details
-              clearable
-              class="flex-shrink-0"
-              style="min-width: 120px;"
-              eager
-              @update:menu="$emit('menu-update', $event)"
-            />
-
-            <v-btn
-              color="primary"
-              height="40"
-              variant="flat"
-              class="rounded-lg px-4"
-              :disabled="!isMappingInputValid"
-              @click="handleAddMapping"
-            >
-              <v-icon size="18" class="mr-1">mdi-plus</v-icon>
-              {{ t('app.actions.add') }}
-            </v-btn>
-          </div>
-
           <!-- 已配置映射列表 -->
           <div v-if="mappingRows.length">
             <div class="text-caption text-medium-emphasis mb-3 d-flex align-center justify-space-between px-1">
@@ -292,6 +226,72 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- 添加新映射 -->
+          <div class="add-mapping-row d-flex align-center ga-3 pa-3 mt-3 rounded-lg">
+            <v-combobox
+              v-model="newMapping.source"
+              :label="t('addChannel.sourceModelLabel')"
+              :items="sourceModelOptions"
+              variant="outlined"
+              density="compact"
+              hide-details
+              class="flex-grow-1 font-mono"
+              :placeholder="t('addChannel.sourceModelPlaceholder')"
+              clearable
+              :error="!!sourceMappingError"
+              eager
+              @update:model-value="handleSourceChange"
+              @update:menu="$emit('menu-update', $event)"
+              @keyup.enter="handleAddMapping"
+            />
+
+            <v-icon color="primary" size="18" class="arrow-icon">mdi-arrow-right</v-icon>
+
+            <v-combobox
+              v-model="newMapping.target"
+              :label="t('addChannel.targetModelLabel')"
+              :placeholder="targetModelPlaceholder"
+              :items="targetModelOptions"
+              :loading="fetchingModels"
+              variant="outlined"
+              density="compact"
+              hide-details
+              class="flex-grow-1 font-mono"
+              clearable
+              eager
+              @focus="$emit('sync-upstream')"
+              @update:menu="$emit('menu-update', $event)"
+              @keyup.enter="handleAddMapping"
+            />
+
+            <v-select
+              v-if="supportsOpenAIAdvancedOptions"
+              v-model="newMapping.reasoningEffort"
+              :label="t('addChannel.reasoningEffortLabel')"
+              :items="reasoningEffortOptions"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              class="flex-shrink-0"
+              style="min-width: 120px;"
+              eager
+              @update:menu="$emit('menu-update', $event)"
+            />
+
+            <v-btn
+              color="primary"
+              height="40"
+              variant="flat"
+              class="rounded-lg px-4"
+              :disabled="!isMappingInputValid"
+              @click="handleAddMapping"
+            >
+              <v-icon size="18" class="mr-1">mdi-plus</v-icon>
+              {{ t('app.actions.add') }}
+            </v-btn>
           </div>
         </div>
 
