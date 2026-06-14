@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, type ComputedRef } from 'vue'
 import type { AgentPlatform, AgentProvider, AgentConfigStatus, ApplyAgentConfigRequest, ConfigDiffResult, MigrateCodexSessionsResult } from '@/types'
 import { useLanguage } from '@/composables/useLanguage'
 import {
@@ -10,8 +10,6 @@ import {
   PreviewRestoreConfigDiff,
   MigrateCodexSessions,
 } from '@bindings/github.com/BenedictKing/ccx/desktop/desktopservice'
-
-const { t } = useLanguage()
 
 const agentLabels: Record<AgentPlatform, string> = {
   claude: 'Claude Code',
@@ -40,32 +38,52 @@ const claudeProviderLabels: Record<AgentProvider | 'custom', string> = {
   'opencode-go': 'OpenCode Go',
   openai: 'OpenAI',
   xfyun: '讯飞星辰',
-  custom: t('agent.custom'),
+  // custom 需要 i18n，延迟到函数内获取
+  custom: 'Custom',
 }
 
-const codexProviderLabels = computed<Record<AgentProvider | 'custom', string>>(() => ({
-  ccx: t('agent.localGateway'),
-  openai: 'OpenAI',
-  deepseek: 'DeepSeek',
-  mimo: 'MiMo',
-  compshare: 'Compshare',
-  runapi: 'RunAPI',
-  'tencent-lkeap': '腾讯云 TokenHub',
-  'kimi-code': 'Kimi Code',
-  'volc-ark': '火山方舟',
-  qianfan: '百度千帆',
-  originrouter: '极易云',
-  kimi: 'Kimi',
-  glm: 'GLM',
-  minimax: 'MiniMax',
-  dashscope: 'DashScope',
-  openrouter: 'OpenRouter',
-  modelscope: 'ModelScope',
-  'opencode-zen': 'OpenCode Zen',
-  'opencode-go': 'OpenCode Go',
-  xfyun: '讯飞星辰',
-  custom: t('agent.custom'),
-}))
+// codexProviderLabels 需要响应式 t()，延迟到 useAgentConfig() 内构建
+let _codexProviderLabels: ComputedRef<Record<AgentProvider | 'custom', string>> | null = null
+
+function getCodexProviderLabels(): ComputedRef<Record<AgentProvider | 'custom', string>> {
+  if (!_codexProviderLabels) {
+    const { t } = useLanguage()
+    _codexProviderLabels = computed<Record<AgentProvider | 'custom', string>>(() => ({
+      ccx: t('agent.localGateway'),
+      openai: 'OpenAI',
+      deepseek: 'DeepSeek',
+      mimo: 'MiMo',
+      compshare: 'Compshare',
+      runapi: 'RunAPI',
+      'tencent-lkeap': '腾讯云 TokenHub',
+      'kimi-code': 'Kimi Code',
+      'volc-ark': '火山方舟',
+      qianfan: '百度千帆',
+      originrouter: '极易云',
+      kimi: 'Kimi',
+      glm: 'GLM',
+      minimax: 'MiniMax',
+      dashscope: 'DashScope',
+      openrouter: 'OpenRouter',
+      modelscope: 'ModelScope',
+      'opencode-zen': 'OpenCode Zen',
+      'opencode-go': 'OpenCode Go',
+      xfyun: '讯飞星辰',
+      custom: t('agent.custom'),
+    }))
+  }
+  return _codexProviderLabels!
+}
+
+// 延迟获取 t 函数，首次 useAgentConfig() 调用时初始化
+let _t: ((key: string, params?: Record<string, string>) => string) | null = null
+
+function getT() {
+  if (!_t) {
+    _t = useLanguage().t
+  }
+  return _t
+}
 
 const agentPlatforms: AgentPlatform[] = ['claude', 'codex', 'opencode']
 
@@ -133,24 +151,24 @@ const isCodexThirdPartyWithMode = (provider?: string) => {
 }
 
 const claudeProviderLabel = (value?: string) => {
-  if (!value) return t('agent.statusDetecting')
+  if (!value) return getT()('agent.statusDetecting')
   return claudeProviderLabels[value as AgentProvider | 'custom'] || value
 }
 
 const codexProviderLabel = (value?: string) => {
-  if (!value) return t('agent.statusDetecting')
-  return codexProviderLabels.value[value as AgentProvider | 'custom'] || value
+  if (!value) return getT()('agent.statusDetecting')
+  return getCodexProviderLabels().value[value as AgentProvider | 'custom'] || value
 }
 
 const openCodeProviderLabel = (value?: string) => {
-  if (!value) return t('agent.statusDetecting')
-  return codexProviderLabels.value[value as AgentProvider | 'custom'] || value
+  if (!value) return getT()('agent.statusDetecting')
+  return getCodexProviderLabels().value[value as AgentProvider | 'custom'] || value
 }
 
 const claudeTargetBaseUrl = () => {
   switch (selectedClaudeProvider.value) {
     case 'ccx':
-      return agentStatuses.value.claude?.targetBaseUrl || t('agent.localGateway')
+      return agentStatuses.value.claude?.targetBaseUrl || getT()('agent.localGateway')
     case 'deepseek':
       return 'https://api.deepseek.com/anthropic'
     case 'mimo':
@@ -191,7 +209,7 @@ const claudeTargetBaseUrl = () => {
 const codexTargetBaseUrl = () => {
   switch (selectedCodexProvider.value) {
     case 'ccx':
-      return agentStatuses.value.codex?.targetBaseUrl || t('agent.localGateway')
+      return agentStatuses.value.codex?.targetBaseUrl || getT()('agent.localGateway')
     case 'openai':
       return 'https://api.openai.com/v1'
     case 'deepseek':
@@ -234,7 +252,7 @@ const codexTargetBaseUrl = () => {
 const openCodeTargetBaseUrl = () => {
   switch (selectedOpenCodeProvider.value) {
     case 'ccx':
-      return agentStatuses.value.opencode?.targetBaseUrl || t('agent.localGateway')
+      return agentStatuses.value.opencode?.targetBaseUrl || getT()('agent.localGateway')
     case 'deepseek':
       return 'https://api.deepseek.com/v1'
     case 'mimo':
@@ -273,6 +291,7 @@ const openCodeTargetBaseUrl = () => {
 }
 
 const agentStatusText = (item: AgentConfigStatus | null) => {
+  const t = getT()
   if (!item) return t('agent.statusDetecting')
   if (item.configured) return t('agent.statusConfigured')
   if (item.needsUpdate) return t('agent.statusPortMismatch')
@@ -478,7 +497,7 @@ const showApplyPreview = async (platform: AgentPlatform) => {
   if (platform === 'codex' && (selectedCodexProvider.value === 'ccx' || isCodexThirdPartyWithMode(selectedCodexProvider.value))) {
     const currentMode = agentStatuses.value.codex?.mode === 'plugin' ? 'plugin' : 'quick'
     if (currentMode !== codexMode.value) {
-      diffWarning.value = t('agent.sessionMigrationWarning')
+      diffWarning.value = getT()('agent.sessionMigrationWarning')
     }
   }
   diffPendingPlatform.value = platform
@@ -586,7 +605,7 @@ export function useAgentConfig() {
     selectedDashScopePlan,
     agentLabels,
     claudeProviderLabels,
-    codexProviderLabels,
+    codexProviderLabels: getCodexProviderLabels(),
     agentPlatforms,
     isClaudeProvider,
     claudeProviderLabel,
