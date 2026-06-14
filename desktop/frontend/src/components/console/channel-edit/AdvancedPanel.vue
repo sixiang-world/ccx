@@ -170,7 +170,7 @@ function applyStreamTimeoutPreset(presetKey: 'gentle' | 'balanced' | 'aggressive
         <!-- 协议规范化 -->
         <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-2.5">
         <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
-          Compatibility 协议规范化
+          {{ tf('console.form.compatibilityTitle', '协议规范化') }}
         </div>
         <div class="space-y-2">
           <div v-if="channelType === 'responses'" class="flex items-center justify-between">
@@ -245,7 +245,7 @@ function applyStreamTimeoutPreset(presetKey: 'gentle' | 'balanced' | 'aggressive
       <!-- Runtime 运行期策略 -->
       <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-2.5">
         <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
-          Runtime 运行期策略
+          {{ tf('console.form.runtimeTitle', '运行期策略') }}
         </div>
         <div class="space-y-2">
           <div class="flex items-center justify-between">
@@ -267,7 +267,7 @@ function applyStreamTimeoutPreset(presetKey: 'gentle' | 'balanced' | 'aggressive
       <!-- Transport 代理路由网络 -->
       <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-3">
         <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
-          Transport 代理路由网络
+          {{ tf('console.form.transportTitle', '代理路由网络') }}
         </div>
         <div class="grid grid-cols-3 gap-2">
           <div class="space-y-1">
@@ -305,7 +305,7 @@ function applyStreamTimeoutPreset(presetKey: 'gentle' | 'balanced' | 'aggressive
       <!-- Rate Limit -->
       <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-3">
         <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Rate Limit 上游主动限速流量阀
+          {{ tf('console.form.rateLimitTitle', '上游主动限速流量阀') }}
         </div>
         <div class="grid grid-cols-3 gap-3">
           <div class="space-y-1">
@@ -344,7 +344,7 @@ function applyStreamTimeoutPreset(presetKey: 'gentle' | 'balanced' | 'aggressive
       <!-- 流式断流超时控制 -->
       <div class="space-y-3">
         <div class="flex items-center justify-between">
-          <div class="text-[10px] font-bold uppercase tracking-wider text-primary">流式断流超时控制</div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-primary">{{ tf('console.form.streamTimeoutTitle', '流式断流超时控制') }}</div>
           <div class="flex gap-1">
             <Button
               size="sm"

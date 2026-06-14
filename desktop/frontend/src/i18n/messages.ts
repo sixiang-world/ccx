@@ -612,6 +612,17 @@ export type MessageKey =
   | 'console.form.save'
   | 'console.form.website'
   | 'console.form.baseUrlPlaceholder'
+  | 'console.form.sectionBasic'
+  | 'console.form.sectionAuth'
+  | 'console.form.sectionRedirect'
+  | 'console.form.sectionAdvanced'
+  | 'console.form.sectionHeaders'
+  | 'console.form.outline'
+  | 'console.form.compatibilityTitle'
+  | 'console.form.runtimeTitle'
+  | 'console.form.transportTitle'
+  | 'console.form.rateLimitTitle'
+  | 'console.form.streamTimeoutTitle'
   | 'console.form.modelRedirect'
   | 'console.form.modelMappingExisting'
   | 'console.form.modelMappingAdd'
@@ -1377,6 +1388,17 @@ export const messages: Record<SupportedLocale, Messages> = {
     'console.form.save': 'Save',
     'console.form.website': 'Website',
     'console.form.baseUrlPlaceholder': 'One per line, first is primary, the rest are failover\nhttps://api.example.com\nhttps://backup.example.com',
+    'console.form.sectionBasic': 'Basic config',
+    'console.form.sectionAuth': 'Authentication',
+    'console.form.sectionRedirect': 'Model redirect',
+    'console.form.sectionAdvanced': 'Advanced options',
+    'console.form.sectionHeaders': 'Custom parameters',
+    'console.form.outline': 'Outline',
+    'console.form.compatibilityTitle': 'Compatibility',
+    'console.form.runtimeTitle': 'Runtime',
+    'console.form.transportTitle': 'Transport',
+    'console.form.rateLimitTitle': 'Rate Limit',
+    'console.form.streamTimeoutTitle': 'Stream Timeout',
     'console.form.modelRedirect': 'Model redirect',
     'console.form.modelMappingExisting': 'Configured',
     'console.form.modelMappingAdd': 'Add redirect',
@@ -2134,6 +2156,17 @@ export const messages: Record<SupportedLocale, Messages> = {
     'console.form.save': '保存',
     'console.form.website': '网站',
     'console.form.baseUrlPlaceholder': '每行一个，第一行为主地址，其余作为故障转移\nhttps://api.example.com\nhttps://backup.example.com',
+    'console.form.sectionBasic': '基础配置',
+    'console.form.sectionAuth': '认证管理',
+    'console.form.sectionRedirect': '模型重定向',
+    'console.form.sectionAdvanced': '高级选项',
+    'console.form.sectionHeaders': '自定义参数',
+    'console.form.outline': '配置大纲',
+    'console.form.compatibilityTitle': '协议规范化',
+    'console.form.runtimeTitle': '运行期策略',
+    'console.form.transportTitle': '代理路由网络',
+    'console.form.rateLimitTitle': '上游主动限速流量阀',
+    'console.form.streamTimeoutTitle': '流式断流超时控制',
     'console.form.modelRedirect': '模型重定向',
     'console.form.modelMappingExisting': '已配置',
     'console.form.modelMappingAdd': '添加新重定向',

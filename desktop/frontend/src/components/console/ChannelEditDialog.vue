@@ -70,14 +70,14 @@ const dialogRef = ref<HTMLElement | null>(null)
 let scrollRoot: Element | null = null
 let scrollHandler: (() => void) | null = null
 
-// 导航 section 定义
-const sections = [
-  { id: 'basic', label: '基础配置' },
-  { id: 'auth', label: '认证管理' },
-  { id: 'redirect', label: '模型重定向' },
-  { id: 'advanced', label: '高级选项' },
-  { id: 'headers', label: '自定义参数' },
-]
+// 导航 section 定义（使用 computed 保证语言切换后更新）
+const sections = computed(() => [
+  { id: 'basic', label: tf('console.form.sectionBasic', '基础配置') },
+  { id: 'auth', label: tf('console.form.sectionAuth', '认证管理') },
+  { id: 'redirect', label: tf('console.form.sectionRedirect', '模型重定向') },
+  { id: 'advanced', label: tf('console.form.sectionAdvanced', '高级选项') },
+  { id: 'headers', label: tf('console.form.sectionHeaders', '自定义参数') },
+])
 
 function scrollToSection(id: string) {
   activeSection.value = id
@@ -94,10 +94,10 @@ function setSectionRef(id: string, el: any) {
 function updateActiveSectionFromScroll() {
   if (!scrollRoot) return
   const rootTop = scrollRoot.getBoundingClientRect().top
-  let current = sections[0]?.id || 'basic'
+  let current = sections.value[0]?.id || 'basic'
 
   // 遍历所有 section，找到最后一个进入视口顶部的 section
-  for (const s of sections) {
+  for (const s of sections.value) {
     const el = sectionRefs.value[s.id]
     if (!el) continue
     const top = el.getBoundingClientRect().top - rootTop
@@ -1384,7 +1384,7 @@ void fromSelectValue
           <div class="min-h-0 flex-1 flex">
             <!-- 左侧导航 -->
             <nav class="hidden md:flex w-40 shrink-0 flex-col items-stretch gap-1 rounded-none border-r border-border/50 bg-card/20 p-4">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 mb-2">配置大纲</div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 mb-2">{{ tf('console.form.outline', '配置大纲') }}</div>
               <button
                 v-for="s in sections"
                 :key="s.id"
