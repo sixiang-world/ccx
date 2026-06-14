@@ -186,7 +186,7 @@ function onKeyDown(e: KeyboardEvent) {
           <div class="flex shrink-0 items-center justify-between border-b border-border p-4">
             <div class="flex min-w-0 items-center gap-2">
               <h3 class="truncate text-sm font-semibold">
-                {{ tf('console.logs.title', '频道日志') }}: {{ channelName }}
+                {{ tf('channelLogs.title', '频道日志') }}: {{ channelName }}
               </h3>
               <Badge variant="secondary" class="text-[10px]">
                 {{ logs.length }} {{ tf('console.logs.entries', '条') }}
@@ -217,7 +217,7 @@ function onKeyDown(e: KeyboardEvent) {
 
             <div v-else-if="logs.length === 0" class="flex flex-col items-center gap-2 p-8 text-center text-sm text-muted-foreground">
               <List class="h-10 w-10" />
-              {{ tf('console.logs.empty', '暂无日志') }}
+              {{ tf('channelLogs.empty', '暂无日志') }}
             </div>
 
             <ScrollArea v-else class="h-full">

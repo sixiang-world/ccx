@@ -69,10 +69,10 @@ const usableKeys = computed(() => {
   <section class="space-y-4 rounded-xl border bg-card/40 p-5 shadow-xs" :class="errors.apiKeys ? 'border-destructive/40' : 'border-border/60'">
     <div class="flex items-center justify-between border-b border-border/40 pb-2">
       <h4 class="text-xs font-bold uppercase tracking-wider text-primary">
-        {{ tf('console.form.authentication', '鉴权认证') }} *
+        {{ tf('channelEditor.nav.auth', '鉴权认证') }} *
       </h4>
       <span class="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold px-2 py-0.5 rounded-full">
-        {{ usableKeys.length }} {{ tf('console.keys.active', '个有效活跃密钥') }}
+        {{ usableKeys.length }} {{ tf('channelCard.configuredKeys', '个有效活跃密钥') }}
       </span>
     </div>
 
@@ -167,7 +167,7 @@ const usableKeys = computed(() => {
     <!-- Disabled Keys -->
     <div v-if="hasDisabledKeys && visibleDisabledKeys.length" class="space-y-2 border border-amber-500/20 bg-amber-500/10 p-3 rounded-lg">
       <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-        {{ tf('console.form.disabledKeys', 'Disabled keys') }} ({{ visibleDisabledKeys.length }})
+        {{ tf('channelEditor.auth.disabledKeys.label', 'Disabled keys') }} ({{ visibleDisabledKeys.length }})
       </div>
       <div v-for="item in visibleDisabledKeys" :key="item.key" class="flex items-center justify-between gap-2 text-xs">
         <div class="min-w-0 space-y-0.5">
@@ -191,14 +191,14 @@ const usableKeys = computed(() => {
         >
           <Loader2 v-if="restoringKey === item.key" class="h-3 w-3 animate-spin" />
           <RotateCcw v-else class="h-3 w-3" />
-          {{ tf('console.form.restoreKey', 'Restore') }}
+          {{ tf('channelEditor.auth.restoreKey', 'Restore') }}
         </Button>
       </div>
     </div>
 
     <!-- Historical Keys Info -->
     <div v-if="historicalApiKeys.length" class="text-xs text-muted-foreground">
-      {{ historicalApiKeys.length }} {{ tf('console.form.historicalKeys', 'historical keys recorded') }}
+      {{ historicalApiKeys.length }} {{ tf('channelEditor.auth.historicalKeys', 'historical keys recorded') }}
     </div>
   </section>
 </template>

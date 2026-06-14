@@ -72,23 +72,23 @@ function fromSelectValue(value: string): string {
     <!-- 生成参数 -->
     <section v-if="supportsOpenAIAdvanced || channelType === 'responses' || channelType === 'chat'" class="space-y-3 rounded-xl border border-border/60 bg-card/40 p-5 shadow-xs">
       <h4 class="text-xs font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2">
-        {{ tf('console.form.generationParams', '生成参数') }}
+        {{ tf('channelEditor.compat.generationParams', '生成参数') }}
       </h4>
 
       <div v-if="supportsOpenAIAdvanced" class="grid gap-4 md:grid-cols-2 bg-background/30 p-3 rounded-lg border border-border/40">
         <div class="flex items-center justify-between p-2 rounded-md hover:bg-accent/40 transition-colors">
           <div class="space-y-0.5">
-            <Label class="text-xs font-semibold">{{ tf('console.form.fastMode', '快速模式') }}</Label>
-            <p class="text-[10px] text-muted-foreground">{{ tf('console.form.fastModeHint', '优先选取低延迟的轻量边缘路由链路') }}</p>
+            <Label class="text-xs font-semibold">{{ tf('channelEditor.compat.fastMode.label', '快速模式') }}</Label>
+            <p class="text-[10px] text-muted-foreground">{{ tf('channelEditor.compat.fastMode.hint', '优先选取低延迟的轻量边缘路由链路') }}</p>
           </div>
           <Switch :model-value="form.fastMode" @update:model-value="updateField('fastMode', $event)" />
         </div>
 
         <div class="space-y-1 p-1">
-          <Label class="text-[10px] font-bold text-muted-foreground uppercase">{{ tf('console.form.textVerbosityStyle', 'Text Verbosity Style') }}</Label>
+          <Label class="text-[10px] font-bold text-muted-foreground uppercase">{{ tf('channelEditor.compat.textVerbosity.style', 'Text Verbosity Style') }}</Label>
           <Select :model-value="toSelectValue(form.textVerbosity)" @update:model-value="(val) => updateField('textVerbosity', fromSelectValue(val as string) as any)">
             <SelectTrigger class="h-9 w-full">
-              <SelectValue :placeholder="tf('console.form.selectDefault', '默认')" />
+              <SelectValue :placeholder="tf('channelEditor.compat.selectDefault', '默认')" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="opt in textVerbosityOptions" :key="opt.value" :value="opt.value">
@@ -102,21 +102,21 @@ function fromSelectValue(value: string): string {
       <!-- Vision 控制 -->
       <div v-if="['messages', 'chat'].includes(channelType)" class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-3">
         <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
-          {{ tf('console.form.visionTitle', '视觉控制') }}
+          {{ tf('channelEditor.compat.vision.title', '视觉控制') }}
         </div>
         <div class="space-y-3">
           <div class="flex flex-row-reverse items-center justify-between gap-3">
             <Switch :model-value="form.noVision" @update:model-value="updateField('noVision', $event)" class="shrink-0" />
             <div class="min-w-0 space-y-0.5">
-              <Label class="text-xs font-medium">{{ tf('console.form.noVision', '跳过含图请求') }}</Label>
+              <Label class="text-xs font-medium">{{ tf('channelEditor.compat.noVision.label', '跳过含图请求') }}</Label>
               <p class="text-[10px] text-muted-foreground">
-                {{ tf('console.form.noVisionHint', '启用后，包含图片的请求将跳过此渠道并 failover 到下一个渠道') }}
+                {{ tf('channelEditor.compat.noVision.hint', '启用后，包含图片的请求将跳过此渠道并 failover 到下一个渠道') }}
               </p>
             </div>
           </div>
           <div class="space-y-1">
             <Label class="text-[10px] font-bold text-muted-foreground">
-              {{ tf('console.form.historicalImageTurnLimit', '历史图片轮次限制') }}
+              {{ tf('channelEditor.compat.historicalImageLimit.label', '历史图片轮次限制') }}
             </Label>
             <Input
               :model-value="form.historicalImageTurnLimit"
@@ -127,7 +127,7 @@ function fromSelectValue(value: string): string {
               @update:model-value="updateField('historicalImageTurnLimit', Number($event))"
             />
             <p class="text-[10px] leading-4 text-muted-foreground">
-              {{ tf('console.form.historicalImageTurnLimitHint', '0 = 继承全局；后端会对 >0 的值应用最低 3 约束') }}
+              {{ tf('channelEditor.compat.historicalImageLimit.hint', '0 = 继承全局；后端会对 >0 的值应用最低 3 约束') }}
             </p>
           </div>
         </div>

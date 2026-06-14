@@ -81,10 +81,10 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
         <div class="mb-1 flex items-center gap-1.5 font-semibold">
           <CheckCircle2 v-if="detectedApiKeys?.length" class="h-3.5 w-3.5 text-emerald-500" />
           <AlertCircle v-else class="h-3.5 w-3.5 text-muted-foreground" />
-          {{ tf('console.form.apiKeys', 'API Keys') }}
+          {{ tf('channelEditor.auth.keys.label', 'API Keys') }}
         </div>
         <p class="text-muted-foreground">
-          {{ detectedApiKeys?.length ? `${detectedApiKeys.length} ${tf('console.keys.active', 'active keys')}` : tf('addChannel.noneDetected', '未识别') }}
+          {{ detectedApiKeys?.length ? `${detectedApiKeys.length} ${tf('channelCard.configuredKeys', 'active keys')}` : tf('addChannel.noneDetected', '未识别') }}
         </p>
       </div>
     </div>
@@ -115,7 +115,7 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
             </Label>
             <Select :model-value="form.serviceType" @update:model-value="updateField('serviceType', $event as any)">
               <SelectTrigger class="h-9" :class="{ 'border-destructive': errors.serviceType }">
-                <SelectValue :placeholder="tf('console.form.selectServiceType', '选择服务类型')" />
+                <SelectValue :placeholder="tf('channelEditor.basic.serviceType.placeholder', '选择服务类型')" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="opt in serviceTypeOptions" :key="opt.value" :value="opt.value">
@@ -146,7 +146,7 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
             <Label class="text-xs font-semibold text-muted-foreground">
               Base URL <span class="text-destructive">*</span>
             </Label>
-            <span class="text-[10px] text-muted-foreground/80 scale-95 origin-right">{{ tf('console.form.multiLineFailover', '多行实现故障轮换') }}</span>
+            <span class="text-[10px] text-muted-foreground/80 scale-95 origin-right">{{ tf('channelEditor.basic.multiLineFailover', '多行实现故障轮换') }}</span>
           </div>
           <Textarea
             :model-value="form.baseUrlsText"
@@ -158,7 +158,7 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
           <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 bg-accent/40 px-2 py-1 rounded-md border border-border/30">
             <span class="inline-block size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <span class="font-mono truncate">
-              {{ tf('console.form.expectedEndpoint', '预期终点:') }} {{ expectedRequestUrls[0]?.expectedUrl || 'N/A' }}
+              {{ tf('channelEditor.basic.expectedEndpoint', '预期终点:') }} {{ expectedRequestUrls[0]?.expectedUrl || 'N/A' }}
             </span>
           </div>
           <p v-if="errors.baseUrl" class="text-[10px] text-destructive">{{ errors.baseUrl }}</p>

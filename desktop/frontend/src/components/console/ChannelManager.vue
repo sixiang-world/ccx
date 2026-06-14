@@ -406,14 +406,14 @@ watch(() => props.type, () => {
           <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             v-model="searchQuery"
-            :placeholder="tf('console.searchChannels', '搜索频道...')"
+            :placeholder="tf('orchestration.searchPlaceholder', '搜索频道...')"
             class="pl-9"
           />
         </div>
         <!-- 批量测速按钮：桌面端暂不展示，放不下 -->
         <Button size="sm" @click="handleAdd">
           <Plus class="h-3.5 w-3.5" />
-          {{ tf('console.addChannel', '添加频道') }}
+          {{ tf('app.actions.addChannel', '添加频道') }}
         </Button>
         <div class="flex-1" />
         <Button
@@ -422,7 +422,7 @@ watch(() => props.type, () => {
           class="h-7 text-xs"
           :class="{ 'border-amber-500/40 text-amber-600 dark:text-amber-400': fuzzyEnabled }"
           :disabled="fuzzyLoading"
-          :title="fuzzyLoadError ? t('console.fuzzyLoadFailed') : (fuzzyEnabled ? t('console.fuzzyEnabled') : t('console.fuzzyDisabled'))"
+          :title="fuzzyLoadError ? t('toast.loadFuzzyFailed') : (fuzzyEnabled ? t('tooltip.fuzzyEnabled') : t('tooltip.fuzzyDisabled'))"
           @click="toggleFuzzyMode"
         >
           <ShieldCheck v-if="fuzzyEnabled" class="h-3 w-3 mr-1" />
@@ -452,7 +452,7 @@ watch(() => props.type, () => {
         <div class="border border-border bg-background/60 px-3 py-2">
           <div class="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Mode</div>
           <div class="truncate text-sm font-semibold text-foreground">
-            {{ stats?.multiChannelMode ? tf('console.mode.multi', 'Multi-channel') : tf('console.mode.single', 'Single-channel') }}
+            {{ stats?.multiChannelMode ? tf('orchestration.multiChannel', 'Multi-channel') : tf('orchestration.singleChannel', 'Single-channel') }}
           </div>
         </div>
       </div>
@@ -475,8 +475,8 @@ watch(() => props.type, () => {
     <div v-else-if="activeChannels.length === 0 && inactiveChannels.length === 0" class="border border-dashed border-border bg-card/50 py-12 text-center">
       <p class="text-sm text-muted-foreground">
         {{ searchQuery
-          ? tf('console.noSearchResults', '没有匹配的频道')
-          : tf('console.noChannels', '暂无频道，点击上方按钮添加')
+          ? tf('orchestration.searchPlaceholder', '没有匹配的频道')
+          : tf('orchestration.noActiveChannels', '暂无频道，点击上方按钮添加')
         }}
       </p>
     </div>
@@ -493,11 +493,11 @@ watch(() => props.type, () => {
           <div class="flex items-center gap-2">
             <Layers class="h-4 w-4 text-primary" />
             <span class="text-xs font-bold uppercase tracking-[0.18em] text-foreground">
-              {{ tf('console.pool.active', 'Failover Sequence') }}
+              {{ tf('orchestration.failoverSequence', 'Failover Sequence') }}
             </span>
           </div>
           <span class="font-mono text-[11px] text-muted-foreground">
-            {{ tf('console.pool.current', 'Current channel') }}{{ currentChannelName ? ` ${currentChannelName}` : '' }}{{ currentIndex >= 0 ? ` (#${currentIndex + 1})` : ' —' }}
+            {{ tf('orchestration.failoverSequence', 'Current channel') }}{{ currentChannelName ? ` ${currentChannelName}` : '' }}{{ currentIndex >= 0 ? ` (#${currentIndex + 1})` : ' —' }}
           </span>
         </div>
         <div class="divide-y divide-border">
@@ -540,7 +540,7 @@ watch(() => props.type, () => {
         <div class="flex items-center gap-2 border-b border-border px-3 py-2">
           <Archive class="h-4 w-4 text-muted-foreground" />
           <span class="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
-            {{ tf('console.pool.inactive', 'Standby Pool') }}
+            {{ tf('orchestration.standbyPool', 'Standby Pool') }}
           </span>
         </div>
         <div class="divide-y divide-border">

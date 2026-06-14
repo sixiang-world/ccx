@@ -681,5 +681,10 @@
   "channelEditor.streamTimeout.toolCallIdle.label": "工具调用空闲",
   "channelEditor.streamTimeout.toolCallIdle.hint": "FunctionCall 延迟超时",
   "channelEditor.streamTimeout.overrideHint": "自定义值将覆盖此渠道的全局流式超时设置",
-  "channelEditor.streamTimeout.inheritHint": "禁用表示此渠道继承全局流式超时设置"
+  "channelEditor.streamTimeout.inheritHint": "禁用表示此渠道继承全局流式超时设置",
+  "channelEditor.compat.selectDefault": "默认",
+  "channelEditor.streamTimeout.preset.gentle": "宽松",
+  "channelEditor.streamTimeout.preset.balanced": "平衡",
+  "channelEditor.streamTimeout.preset.aggressive": "激进",
+  "channelEditor.streamTimeout.timeoutThreshold": "超时阈值"
 }

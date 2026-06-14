@@ -121,10 +121,10 @@ watch(() => status.value.running, (running) => {
         >
           <TabsList class="h-7 border border-border bg-secondary/40 p-0.5">
             <TabsTrigger value="channels" class="px-2.5 py-0.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              {{ tf('console.channelsTab', 'Channels') }}
+              {{ tf('app.tabs.messages', 'Channels') }}
             </TabsTrigger>
             <TabsTrigger value="conversations" class="px-2.5 py-0.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              {{ tf('console.conversationsTab', 'Cockpit') }}
+              {{ tf('app.tabs.conversations', 'Cockpit') }}
             </TabsTrigger>
           </TabsList>
         </Tabs>

@@ -202,10 +202,10 @@ function handleRpmBlur() {
 function getRunModeLabel(mode: string): string {
   const map: Record<string, string> = {
     fresh: '',
-    reused_running: tf('capability.runMode.reusedRunning', '复用运行'),
-    resumed_cancelled: tf('capability.runMode.resumedCancelled', '恢复取消'),
-    cache_hit: tf('capability.runMode.cacheHit', '缓存命中'),
-    reused_previous_results: tf('capability.runMode.reusedPrevious', '复用上次结果'),
+    reused_running: tf('capability.runModeReusedRunning', '复用运行'),
+    resumed_cancelled: tf('capability.runModeResumedCancelled', '恢复取消'),
+    cache_hit: tf('capability.runModeCacheHit', '缓存命中'),
+    reused_previous_results: tf('capability.runModeReusedPreviousResults', '复用上次结果'),
   }
   return map[mode] ?? mode
 }

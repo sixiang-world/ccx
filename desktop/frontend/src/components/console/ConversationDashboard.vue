@@ -83,15 +83,15 @@ const overrideCount = computed(() => Object.keys(overrides.value).length)
 const shouldRefresh = computed(() => status.value.running)
 
 const durationOptions = computed(() => [
-  { label: tf('console.conversations.duration.default', '30 分钟（默认）'), value: '1800' },
-  { label: tf('console.conversations.duration.15min', '15 分钟'), value: '900' },
-  { label: tf('console.conversations.duration.1hour', '1 小时'), value: '3600' },
-  { label: tf('console.conversations.duration.2hours', '2 小时'), value: '7200' },
-  { label: tf('console.conversations.duration.4hours', '4 小时'), value: '14400' },
-  { label: tf('console.conversations.duration.8hours', '8 小时'), value: '28800' },
-  { label: tf('console.conversations.duration.12hours', '12 小时'), value: '43200' },
-  { label: tf('console.conversations.duration.24hours', '24 小时'), value: '86400' },
-  { label: tf('console.conversations.duration.never', '永不恢复'), value: '-1' },
+  { label: tf('cockpit.durationDefault', '30 分钟（默认）'), value: '1800' },
+  { label: tf('cockpit.duration15min', '15 分钟'), value: '900' },
+  { label: tf('cockpit.duration1hour', '1 小时'), value: '3600' },
+  { label: tf('cockpit.duration2hours', '2 小时'), value: '7200' },
+  { label: tf('cockpit.duration4hours', '4 小时'), value: '14400' },
+  { label: tf('cockpit.duration8hours', '8 小时'), value: '28800' },
+  { label: tf('cockpit.duration12hours', '12 小时'), value: '43200' },
+  { label: tf('cockpit.duration24hours', '24 小时'), value: '86400' },
+  { label: tf('cockpit.durationNever', '永不恢复'), value: '-1' },
 ])
 
 function overrideDurationAsNumber(): number {
@@ -375,9 +375,9 @@ watch(overrideDuration, async (newDuration) => {
       </Select>
 
       <span class="text-xs text-muted-foreground">
-        {{ tf('console.conversations.active', '活跃: {count}').replace('{count}', String(visibleConversations.length)) }}
+        {{ tf('cockpit.active', '活跃: {count}').replace('{count}', String(visibleConversations.length)) }}
         <span v-if="overrideCount > 0" class="ml-2 text-amber-500">
-          {{ tf('console.conversations.override', '覆盖: {count}').replace('{count}', String(overrideCount)) }}
+          {{ tf('cockpit.override', '覆盖: {count}').replace('{count}', String(overrideCount)) }}
         </span>
       </span>
     </div>

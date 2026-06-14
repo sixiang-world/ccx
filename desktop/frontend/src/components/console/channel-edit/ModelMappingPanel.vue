@@ -71,7 +71,7 @@ function fromSelectValue(value: string): ReasoningEffort | '' {
           {{ t('channelEditor.mapping.redirect.title') }}
         </h4>
         <p class="text-[10px] text-muted-foreground">
-          {{ tf('console.form.mappingHint', '拦截调用请求中的 Source 别名并定向投递至上游 Target 真实模型') }}
+          {{ tf('channelEditor.mapping.hint', '拦截调用请求中的 Source 别名并定向投递至上游 Target 真实模型') }}
         </p>
       </div>
       <Button
@@ -205,7 +205,7 @@ function fromSelectValue(value: string): ReasoningEffort | '' {
       </div>
       <div class="space-y-1.5">
         <Label class="text-xs font-semibold text-muted-foreground">
-          {{ tf('console.form.visionFallbackModel', '视觉回退目标模型') }}
+          {{ tf('channelEditor.compat.visionFallback.label', '视觉回退目标模型') }}
         </Label>
         <Input
           :model-value="visionFallbackModel"
@@ -213,14 +213,14 @@ function fromSelectValue(value: string): ReasoningEffort | '' {
           placeholder="mimo-v2.5"
           @update:model-value="(val) => emit('update:visionFallbackModel', val as string)"
         />
-        <p class="text-[10px] text-muted-foreground">{{ tf('console.form.visionFallbackHint', '已通过模型重定向行的视觉开关标记禁用视觉模型；这些模型遇到图像输入时会自动切换到此模型处理') }}</p>
+        <p class="text-[10px] text-muted-foreground">{{ tf('channelEditor.compat.visionFallback.hint', '已通过模型重定向行的视觉开关标记禁用视觉模型；这些模型遇到图像输入时会自动切换到此模型处理') }}</p>
       </div>
     </div>
 
     <!-- 限定可支持模型范围 -->
     <div class="rounded-xl border border-border/60 bg-card/30 p-4 space-y-3">
       <Label class="text-xs font-semibold text-muted-foreground">
-        {{ tf('console.form.supportedModelsLabel', '限定可支持模型范围（白名单模式，留空表示不限制）') }}
+        {{ tf('channelEditor.mapping.supportedModels.label', '限定可支持模型范围（白名单模式，留空表示不限制）') }}
       </Label>
       <Textarea
         :model-value="supportedModelsText"
@@ -269,7 +269,7 @@ function fromSelectValue(value: string): ReasoningEffort | '' {
             @update:model-value="(val) => emit('update:newModelMapping', { reasoning: fromSelectValue(val as string) as any })"
           >
             <SelectTrigger class="h-9 rounded-lg border border-primary/20 bg-background px-3 text-xs text-muted-foreground">
-              <SelectValue :placeholder="tf('console.form.selectDefault', '默认')" />
+              <SelectValue :placeholder="tf('channelEditor.compat.selectDefault', '默认')" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="opt in reasoningEffortOptions" :key="opt.value" :value="opt.value">

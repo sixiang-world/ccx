@@ -681,5 +681,10 @@
   "channelEditor.streamTimeout.toolCallIdle.label": "Idle panggilan alat",
   "channelEditor.streamTimeout.toolCallIdle.hint": "Timeout penundaan FunctionCall",
   "channelEditor.streamTimeout.overrideHint": "Nilai kustom mengganti timeout stream global untuk channel ini",
-  "channelEditor.streamTimeout.inheritHint": "Dinonaktifkan berarti channel ini mewarisi timeout stream global"
+  "channelEditor.streamTimeout.inheritHint": "Dinonaktifkan berarti channel ini mewarisi timeout stream global",
+  "channelEditor.compat.selectDefault": "Default",
+  "channelEditor.streamTimeout.preset.gentle": "Gentle",
+  "channelEditor.streamTimeout.preset.balanced": "Balanced",
+  "channelEditor.streamTimeout.preset.aggressive": "Aggressive",
+  "channelEditor.streamTimeout.timeoutThreshold": "Timeout threshold"
 }

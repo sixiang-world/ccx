@@ -681,5 +681,10 @@
   "channelEditor.streamTimeout.toolCallIdle.label": "Tool call idle",
   "channelEditor.streamTimeout.toolCallIdle.hint": "FunctionCall delay timeout",
   "channelEditor.streamTimeout.overrideHint": "Custom value overrides the global stream timeout for this channel",
-  "channelEditor.streamTimeout.inheritHint": "Disabled means this channel inherits the global stream timeout"
+  "channelEditor.streamTimeout.inheritHint": "Disabled means this channel inherits the global stream timeout",
+  "channelEditor.compat.selectDefault": "Default",
+  "channelEditor.streamTimeout.preset.gentle": "Gentle",
+  "channelEditor.streamTimeout.preset.balanced": "Balanced",
+  "channelEditor.streamTimeout.preset.aggressive": "Aggressive",
+  "channelEditor.streamTimeout.timeoutThreshold": "Timeout threshold"
 }

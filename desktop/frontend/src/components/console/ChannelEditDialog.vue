@@ -173,7 +173,7 @@ const reasoningParamStyleOptions = [
 const DEFAULT_SELECT_VALUE = 'default'
 
 const reasoningEffortOptions = computed(() => [
-  { label: tf('console.form.selectDefault', '默认'), value: DEFAULT_SELECT_VALUE },
+  { label: tf('channelEditor.compat.selectDefault', '默认'), value: DEFAULT_SELECT_VALUE },
   { label: 'None', value: 'none' },
   { label: 'Low', value: 'low' },
   { label: 'Medium', value: 'medium' },
@@ -183,7 +183,7 @@ const reasoningEffortOptions = computed(() => [
 ])
 
 const textVerbosityOptions = computed(() => [
-  { label: tf('console.form.selectDefault', '默认'), value: DEFAULT_SELECT_VALUE },
+  { label: tf('channelEditor.compat.selectDefault', '默认'), value: DEFAULT_SELECT_VALUE },
   { label: 'Low', value: 'low' },
   { label: 'Medium', value: 'medium' },
   { label: 'High', value: 'high' },
@@ -410,15 +410,15 @@ const hasConfigurableKeys = computed(() => {
 
 const errors = computed(() => {
   const errs: Record<string, string> = {}
-  if (!form.name.trim()) errs.name = tf('console.form.nameRequired', '渠道名称必填')
-  if (!form.serviceType) errs.serviceType = tf('console.form.serviceTypeRequired', '请选择服务类型')
-  if (!form.baseUrlsText.trim()) errs.baseUrl = tf('console.form.baseUrlRequired', '至少需要一个 Base URL')
+  if (!form.name.trim()) errs.name = tf('channelEditor.basic.name.required', '渠道名称必填')
+  if (!form.serviceType) errs.serviceType = tf('channelEditor.basic.serviceType.required', '请选择服务类型')
+  if (!form.baseUrlsText.trim()) errs.baseUrl = tf('channelEditor.basic.baseUrl.required', '至少需要一个 Base URL')
   // API Key 必填：现有 key + 新增 key，编辑模式下可恢复的 disabled key 也算
-  if (!hasConfigurableKeys.value) errs.apiKeys = tf('console.form.apiKeyRequired', '至少需要一个 API Key')
+  if (!hasConfigurableKeys.value) errs.apiKeys = tf('channelEditor.auth.apiKeyRequired', '至少需要一个 API Key')
   if (String(form.requestTimeoutMs).trim()) {
     const timeout = Number(form.requestTimeoutMs)
     if (!Number.isInteger(timeout) || timeout <= 0) {
-      errs.requestTimeoutMs = tf('console.form.requestTimeoutInvalid', '请求超时必须是正整数毫秒')
+      errs.requestTimeoutMs = tf('channelEditor.transport.requestTimeout.invalid', '请求超时必须是正整数毫秒')
     }
   }
   return errs
@@ -1123,7 +1123,7 @@ async function fetchTargetModels() {
   }
   if (!form.baseUrl.trim() || getSubmitApiKeys().length === 0) {
     console.log('[fetchTargetModels] 中断：缺少配置')
-    fetchedModelsError.value = tf('console.form.modelFetchNeedsConfig', '需要 Base URL 和 API Key 才能获取模型列表')
+    fetchedModelsError.value = tf('channelEditor.mapping.modelFetchNeedsConfig', '需要 Base URL 和 API Key 才能获取模型列表')
     return
   }
 
@@ -1346,8 +1346,8 @@ void fromSelectValue
               </div>
               <h3 class="text-xl font-bold tracking-tight">
                 {{ isEditMode
-                  ? tf('console.form.editChannel', '编辑渠道')
-                  : tf('console.form.addChannel', '添加渠道')
+                  ? tf('channelEditor.title.edit', '编辑渠道')
+                  : tf('channelEditor.title.create', '添加渠道')
                 }}
               </h3>
             </div>
@@ -1357,7 +1357,7 @@ void fromSelectValue
                   variant="ghost"
                   size="icon-sm"
                   class="h-8 w-8 rounded-full text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
-                  :title="form.noVision ? tf('console.form.visionDisabled', '视觉已禁用') : tf('console.form.visionEnabled', '视觉已启用')"
+                  :title="form.noVision ? tf('channelEditor.compat.visionDisabled', '视觉已禁用') : tf('channelEditor.compat.visionEnabled', '视觉已启用')"
                   @click="form.noVision = !form.noVision"
                 >
                   <EyeOff v-if="form.noVision" class="h-3.5 w-3.5 text-amber-500" />
@@ -1372,7 +1372,7 @@ void fromSelectValue
                   @click="handleTestCapability"
                 >
                   <Zap class="h-3.5 w-3.5 text-amber-500 fill-amber-500/20 mr-1" />
-                  {{ tf('console.actions.capability', '能力测试') }}
+                  {{ tf('capability.startTest', '能力测试') }}
                 </Button>
               </template>
               <Button variant="ghost" size="icon-sm" class="h-8 w-8 shrink-0 rounded-md hover:bg-destructive/10 hover:text-destructive transition-colors" @click="emit('close')">
@@ -1385,7 +1385,7 @@ void fromSelectValue
           <div class="min-h-0 flex-1 flex">
             <!-- 左侧导航 -->
             <nav class="hidden md:flex w-[180px] shrink-0 flex-col items-stretch gap-1 rounded-none border-r border-border/50 bg-card/20 p-4">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 mb-2">{{ tf('console.form.outline', '配置大纲') }}</div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 mb-2">{{ tf('channelEditor.nav.outline', '配置大纲') }}</div>
               <button
                 v-for="s in sections"
                 :key="s.id"
@@ -1519,8 +1519,8 @@ void fromSelectValue
             <Button type="button" class="hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]" :disabled="!isValid || saving" @click="handleSubmit">
               <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />
               {{ isEditMode
-                ? tf('console.form.save', '保存')
-                : tf('console.form.create', '创建')
+                ? tf('channelEditor.actions.save', '保存')
+                : tf('channelEditor.actions.create', '创建')
               }}
               <span class="ml-1 hidden sm:inline-flex h-4 select-none items-center gap-1 rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 font-mono text-[9px] font-medium text-primary-foreground/90">{{ isMac ? '⌘ Enter' : 'Ctrl+Enter' }}</span>
             </Button>

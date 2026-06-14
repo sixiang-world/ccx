@@ -29,7 +29,7 @@ const { tf } = useLanguage()
 <template>
   <section class="space-y-4 rounded-xl border border-border/60 bg-card/40 p-5 shadow-xs">
     <h4 class="text-xs font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2">
-      {{ tf('console.form.customHeaders', '自定义请求标头 Headers（JSON 注入）') }}
+      {{ tf('channelEditor.nav.custom', '自定义请求标头 Headers（JSON 注入）') }}
     </h4>
 
     <!-- 已有 Headers 列表 -->
