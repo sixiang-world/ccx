@@ -73,6 +73,11 @@
           </template>
         </TransportConfigGroup>
       </v-col>
+
+      <!-- 主动限速 -->
+      <v-col cols="12">
+        <RateLimitGroup :form="form" @update:field="updateField" />
+      </v-col>
     </v-row>
   </div>
 </template>
@@ -80,6 +85,7 @@
 <script setup lang="ts">
 import { useI18n } from '../../i18n'
 import CompatibilitySwitchGroup from './CompatibilitySwitchGroup.vue'
+import RateLimitGroup from './RateLimitGroup.vue'
 import RuntimeSwitchGroup from './RuntimeSwitchGroup.vue'
 import TransportConfigGroup from './TransportConfigGroup.vue'
 

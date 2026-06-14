@@ -44,62 +44,6 @@
 
       <slot name="stream-timeout" />
 
-      <!-- 主动限速 -->
-      <v-col cols="12">
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
-          <span class="section-title">{{ t('addChannel.rateLimitSectionLabel') }}</span>
-          <span class="text-caption text-medium-emphasis">{{ t('addChannel.rateLimitSectionHint') }}</span>
-        </div>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-text-field
-          :model-value="form.rateLimitRpm"
-          :label="t('addChannel.rateLimitRpmLabel')"
-          :placeholder="t('addChannel.rateLimitRpmPlaceholder')"
-          prepend-inner-icon="mdi-speedometer"
-          :hint="t('addChannel.rateLimitRpmHint')"
-          persistent-hint
-          clearable
-          variant="outlined"
-          density="comfortable"
-          type="number"
-          min="1"
-          @update:model-value="updateField('rateLimitRpm', $event ? parseInt($event) : null)"
-        />
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-text-field
-          :model-value="form.rateLimitWindowMinutes"
-          :label="t('addChannel.rateLimitWindowMinutesLabel')"
-          :placeholder="t('addChannel.rateLimitWindowMinutesPlaceholder')"
-          prepend-inner-icon="mdi-clock-outline"
-          :hint="t('addChannel.rateLimitWindowMinutesHint')"
-          persistent-hint
-          clearable
-          variant="outlined"
-          density="comfortable"
-          type="number"
-          min="1"
-          @update:model-value="updateField('rateLimitWindowMinutes', $event ? parseInt($event) : null)"
-        />
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-text-field
-          :model-value="form.rateLimitMaxConcurrent"
-          :label="t('addChannel.rateLimitMaxConcurrentLabel')"
-          :placeholder="t('addChannel.rateLimitMaxConcurrentPlaceholder')"
-          prepend-inner-icon="mdi-server-network"
-          :hint="t('addChannel.rateLimitMaxConcurrentHint')"
-          persistent-hint
-          clearable
-          variant="outlined"
-          density="comfortable"
-          type="number"
-          min="1"
-          @update:model-value="updateField('rateLimitMaxConcurrent', $event ? parseInt($event) : null)"
-        />
-      </v-col>
-
       <!-- 路由前缀 -->
       <v-col cols="12">
         <v-text-field
@@ -125,9 +69,6 @@ import { useI18n } from '../../i18n'
 interface FormData {
   proxyUrl: string
   requestTimeoutMs: string | number | null
-  rateLimitRpm: string | number | null
-  rateLimitWindowMinutes: string | number | null
-  rateLimitMaxConcurrent: string | number | null
   routePrefix?: string
 }
 
