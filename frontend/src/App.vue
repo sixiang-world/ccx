@@ -729,7 +729,7 @@ const { locale, t, setLocale } = useI18n()
 const languageOptions: Array<{ value: SupportedLocale, label: string, shortLabel: string }> = [
   { value: 'en', label: 'English', shortLabel: 'EN' },
   { value: 'id', label: 'Bahasa Indonesia', shortLabel: 'ID' },
-  { value: 'zh-CN', label: '简体中文', shortLabel: 'ZH' },
+  { value: 'zh-CN', label: '简体中文', shortLabel: '中' },
 ]
 
 const currentLocale = computed(() => locale.value)
