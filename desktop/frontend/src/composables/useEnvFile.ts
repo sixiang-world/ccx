@@ -24,7 +24,12 @@ const editors = ref<EditorInfo[]>([])
 const editorsLoading = ref(false)
 const openingEditor = ref(false)
 
-const { t } = useLanguage()
+let _t: ((key: string) => string) | null = null
+
+const getT = () => {
+  if (!_t) throw new Error('[useEnvFile] useLanguage() not initialized. Call useEnvFile() inside setup().')
+  return _t
+}
 
 const loadEnvFile = async () => {
   envLoading.value = true
@@ -50,7 +55,7 @@ const saveEnvFile = async (content?: string) => {
     await SaveEnvFile(nextContent)
     envContent.value = nextContent
     await loadEnvFile()
-    envMessage.value = t('env.saveSuccessHint')
+    envMessage.value = getT()('env.saveSuccessHint')
   } catch (error) {
     envError.value = error instanceof Error ? error.message : String(error)
   } finally {
@@ -76,7 +81,7 @@ const openInEditor = async (editorPath: string) => {
   envMessage.value = ''
   try {
     await OpenEnvFileInEditor(editorPath)
-    envMessage.value = t('env.openedInEditor')
+    envMessage.value = getT()('env.openedInEditor')
   } catch (error) {
     envError.value = error instanceof Error ? error.message : String(error)
   } finally {
@@ -85,6 +90,8 @@ const openInEditor = async (editorPath: string) => {
 }
 
 export function useEnvFile() {
+  const { t } = useLanguage()
+  _t = t
   return {
     envFile,
     envContent,
