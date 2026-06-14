@@ -290,7 +290,10 @@ const failureAnnotations = computed(() => {
       annotations.push({
         x: point.timestamp - pointInterval / 2,
         x2: point.timestamp + pointInterval / 2,
-        fillColor: `rgba(239, 68, 68, ${getFailureOpacity(point.failureRate)})`,
+        fillColor: '#ef4444',
+        opacity: getFailureOpacity(point.failureRate),
+        borderColor: 'transparent',
+        borderWidth: 0,
         label: { text: '' }
       })
     }
@@ -325,10 +328,7 @@ const chartOptions = computed<ApexOptions>(() => {
       stacked: isTrafficMultiModel,
       defaultLocale: 'en',
       animations: {
-        enabled: true,
-        speed: 400,
-        animateGradually: { enabled: true, delay: 150 },
-        dynamicAnimation: { enabled: true, speed: 350 }
+        enabled: false
       }
     },
     theme: {

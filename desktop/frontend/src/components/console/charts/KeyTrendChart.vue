@@ -169,8 +169,6 @@ const AGGREGATION_INTERVALS: Record<string, number> = {
   '30d': 14400000,
 }
 
-// failureColor 已不直接用于 annotation fillColor（改为在 annotation 内动态构建 rgba）
-const _failureBaseColor = computed(() => isDark.value ? [239, 68, 68] : [239, 68, 68])
 
 const getFailureOpacity = (failureRate: number): number => {
   const minOpacity = 0.03
@@ -223,7 +221,10 @@ const failureAnnotations = computed(() => {
       return {
         x: point.timestamp - pointInterval / 2,
         x2: point.timestamp + pointInterval / 2,
-        fillColor: `rgba(239, 68, 68, ${getFailureOpacity(point.failureRate)})`,
+        fillColor: '#ef4444',
+        opacity: getFailureOpacity(point.failureRate),
+        borderColor: 'transparent',
+        borderWidth: 0,
         label: { text: '' },
       }
     })
@@ -359,7 +360,7 @@ const chartOptions = computed<ApexOptions>(() => {
       fontFamily: 'inherit',
       defaultLocale: 'en',
       stacked: selectedView.value === 'traffic',
-      animations: { enabled: true, speed: 400 },
+      animations: { enabled: false },
     },
     theme: { mode: isDark.value ? 'dark' : 'light' },
     colors: getChartColors(),

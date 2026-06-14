@@ -356,7 +356,10 @@ const failureAnnotations = computed(() => {
       annotations.push({
         x: point.timestamp - interval / 2,
         x2: point.timestamp + interval / 2,
-        fillColor: `rgba(239, 68, 68, ${getFailureOpacity(point.failureRate)})`,
+        fillColor: '#ef4444',
+        opacity: getFailureOpacity(point.failureRate),
+        borderColor: 'transparent',
+        borderWidth: 0,
         label: {
           text: ''
         }
@@ -458,10 +461,7 @@ const chartOptions = computed<ApexOptions>(() => {
       sparkline: { enabled: false },
       stacked: mode === 'traffic',
       animations: {
-        enabled: true,
-        speed: 400,
-        animateGradually: { enabled: true, delay: 150 },
-        dynamicAnimation: { enabled: true, speed: 350 }
+        enabled: false
       }
     },
     theme: {

@@ -329,8 +329,6 @@ const timePointFailureRates = computed(() => {
     }))
 })
 
-// failureColor 已不直接用于 annotation fillColor（改为在 annotation 内动态构建 rgba）
-const _failureBaseColor = computed(() => isDark.value ? [239, 68, 68] : [239, 68, 68])
 
 // Calculate opacity based on failure rate
 const getFailureOpacity = (failureRate: number): number => {
@@ -364,7 +362,10 @@ const failureAnnotations = computed(() => {
       annotations.push({
         x: point.timestamp - pointInterval / 2,
         x2: point.timestamp + pointInterval / 2,
-        fillColor: `rgba(239, 68, 68, ${getFailureOpacity(point.failureRate)})`,
+        fillColor: '#ef4444',
+        opacity: getFailureOpacity(point.failureRate),
+        borderColor: 'transparent',
+        borderWidth: 0,
         label: { text: '' }
       })
     }
@@ -402,10 +403,7 @@ const chartOptions = computed<ApexOptions>(() => {
       fontFamily: 'inherit',
       stacked: isTrafficMultiModel,
       animations: {
-        enabled: true,
-        speed: 400,
-        animateGradually: { enabled: true, delay: 150 },
-        dynamicAnimation: { enabled: true, speed: 350 }
+        enabled: false
       }
     },
     theme: {
