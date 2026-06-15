@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,6 +30,9 @@ const props = defineProps<{
   DEFAULT_SELECT_VALUE: string
   visionFallbackModel: string
   supportedModelsText: string
+  showModelMappingPresets: boolean
+  showClaudeChannelPresets: boolean
+  showCodexResponsesPresets: boolean
 }>()
 
 const emit = defineEmits<{
@@ -48,8 +51,6 @@ const emit = defineEmits<{
 }>()
 
 const { t, tf } = useLanguage()
-
-const presetTags = ref(['gpt-5.5', 'gpt-5.4', 'MiMo', 'DeepSeek', 'MiniMax'])
 
 const hasNoVisionRows = computed(() => props.modelMappingRows.some(row => row.noVision && row.target.trim()))
 
@@ -83,17 +84,45 @@ function fromSelectValue(value: string): ReasoningEffort | '' {
         {{ tf('console.form.presets', '预设快速注入') }}
       </div>
       <div class="flex flex-wrap items-center gap-1.5">
-        <Button
-          v-for="tag in presetTags"
-          :key="tag"
-          type="button"
-          variant="outline"
-          size="sm"
-          class="h-6 rounded-md border border-border/70 bg-background px-2.5 text-[10px] font-medium text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 shadow-3xs"
-          @click="emit('applyPreset', tag)"
-        >
-          {{ tag }}
-        </Button>
+        <template v-if="showModelMappingPresets">
+          <Button
+            v-for="tag in ['gpt-5.5', 'gpt-5.4']"
+            :key="'openai-' + tag"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="h-6 rounded-md border border-border/70 bg-background px-2.5 text-[10px] font-medium text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 shadow-3xs"
+            @click="emit('applyPreset', tag)"
+          >
+            {{ tag }}
+          </Button>
+        </template>
+        <template v-if="showClaudeChannelPresets">
+          <Button
+            v-for="tag in ['MiMo', 'DeepSeek', 'MiniMax']"
+            :key="'claude-' + tag"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="h-6 rounded-md border border-border/70 bg-background px-2.5 text-[10px] font-medium text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 shadow-3xs"
+            @click="emit('applyPreset', tag)"
+          >
+            {{ tag }}
+          </Button>
+        </template>
+        <template v-if="showCodexResponsesPresets">
+          <Button
+            v-for="tag in ['MiMo', 'DeepSeek', 'MiniMax']"
+            :key="'codex-' + tag"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="h-6 rounded-md border border-border/70 bg-background px-2.5 text-[10px] font-medium text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 shadow-3xs"
+            @click="emit('applyPreset', tag)"
+          >
+            {{ tag }}
+          </Button>
+        </template>
       </div>
     </div>
 
