@@ -66,8 +66,11 @@ function updateTextVerbosity(value: string) {
 </script>
 
 <template>
-  <section class="space-y-6 rounded-xl border border-border/60 bg-card/40 p-4 shadow-xs">
-    <h4 class="text-xs font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2">
+  <section class="space-y-6 rounded-xl border border-border/60 bg-gradient-to-br from-card/60 to-card/40 p-5 shadow-sm backdrop-blur-sm">
+    <h4 class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2.5">
+      <span class="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </span>
       {{ tf('channelEditor.nav.advanced', '高级选项') }}
     </h4>
 
@@ -84,14 +87,14 @@ function updateTextVerbosity(value: string) {
     </div>
 
     <div class="grid gap-3">
-      <div class="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/40 p-4">
+      <div class="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-gradient-to-r from-background/60 to-background/40 p-4 shadow-sm backdrop-blur-sm transition-all hover:shadow-md">
         <div class="min-w-0 space-y-0.5">
           <Label class="text-xs font-medium">{{ tf('addChannel.skipTlsLabel', '跳过 TLS 证书验证') }}</Label>
           <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('addChannel.skipTlsHint', '仅在自签名或域名不匹配时临时启用，生产环境请关闭') }}</p>
         </div>
         <Switch :model-value="form.insecureSkipVerify" @update:model-value="updateField('insecureSkipVerify', $event)" />
       </div>
-      <div class="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/40 p-4">
+      <div class="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-gradient-to-r from-background/60 to-background/40 p-4 shadow-sm backdrop-blur-sm transition-all hover:shadow-md">
         <div class="min-w-0 space-y-0.5">
           <Label class="text-xs font-medium">{{ tf('addChannel.lowQualityLabel', '低质量渠道') }}</Label>
           <p class="text-[10px] leading-4 text-muted-foreground">{{ tf('addChannel.lowQualityHint', '启用后强制本地估算 token 数量，偏差超过 5% 时使用本地值') }}</p>
@@ -102,8 +105,9 @@ function updateTextVerbosity(value: string) {
 
     <div class="space-y-2.5">
       <!-- Runtime 运行期策略 -->
-      <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-2.5">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
+      <div class="p-4 rounded-lg border border-border/60 bg-gradient-to-br from-background/60 to-background/40 shadow-sm backdrop-blur-sm space-y-2.5">
+        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           {{ t('channelEditor.runtime.title') }}
         </div>
         <div class="space-y-2">
@@ -129,8 +133,9 @@ function updateTextVerbosity(value: string) {
       </div>
 
       <!-- 协议规范化 -->
-      <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-2.5">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
+      <div class="p-4 rounded-lg border border-border/60 bg-gradient-to-br from-background/60 to-background/40 shadow-sm backdrop-blur-sm space-y-2.5">
+        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           {{ t('channelEditor.compat.title') }}
         </div>
         <div class="space-y-2">
@@ -282,8 +287,9 @@ function updateTextVerbosity(value: string) {
       </div>
 
       <!-- Transport 代理路由网络 -->
-      <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-3">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
+      <div class="p-4 rounded-lg border border-border/60 bg-gradient-to-br from-background/60 to-background/40 shadow-sm backdrop-blur-sm space-y-3">
+        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           {{ t('channelEditor.transport.title') }}
         </div>
         <div class="grid gap-2">
@@ -322,8 +328,9 @@ function updateTextVerbosity(value: string) {
       </div>
 
       <!-- Rate Limit -->
-      <div class="p-4 rounded-xl border border-border/50 bg-background/40 space-y-3">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
+      <div class="p-4 rounded-lg border border-border/60 bg-gradient-to-br from-background/60 to-background/40 shadow-sm backdrop-blur-sm space-y-3">
+        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary border-b border-border/40 pb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           {{ t('channelEditor.rateLimit.title') }}
         </div>
         <p class="text-[10px] leading-4 text-muted-foreground">{{ t('channelEditor.rateLimit.section.hint') }}</p>
