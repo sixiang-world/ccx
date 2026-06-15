@@ -74,7 +74,7 @@ const emit = defineEmits<{
   toggle: []
 }>()
 
-const { tf } = useLanguage()
+const { t } = useLanguage()
 
 const isSuspended = computed(() => props.channel.status === 'suspended')
 const isDisabled = computed(() => props.channel.status === 'disabled')
@@ -93,18 +93,18 @@ const serviceTypeClass = computed(() => {
 const statusConfig = computed(() => {
   if (isDisabled.value) {
     return {
-      label: tf('status.disabled', 'Disabled'),
+      label: t('status.disabled'),
       dot: 'bg-muted-foreground',
     }
   }
   if (isTripped.value) {
     return {
-      label: tf('status.tripped', 'Tripped'),
+      label: t('status.tripped'),
       dot: 'bg-rose-500 animate-pulse',
     }
   }
   return {
-    label: tf('status.normal', 'Normal'),
+    label: t('status.normal'),
     dot: 'bg-emerald-500',
   }
 })
@@ -113,7 +113,7 @@ const circuitDisplay = computed(() => {
   const state = props.metrics?.circuitState
   if (state === 'open') {
     return {
-      label: tf('status.tripped', 'Tripped'),
+      label: t('status.tripped'),
       class: 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300',
     }
   }
@@ -261,10 +261,10 @@ async function copyChannelInfo() {
         <span
           v-if="cacheWriteWarning"
           class="inline-flex shrink-0 items-center gap-1 border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300"
-          :title="tf('orchestration.cacheWriteHighHint', '过去 15 分钟缓存写入占比偏高，可能存在缓存命中配置不合理的问题。')"
+          :title="t('orchestration.cacheWriteHighHint')"
         >
           <AlertTriangle class="h-3 w-3" />
-          {{ tf('orchestration.cacheWriteHigh', '缓存写偏高') }}
+          {{ t('orchestration.cacheWriteHigh') }}
         </span>
       </div>
       <div class="truncate font-mono text-[11px] text-muted-foreground" :title="baseUrlText">
@@ -280,7 +280,7 @@ async function copyChannelInfo() {
       <button
         type="button"
         class="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-border bg-secondary/50 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-        :title="expanded ? tf('chart.collapse', '收起') : tf('chart.expandChart', '展开图表')"
+        :title="expanded ? t('chart.collapse') : t('chart.expandChart')"
         @click.stop="emit('toggle')"
       >
         <svg
@@ -309,7 +309,7 @@ async function copyChannelInfo() {
         variant="outline"
         size="icon-sm"
         class="border-0 bg-transparent shadow-none dark:bg-transparent"
-        :title="tf('orchestration.enable', 'Enable')"
+        :title="t('orchestration.enable')"
         @click="emit('enable')"
       >
         <Play class="h-3.5 w-3.5" />
@@ -319,7 +319,7 @@ async function copyChannelInfo() {
         variant="outline"
         size="icon-sm"
         class="border-0 bg-transparent shadow-none dark:bg-transparent"
-        :title="tf('orchestration.resume', 'Resume')"
+        :title="t('orchestration.resume')"
         @click="emit('resume')"
       >
         <RotateCcw class="h-3.5 w-3.5" />
@@ -329,7 +329,7 @@ async function copyChannelInfo() {
         variant="outline"
         size="icon-sm"
         class="border-0 bg-transparent shadow-none dark:bg-transparent"
-        :title="tf('orchestration.pause', 'Suspend')"
+        :title="t('orchestration.pause')"
         @click="emit('status')"
       >
         <Pause class="h-3.5 w-3.5" />
@@ -339,7 +339,7 @@ async function copyChannelInfo() {
         variant="outline"
         size="icon-sm"
         class="border-0 bg-transparent shadow-none dark:bg-transparent"
-        :title="tf('orchestration.logs', 'View Logs')"
+        :title="t('orchestration.logs')"
         @click="emit('logs')"
       >
         <History class="h-3.5 w-3.5" />
@@ -352,24 +352,24 @@ async function copyChannelInfo() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-52">
-          <DropdownMenuLabel>{{ tf('orchestration.edit', 'Actions') }}</DropdownMenuLabel>
+          <DropdownMenuLabel>{{ t('orchestration.edit') }}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem @click="emit('edit')">
               <Edit3 class="h-4 w-4" />
-              {{ tf('orchestration.edit', 'Edit Channel') }}
+              {{ t('orchestration.edit') }}
             </DropdownMenuItem>
             <DropdownMenuItem v-if="supportsCapability" @click="emit('capability')">
               <Zap class="h-4 w-4" />
-              {{ tf('capability.startTest', 'Capability Test') }}
+              {{ t('capability.startTest') }}
             </DropdownMenuItem>
             <DropdownMenuItem @click="copyChannelInfo">
               <Copy class="h-4 w-4" />
-              {{ tf('orchestration.copyConfig', 'Copy Config') }}
+              {{ t('orchestration.copyConfig') }}
             </DropdownMenuItem>
             <DropdownMenuItem v-if="websiteUrl" as="a" :href="websiteUrl" target="_blank" rel="noopener">
               <ExternalLink class="h-4 w-4" />
-              {{ tf('orchestration.openWebsite', 'Visit Website') }}
+              {{ t('orchestration.openWebsite') }}
             </DropdownMenuItem>
           </DropdownMenuGroup>
 
@@ -377,36 +377,36 @@ async function copyChannelInfo() {
           <DropdownMenuGroup>
             <DropdownMenuItem v-if="circuitDisplay" @click="emit('resume')">
               <RotateCcw class="h-4 w-4" />
-              {{ tf('orchestration.resumeReset', 'Reset Circuit Breaker') }}
+              {{ t('orchestration.resumeReset') }}
             </DropdownMenuItem>
             <DropdownMenuItem v-if="!isPromoted && !isDisabled" @click="emit('promote')">
               <Sparkles class="h-4 w-4" />
-              {{ tf('orchestration.promotion', 'Promote') }}
+              {{ t('orchestration.promotion') }}
             </DropdownMenuItem>
             <DropdownMenuItem v-if="canMoveTop" @click="emit('moveTop')">
               <ArrowUp class="h-4 w-4" />
-              {{ tf('orchestration.moveTop', 'Move to top') }}
+              {{ t('orchestration.moveTop') }}
             </DropdownMenuItem>
             <DropdownMenuItem v-if="canMoveBottom" @click="emit('moveBottom')">
               <ArrowDown class="h-4 w-4" />
-              {{ tf('orchestration.moveBottom', 'Move to bottom') }}
+              {{ t('orchestration.moveBottom') }}
             </DropdownMenuItem>
             <DropdownMenuItem v-if="!isDisabled" @click="emit('disable')">
               <Ban class="h-4 w-4" />
-              {{ tf('orchestration.moveToPool', 'Move to Standby') }}
+              {{ t('orchestration.moveToPool') }}
             </DropdownMenuItem>
           </DropdownMenuGroup>
 
           <DropdownMenuSeparator />
           <div class="px-2 py-1 text-[10px] text-muted-foreground">
             <Key class="mr-1 inline h-3 w-3" />
-            {{ keyCount }} {{ tf('channelCard.configuredKeys', 'active keys') }}
-            <span v-if="disabledKeyCount"> · {{ disabledKeyCount }} {{ tf('channelCard.disabledKeys', 'disabled keys') }}</span>
+            {{ keyCount }} {{ t('channelCard.configuredKeys') }}
+            <span v-if="disabledKeyCount"> · {{ disabledKeyCount }} {{ t('channelCard.disabledKeys') }}</span>
           </div>
           <DropdownMenuItem variant="destructive" :disabled="!canDelete" @click="canDelete && emit('delete')">
             <Trash2 class="h-4 w-4" />
-            {{ tf('orchestration.delete', 'Delete Channel') }}
-            <span v-if="!canDelete" class="ml-1 text-[10px] opacity-70">{{ tf('orchestration.keepOne', 'keep one') }}</span>
+            {{ t('orchestration.delete') }}
+            <span v-if="!canDelete" class="ml-1 text-[10px] opacity-70">{{ t('orchestration.keepOne') }}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
