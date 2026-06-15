@@ -77,7 +77,7 @@ function applyStreamTimeoutPreset(presetKey: 'gentle' | 'balanced' | 'aggressive
         </Button>
       </div>
     </div>
-    <div class="grid gap-3 md:grid-cols-3">
+    <div class="grid gap-3">
       <!-- 首字等待 -->
       <div class="border border-border/60 bg-background/60 p-3 rounded-xl space-y-2.5">
         <div class="flex items-start justify-between gap-2">

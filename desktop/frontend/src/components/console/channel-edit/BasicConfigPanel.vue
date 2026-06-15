@@ -39,11 +39,11 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
 </script>
 
 <template>
-  <div class="grid gap-4 lg:grid-cols-2">
+  <div class="grid gap-4">
     <!-- 基础信息 -->
     <section class="space-y-4 rounded-xl border border-border/60 bg-card/40 p-5 shadow-xs">
       <h4 class="text-xs font-bold uppercase tracking-wider text-primary">{{ t('channelEditor.nav.basic') }}</h4>
-      <div class="grid grid-cols-[2fr_1fr] gap-3">
+      <div class="grid gap-3">
         <div class="space-y-1.5">
           <Label class="text-xs font-semibold text-muted-foreground">
             {{ t('channelEditor.basic.name.label') }} <span class="text-destructive">*</span>
@@ -102,9 +102,9 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
           :class="{ 'border-destructive': errors.baseUrl }"
           @update:model-value="(val) => updateField('baseUrlsText', val as string)"
         />
-        <div class="flex items-center gap-1.5 rounded-md border border-border/30 bg-accent/40 px-2 py-1 text-[10px] text-muted-foreground/70">
-          <span class="inline-block size-1.5 animate-pulse rounded-full bg-emerald-500"></span>
-          <span class="truncate font-mono">
+        <div class="flex items-start gap-1.5 rounded-md border border-border/30 bg-accent/40 px-2 py-1 text-[10px] text-muted-foreground/70">
+          <span class="mt-1.5 inline-block size-1.5 shrink-0 animate-pulse rounded-full bg-emerald-500"></span>
+          <span class="block min-w-0 break-all font-mono">
             {{ tf('channelEditor.basic.expectedEndpoint', '预期终点:') }} {{ expectedRequestUrls[0]?.expectedUrl || 'N/A' }}
           </span>
         </div>

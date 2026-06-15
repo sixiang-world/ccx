@@ -40,9 +40,9 @@ const { tf } = useLanguage()
       <div
         v-for="row in headerRows"
         :key="row.id"
-        class="flex items-center gap-2 p-2 rounded-lg border border-border/60 bg-background/60 hover:bg-background transition-colors"
+        class="flex items-start gap-2 p-2 rounded-lg border border-border/60 bg-background/60 hover:bg-background transition-colors"
       >
-        <div class="flex-1 grid grid-cols-[140px_1fr] gap-2">
+        <div class="flex-1 grid gap-2">
           <Input
             :model-value="row.key"
             class="h-9 font-mono text-xs"
@@ -73,10 +73,10 @@ const { tf } = useLanguage()
       <Label class="text-xs font-semibold text-muted-foreground mb-2 block">
         {{ tf('console.form.addNewHeader', '添加新标头') }}
       </Label>
-      <div class="flex gap-2">
+      <div class="grid gap-2">
         <Input
           :model-value="newHeader.key"
-          class="h-9 w-40 font-mono text-xs"
+          class="h-9 w-full font-mono text-xs"
           placeholder="Header-Name"
           @update:model-value="(val) => emit('update:newHeader', { key: val as string })"
           @keydown.enter.prevent="emit('addHeaderRow')"
@@ -92,7 +92,7 @@ const { tf } = useLanguage()
           type="button"
           variant="outline"
           size="sm"
-          class="h-9 px-3.5 shadow-3xs"
+          class="h-9 justify-self-start px-3.5 shadow-3xs"
           :disabled="!newHeader.key.trim() || !newHeader.value.trim()"
           @click="emit('addHeaderRow')"
         >

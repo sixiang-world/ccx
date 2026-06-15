@@ -59,7 +59,7 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
       {{ tf('channelEditor.nav.advanced', '高级选项') }}
     </h4>
 
-    <div class="grid gap-3 md:grid-cols-2">
+    <div class="grid gap-3">
       <div class="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/40 p-4">
         <div class="min-w-0 space-y-0.5">
           <Label class="text-xs font-medium">{{ tf('addChannel.skipTlsLabel', '跳过 TLS 证书验证') }}</Label>
@@ -241,7 +241,7 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
         <div class="text-[10px] font-bold uppercase tracking-wider text-primary/80 border-b border-border/30 pb-1">
           {{ t('channelEditor.transport.title') }}
         </div>
-        <div class="grid gap-2 md:grid-cols-3">
+        <div class="grid gap-2">
           <div class="space-y-1">
             <Label class="text-[9px] font-bold text-muted-foreground">{{ t('channelEditor.transport.proxyUrl.label') }}</Label>
             <Input
@@ -282,7 +282,7 @@ function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
           {{ t('channelEditor.rateLimit.title') }}
         </div>
         <p class="text-[10px] leading-4 text-muted-foreground">{{ t('channelEditor.rateLimit.section.hint') }}</p>
-        <div class="grid gap-3 md:grid-cols-3">
+        <div class="grid gap-3">
           <div class="space-y-1">
             <Label class="text-[10px] font-medium text-muted-foreground/80">{{ t('channelEditor.rateLimit.rpm.label') }}</Label>
             <Input
