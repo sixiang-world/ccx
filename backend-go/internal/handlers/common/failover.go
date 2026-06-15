@@ -267,10 +267,23 @@ func classifyMessage(msg string) (bool, bool) {
 		return false, false
 	}
 
+	// 临时限流关键词 (failover + quota，但不应永久拉黑)
+	// 注意：这些关键词标记为 quota 是为了触发优先级降低（避免立即重试同一 Key），
+	// 但 ShouldBlacklistKey 会通过独立逻辑判断是否拉黑
+	rateLimitKeywords := []string{
+		"rate limit", "ratelimit", "limit exceeded",
+		"too many requests", "请求过于频繁", "请求频率", "限流",
+	}
+	for _, keyword := range rateLimitKeywords {
+		if strings.Contains(msgLower, keyword) {
+			return true, true
+		}
+	}
+
 	// 配额/余额相关关键词 (failover + quota)
 	quotaKeywords := []string{
 		"insufficient", "quota", "credit", "balance",
-		"rate limit", "limit exceeded", "exceeded",
+		"exceeded",
 		"billing", "payment", "subscription",
 		"积分不足", "余额不足", "请求数限制", "额度", "预扣费",
 	}
@@ -819,6 +832,24 @@ func isInsufficientBalanceMessage(msg string) bool {
 
 	msgLower := strings.ToLower(msg)
 
+	// 临时限流错误（不应拉黑）：明确排除 rate_limit_error 等短期限流语义
+	// rate limit / ratelimit 通常是临时限流，由熔断机制处理，不应永久拉黑
+	transientRateLimitPhrases := []string{
+		"rate limit exceeded",
+		"rate_limit_error",
+		"ratelimit exceeded",
+		"too many requests",
+		"requests per",
+		"请求过于频繁",
+		"请求频率",
+		"限流",
+	}
+	for _, p := range transientRateLimitPhrases {
+		if strings.Contains(msgLower, p) {
+			return false
+		}
+	}
+
 	// 精确短语兜底，避免双词组合遗漏极端变体
 	exactPhrases := []string{
 		"no balance",
@@ -839,7 +870,7 @@ func isInsufficientBalanceMessage(msg string) bool {
 	// 资源词: 标识"跟余额/额度相关"
 	resourceWords := []string{
 		"balance", "quota", "credit", "funds",
-		"subscription", "limit", "allowance",
+		"subscription", "allowance",
 		"余额", "额度", "充提",
 	}
 	// 弱资源词: 单独出现不足以下结论，须搭配 statusWords
@@ -850,7 +881,7 @@ func isInsufficientBalanceMessage(msg string) bool {
 	// 状态词: 标识"不足/耗尽/过期等负面状态"
 	statusWords := []string{
 		"insufficient", "negative", "exhausted", "depleted",
-		"too low", "expired", "overdue", "reached", "exceeded",
+		"too low", "expired", "overdue", "reached",
 		"not enough", "not sufficient",
 		"failed",
 		"不足", "耗尽", "已用尽", "已用完", "已过期", "已到期",

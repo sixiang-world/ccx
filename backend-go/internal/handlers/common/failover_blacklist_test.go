@@ -27,6 +27,12 @@ func TestIsInsufficientBalanceMessage_HighConfidenceVariants(t *testing.T) {
 		{name: "chinese quota exhausted", msg: "当前额度耗尽", want: true},
 		{name: "english subscription not found", msg: "No active subscription found for this group", want: true},
 		{name: "negative billing setup", msg: "billing not enabled for this account", want: false},
+		// 临时限流错误不应被误判为余额不足
+		{name: "rate limit exceeded", msg: "Rate limit exceeded, please retry later", want: false},
+		{name: "upstream rate limit", msg: "Upstream rate limit exceeded, please retry later", want: false},
+		{name: "too many requests", msg: "Too many requests, please try again later", want: false},
+		{name: "chinese rate limit", msg: "请求过于频繁，请稍后重试", want: false},
+		{name: "requests per minute", msg: "You have exceeded 60 requests per minute", want: false},
 	}
 
 	for _, tt := range tests {
@@ -278,6 +284,31 @@ func TestShouldBlacklistKey_BalanceMessages(t *testing.T) {
 				Reason:          "insufficient_balance",
 				Message:         "Your account funds have been depleted. Please top up.",
 			},
+		},
+		// 429 临时限流错误不应拉黑（通过熔断机制处理）
+		{
+			name:       "429 rate_limit_error should not blacklist",
+			statusCode: 429,
+			body:       `{"error":{"message":"Upstream rate limit exceeded, please retry later","type":"rate_limit_error"}}`,
+			want:       BlacklistResult{},
+		},
+		{
+			name:       "429 too many requests should not blacklist",
+			statusCode: 429,
+			body:       `{"error":{"message":"Too many requests, please try again later"}}`,
+			want:       BlacklistResult{},
+		},
+		{
+			name:       "429 rate limit exceeded should not blacklist",
+			statusCode: 429,
+			body:       `{"error":{"message":"Rate limit exceeded for this API key"}}`,
+			want:       BlacklistResult{},
+		},
+		{
+			name:       "429 请求过于频繁 should not blacklist",
+			statusCode: 429,
+			body:       `{"error":{"message":"请求过于频繁，请稍后重试"}}`,
+			want:       BlacklistResult{},
 		},
 	}
 
