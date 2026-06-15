@@ -1618,7 +1618,7 @@ defineExpose({
   background: rgb(var(--v-theme-surface));
   border: 2px solid rgb(var(--v-theme-on-surface));
   box-shadow: 4px 4px 0 0 rgb(var(--v-theme-on-surface));
-  height: 52px;
+  height: 60px;
   transition: all 0.1s ease;
   cursor: pointer;
   overflow: hidden;
