@@ -2,7 +2,7 @@
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, CheckCircle2, Tag } from 'lucide-vue-next'
+import { AlertCircle, CheckCircle2, Layers, Tag } from 'lucide-vue-next'
 import { useLanguage } from '@/composables/useLanguage'
 
 defineProps<{
@@ -77,11 +77,7 @@ const { tf } = useLanguage()
 
             <!-- 上游类型选择器 -->
             <div class="flex items-center gap-3 rounded-lg border-0 bg-muted/30 p-3">
-              <component :is="'svg'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-muted-foreground">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </component>
+              <Layers class="h-4 w-4 shrink-0 text-muted-foreground" />
               <div class="min-w-0 flex-1 space-y-1">
                 <div class="text-[11px] text-muted-foreground">
                   {{ tf('channelEditor.basic.serviceType.label', '上游类型') }}
