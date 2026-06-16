@@ -104,21 +104,21 @@
                       <!-- 上游类型选择器 -->
                       <div class="d-flex align-center ga-3 pa-3 bg-grey-lighten-4 rounded-lg">
                         <v-icon color="grey-darken-1" size="20">mdi-shape-outline</v-icon>
-                        <div class="flex-grow-1">
-                          <div class="text-caption text-medium-emphasis">{{ t('channelEditor.basic.serviceType.label') }}</div>
-                          <v-select
-                            v-model="quickServiceType"
-                            :items="headerServiceTypeItems"
-                            item-title="title"
-                            item-value="value"
-                            variant="plain"
-                            density="compact"
-                            hide-details
-                            class="upstream-select mt-n1"
-                            @update:model-value="quickServiceTypeTouched = true"
-                            @update:menu="onMenuUpdate"
-                          />
-                        </div>
+                        <div class="text-caption text-medium-emphasis">{{ t('channelEditor.basic.serviceType.label') }}</div>
+                        <v-spacer />
+                        <v-select
+                          v-model="quickServiceType"
+                          :items="headerServiceTypeItems"
+                          item-title="title"
+                          item-value="value"
+                          variant="plain"
+                          density="compact"
+                          hide-details
+                          class="upstream-select mt-n1"
+                          style="width: 160px;"
+                          @update:model-value="quickServiceTypeTouched = true"
+                          @update:menu="onMenuUpdate"
+                        />
                       </div>
                     </div>
                   </v-col>
