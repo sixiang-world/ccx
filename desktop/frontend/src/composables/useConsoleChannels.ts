@@ -196,6 +196,7 @@ async function setChannelStatus(channelId: number, status: 'active' | 'suspended
 async function resumeChannel(channelId: number) {
   const typeApi = getChannelTypeApi(activeTab.value)
   const result = await typeApi.resume(channelId)
+  await typeApi.setStatus(channelId, 'active')
   await refreshChannels()
   return result
 }
