@@ -478,6 +478,13 @@ watch(() => props.open, (isOpen) => {
 <style scoped>
 .cb-slider-shell {
   --cb-slider-progress: 0%;
+  --cb-slider-track-bg: color-mix(in srgb, var(--color-input) 76%, var(--color-muted) 24%);
+  --cb-slider-fill-bg: color-mix(in srgb, var(--color-primary) 72%, transparent);
+  --cb-slider-thumb-ring: color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  --cb-slider-thumb-hover-ring: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  --cb-slider-thumb-hover-glow: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  --cb-slider-thumb-active-ring: color-mix(in srgb, var(--color-primary) 52%, var(--color-border));
+  --cb-slider-thumb-active-glow: color-mix(in srgb, var(--color-primary) 16%, transparent);
   position: relative;
   width: 100%;
   height: 28px;
@@ -534,55 +541,48 @@ watch(() => props.open, (isOpen) => {
   top: 50%;
   right: 0;
   left: 0;
-  height: 6px;
+  height: 4px;
   transform: translateY(-50%);
   border-radius: 999px;
-  background: var(--color-border);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.16);
+  background: var(--cb-slider-track-bg);
+  box-shadow: inset 0 1px 1px rgb(15 23 42 / 0.08);
 }
 .cb-slider-fill {
   width: var(--cb-slider-progress);
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 56%, transparent));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary) 24%, transparent);
+  background: var(--cb-slider-fill-bg);
 }
 .cb-slider-thumb {
   position: absolute;
   top: 50%;
   left: var(--cb-slider-progress);
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: linear-gradient(135deg,
-    var(--color-primary) 0%,
-    color-mix(in srgb, var(--color-primary) 88%, #0f172a 12%) 100%
-  );
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
   cursor: pointer;
-  border: 2px solid var(--color-background);
+  border: 3px solid var(--color-background);
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--color-primary) 24%, transparent),
-    0 7px 16px rgb(0 0 0 / 0.28),
-    inset 0 1px 0 rgb(255 255 255 / 0.32);
+    0 0 0 1px var(--cb-slider-thumb-ring),
+    0 2px 5px rgb(15 23 42 / 0.16);
   transform: translate(-50%, -50%);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .cb-slider-input:hover + .cb-slider-visual .cb-slider-thumb,
 .cb-slider-input:focus-visible + .cb-slider-visual .cb-slider-thumb {
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-primary) 28%, transparent),
-    0 9px 20px rgb(0 0 0 / 0.32),
-    0 0 0 7px color-mix(in srgb, var(--color-primary) 12%, transparent),
-    inset 0 1px 0 rgb(255 255 255 / 0.32);
-  transform: translate(-50%, -50%) scale(1.12);
+    0 0 0 1px var(--cb-slider-thumb-hover-ring),
+    0 0 0 4px var(--cb-slider-thumb-hover-glow),
+    0 3px 7px rgb(15 23 42 / 0.18);
+  transform: translate(-50%, -50%) scale(1.1);
 }
 .cb-slider-input:active + .cb-slider-visual .cb-slider-thumb {
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-primary) 34%, transparent),
-    0 5px 12px rgb(0 0 0 / 0.26),
-    0 0 0 8px color-mix(in srgb, var(--color-primary) 14%, transparent),
-    inset 0 1px 0 rgb(255 255 255 / 0.32);
-  transform: translate(-50%, -50%) scale(1.06);
+    0 0 0 1px var(--cb-slider-thumb-active-ring),
+    0 0 0 5px var(--cb-slider-thumb-active-glow),
+    0 2px 5px rgb(15 23 42 / 0.16);
+  transform: translate(-50%, -50%) scale(1.04);
 }
 .cb-slider-input:disabled + .cb-slider-visual {
   opacity: 0.5;
