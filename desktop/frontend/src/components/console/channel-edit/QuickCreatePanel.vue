@@ -97,18 +97,18 @@ const { tf } = useLanguage()
           </div>
 
           <!-- 右栏：API Keys -->
-          <div class="space-y-2 rounded-lg border border-border bg-background/70 p-3">
-            <div class="flex items-center gap-2 text-xs font-semibold">
-              <CheckCircle2 v-if="detectedApiKeys.length" class="h-4 w-4 text-emerald-500" />
-              <AlertCircle v-else class="h-4 w-4 text-muted-foreground" />
-              {{ tf('channelEditor.auth.keys.label', 'API Keys') }}
+          <div class="flex items-center gap-3">
+            <CheckCircle2 v-if="detectedApiKeys.length" class="h-4 w-4 shrink-0 text-emerald-500" />
+            <AlertCircle v-else class="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div class="flex-1 space-y-0.5">
+              <div class="text-xs font-semibold">{{ tf('channelEditor.auth.keys.label', 'API Keys') }}</div>
+              <p v-if="detectedApiKeys.length" class="text-xs text-emerald-600">
+                {{ detectedApiKeys.length }} {{ tf('channelCard.configuredKeys', 'active keys') }}
+              </p>
+              <p v-else class="text-xs text-muted-foreground">
+                {{ tf('addChannel.noneDetected', '未识别到密钥') }}
+              </p>
             </div>
-            <p v-if="detectedApiKeys.length" class="text-xs font-medium text-emerald-600">
-              {{ detectedApiKeys.length }} {{ tf('channelCard.configuredKeys', 'active keys') }}
-            </p>
-            <p v-else class="text-xs text-muted-foreground">
-              {{ tf('addChannel.noneDetected', '未识别到密钥') }}
-            </p>
           </div>
         </div>
       </div>
