@@ -1508,16 +1508,20 @@ void toggleSupportedModelFilter
             :is-edit-mode="isEditMode"
             :no-vision="form.noVision"
             :saving="saving"
+            :service-type="form.serviceType"
+            :service-type-options="isEditMode ? undefined : serviceTypeOptions"
+            :service-type-status="quickServiceTypeTouched ? tf('addChannel.serviceTypeManual', '手动选择') : (detectedServiceType ? tf('addChannel.serviceTypeDetected', '已识别') : tf('addChannel.serviceTypeDefault', '默认'))"
             @close="emit('close')"
             @toggle-no-vision="form.noVision = !form.noVision"
             @test-capability="handleTestCapability"
+            @update:service-type="updateQuickServiceType"
           />
 
           <!-- 创建模式：独立快速添加，不展示编辑器大纲和高级配置 -->
           <div v-if="!isEditMode" class="min-h-0 flex-1 overflow-hidden">
             <ScrollArea class="h-full">
-              <form class="p-6" @submit.prevent="handleSubmit">
-                <div v-if="error" class="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <form @submit.prevent="handleSubmit">
+                <div v-if="error" class="mx-6 mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                   {{ error }}
                 </div>
 

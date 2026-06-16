@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Eye, EyeOff, Zap } from 'lucide-vue-next'
 import { useLanguage } from '@/composables/useLanguage'
 
@@ -8,11 +9,15 @@ defineProps<{
   isEditMode: boolean
   noVision: boolean
   saving: boolean
+  serviceType?: string
+  serviceTypeOptions?: Array<{ label: string; value: string }>
+  serviceTypeStatus?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-no-vision'): void
   (e: 'test-capability'): void
+  (e: 'update:service-type', value: string): void
 }>()
 
 const { tf } = useLanguage()
@@ -32,6 +37,27 @@ const { tf } = useLanguage()
       </h3>
     </div>
 
+    <!-- 创建模式：显示服务类型选择器 -->
+    <div v-if="!isEditMode && serviceTypeOptions" class="flex shrink-0 items-center gap-3">
+      <span class="text-xs font-medium text-muted-foreground">
+        {{ tf('channelEditor.basic.serviceType.label', '上游类型') }}
+      </span>
+      <Select :model-value="serviceType" @update:model-value="(val) => emit('update:service-type', String(val))">
+        <SelectTrigger class="h-9 w-[160px] bg-background">
+          <SelectValue :placeholder="tf('channelEditor.basic.serviceType.placeholder', '选择类型')" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="opt in serviceTypeOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <div class="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
+        {{ serviceTypeStatus }}
+      </div>
+    </div>
+
+    <!-- 编辑模式：显示操作按钮 -->
     <div v-if="isEditMode" class="flex shrink-0 items-center gap-1.5">
       <Button
         variant="ghost"
