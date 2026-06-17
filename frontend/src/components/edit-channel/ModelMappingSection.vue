@@ -155,7 +155,7 @@
                   <div class="target-wrapper flex-grow-1" style="position: relative;">
                     <span class="badge-title inner-label">TARGET</span>
                     <v-combobox
-                      v-model="row.target"
+                      :model-value="row.target"
                       :items="targetModelOptions"
                       :loading="fetchingModels"
                       density="compact"
@@ -164,6 +164,7 @@
                       placeholder="target-model"
                       class="font-mono"
                       eager
+                      @update:model-value="updateTarget(index, $event)"
                       @focus="$emit('sync-upstream')"
                       @update:menu="$emit('menu-update', $event)"
                     />
@@ -374,13 +375,14 @@ const handleAddMapping = () => {
   if (!isMappingInputValid.value) return
   const source = normalizeSelectableString(newMapping.value.source).trim()
   const target = normalizeSelectableString(newMapping.value.target).trim()
+  const existingNoVision = findNoVisionForTarget(normalizeMappingRows(props.mappingRows), target)
 
   const row: MappingRow = {
     id: Date.now(),
     source,
     target,
     reasoning: (newMapping.value.reasoningEffort || '') as '' | 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max',
-    noVision: false,
+    noVision: existingNoVision ?? false,
   }
 
   emit('update:mappingRows', [...normalizeMappingRows(props.mappingRows), row])
@@ -400,8 +402,20 @@ const removeMapping = (index: number) => {
 
 const toggleVision = (index: number) => {
   const updated = normalizeMappingRows(props.mappingRows)
-  updated[index] = { ...updated[index], noVision: !updated[index].noVision }
-  emit('update:mappingRows', updated)
+  const newNoVision = !updated[index].noVision
+  emit('update:mappingRows', setNoVisionForTarget(updated, updated[index].target, newNoVision))
+}
+
+const updateTarget = (index: number, value: unknown) => {
+  const updated = normalizeMappingRows(props.mappingRows)
+  const target = normalizeSelectableString(value).trim()
+  const existingNoVision = findNoVisionForTarget(updated, target)
+  updated[index] = {
+    ...updated[index],
+    target,
+    noVision: existingNoVision ?? updated[index].noVision,
+  }
+  emit('update:mappingRows', setNoVisionForTarget(updated, target, updated[index].noVision))
 }
 
 const normalizeMappingRows = (rows: MappingRow[]): MappingRow[] => rows.map(row => ({
@@ -409,6 +423,22 @@ const normalizeMappingRows = (rows: MappingRow[]): MappingRow[] => rows.map(row 
   source: normalizeSelectableString(row.source),
   target: normalizeSelectableString(row.target),
 }))
+
+const normalizeTargetKey = (target: unknown) => normalizeSelectableString(target).trim()
+
+const findNoVisionForTarget = (rows: MappingRow[], target: unknown): boolean | undefined => {
+  const targetKey = normalizeTargetKey(target)
+  const matched = rows.find(row => normalizeTargetKey(row.target) === targetKey)
+  return matched?.noVision
+}
+
+const setNoVisionForTarget = (rows: MappingRow[], target: unknown, noVision: boolean): MappingRow[] => {
+  const targetKey = normalizeTargetKey(target)
+  if (!targetKey) return rows
+  return rows.map(row => (
+    normalizeTargetKey(row.target) === targetKey ? { ...row, noVision } : row
+  ))
+}
 
 const formatModelName = (value: MappingRow['source']) => normalizeSelectableString(value)
 
