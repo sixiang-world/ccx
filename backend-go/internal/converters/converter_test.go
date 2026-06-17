@@ -361,6 +361,35 @@ func TestResponsesPassthroughConverter_MaxTokens(t *testing.T) {
 	})
 }
 
+func TestResponsesPassthroughConverter_PreservesCompactionEncryptedContent(t *testing.T) {
+	converter := &ResponsesPassthroughConverter{}
+	resp, err := converter.FromProviderResponse(map[string]interface{}{
+		"id":     "resp_compact",
+		"model":  "gpt-5",
+		"status": "completed",
+		"output": []interface{}{
+			map[string]interface{}{
+				"type":              "compaction",
+				"encrypted_content": "encrypted summary",
+			},
+		},
+		"usage": map[string]interface{}{
+			"input_tokens":  float64(1),
+			"output_tokens": float64(1),
+			"total_tokens":  float64(2),
+		},
+	}, "")
+	if err != nil {
+		t.Fatalf("FromProviderResponse failed: %v", err)
+	}
+	if len(resp.Output) != 1 {
+		t.Fatalf("output len = %d, want 1", len(resp.Output))
+	}
+	if resp.Output[0].Type != "compaction" || resp.Output[0].EncryptedContent != "encrypted summary" {
+		t.Fatalf("compaction encrypted_content not preserved: %#v", resp.Output[0])
+	}
+}
+
 // ============== 工厂模式测试 ==============
 
 func TestConverterFactory(t *testing.T) {

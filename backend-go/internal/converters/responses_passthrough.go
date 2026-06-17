@@ -54,9 +54,19 @@ func (c *ResponsesPassthroughConverter) FromProviderResponse(resp map[string]int
 				content := itemMap["content"]
 
 				output = append(output, types.ResponsesItem{
-					Type:    itemType,
-					Role:    role,
-					Content: content,
+					ID:               stringFromInterface(itemMap["id"]),
+					Type:             itemType,
+					Role:             role,
+					Status:           stringFromInterface(itemMap["status"]),
+					Content:          content,
+					Summary:          itemMap["summary"],
+					CallID:           stringFromInterface(itemMap["call_id"]),
+					Name:             stringFromInterface(itemMap["name"]),
+					Namespace:        stringFromInterface(itemMap["namespace"]),
+					Input:            stringFromInterface(itemMap["input"]),
+					Arguments:        stringFromInterface(itemMap["arguments"]),
+					Output:           itemMap["output"],
+					EncryptedContent: stringFromInterface(itemMap["encrypted_content"]),
 				})
 			}
 		}
@@ -78,4 +88,9 @@ func (c *ResponsesPassthroughConverter) FromProviderResponse(resp map[string]int
 // GetProviderName 获取上游服务名称
 func (c *ResponsesPassthroughConverter) GetProviderName() string {
 	return "Responses API (Passthrough)"
+}
+
+func stringFromInterface(value interface{}) string {
+	s, _ := value.(string)
+	return s
 }
