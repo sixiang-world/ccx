@@ -474,7 +474,8 @@ const hasConfigurableKeys = computed(() => {
 
 const errors = computed(() => {
   const errs: Record<string, string> = {}
-  if (!form.name.trim()) errs.name = tf('channelEditor.basic.name.required', '渠道名称必填')
+  if (isEditMode.value && !form.name.trim()) errs.name = tf('channelEditor.basic.name.required', '渠道名称必填')
+  if (!isEditMode.value && !generatedChannelName.value.trim()) errs.name = tf('channelEditor.basic.name.required', '渠道名称必填')
   if (!form.serviceType) errs.serviceType = tf('channelEditor.basic.serviceType.required', '请选择服务类型')
   if (!form.baseUrlsText.trim()) errs.baseUrl = tf('channelEditor.basic.baseUrl.required', '至少需要一个 Base URL')
   // API Key 必填：现有 key + 新增 key，编辑模式下可恢复的 disabled key 也算
@@ -536,10 +537,6 @@ function handleQuickPaste(text: string) {
   }
   if (result.detectedServiceType && !quickServiceTypeTouched.value) form.serviceType = result.detectedServiceType
   if (!form.serviceType) form.serviceType = defaultServiceTypeForChannel()
-  if (!form.name.trim()) {
-    const st = form.serviceType || 'channel'
-    form.name = `${props.channelType}-${st}-${Date.now().toString(36)}`
-  }
 }
 
 function updateQuickServiceType(value: string) {
@@ -551,7 +548,7 @@ function buildSubmitPayload() {
   const payload = isEditMode.value
     ? buildCurrentPayload()
     : buildChannelPayload({
-        name: form.name,
+        name: generatedChannelName.value,
         serviceType: form.serviceType,
         baseUrl: form.baseUrl,
         baseUrls: parseLines(form.baseUrlsText),
