@@ -1,3 +1,40 @@
+## [v2.9.2] - 2026-06-18
+
+### 新增
+
+- **火山方舟预设模型与推理映射更新** - 更新桌面端火山方舟渠道预设模型与 reasoning 映射
+- **渠道卡片缓存命中率展示** - 桌面端渠道卡片新增缓存命中率显示
+- **渠道添加偏好卡片式交互** - 渠道添加流程改为卡片式交互，提升偏好选择体验
+- **渠道日志 reasoning effort 展示同步** - 桌面端渠道日志同步展示 reasoning effort 信息
+- **渠道支持选择队列末尾并记住偏好** - 前端新增渠道支持放到队列末尾，并记住用户偏好
+- **CompactionV2 本地 compact 与 SSE 转换** - Responses 实现 CompactionV2 本地压缩并支持 SSE 转换
+- **Passthrough converter ResponsesItem 字段映射补全** - passthrough converter 补齐 ResponsesItem 全量字段映射
+- **ResponsesItem EncryptedContent 字段** - 类型定义新增 EncryptedContent 字段以支持 compaction
+- **视觉回退 reasoning effort 与 output_config.effort 同步** - 视觉回退模型支持 reasoning effort，并同步 output_config.effort
+- **渠道日志 reasoning effort chips 展示** - 前端渠道日志弹窗新增 reasoning effort chips
+- **视觉回退 reasoning effort 选择器与多语言文案** - 前端新增视觉回退 reasoning effort selector 和 locale keys
+- **Claude 渠道 reasoning mapping 支持** - 前端扩展 reasoning mapping 支持到 claude channel type
+- **Claude thinking effort 渠道映射注入** - providers 根据渠道 reasoningMapping 注入 Claude thinking effort
+- **ChannelLog reasoning effort 字段** - metrics 新增 originalReasoningEffort 与 actualReasoningEffort
+- **渠道日志 reasoning effort 提取 helpers** - handlers 新增 reasoning effort 提取辅助函数
+
+### 修复
+
+- **火山方舟 Responses 视觉回退补齐** - 桌面端补齐火山方舟 Responses 视觉回退配置
+- **orchestration promotion 标签文案优化** - 优化桌面端 orchestration promotion 标签文案
+- **legacy reasoning params 转换顺序修复** - providers 在重写为 block format 前先转换 legacy reasoning params
+- **模型映射 noVision 同步修复** - 按目标模型改进 noVision 在 model mappings 间的同步逻辑
+- **模型映射 noVision flag 同步修复** - 修复 noVision flag 按 target 在 model mappings 间同步
+- **Add/Edit Channel Modal 缺失导入修复** - 补充 AddChannel/EditChannel modals 中 normalizeSelectableString 导入
+- **Chat reasoning effort 映射模型来源修复** - Chat 使用实际请求体 model 进行 reasoning effort mapping
+- **重复 reasoning effort 标签合并** - 合并 UI 中重复的 reasoning effort 标签显示
+
+### 重构
+
+- **EditChannelModal 请求 URL 构建统一** - 统一 EditChannelModal 使用 buildExpectedRequestUrls
+- **AddChannelModal 快速添加职责收敛** - 移除 AddChannelModal 编辑模式，仅保留 quick-add
+- **reasoning effort 校验逻辑统一** - config 使用 isValidReasoningEffort 统一 reasoning effort validation
+
 ## [v2.9.0] - 2026-06-17
 
 ### 新增
