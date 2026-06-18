@@ -1,15 +1,27 @@
-## [Unreleased]
+## [v2.9.3] - 2026-06-18
 
 ### 新增
 
 - **讯飞星辰渠道预设** - 新增 ProviderXFyun 预设，Anthropic + OpenAI 双入口，支持 Messages/Chat/Responses 三目标，含快速输入 URL 识别与中英文 locale
 - **Codex SQLite 迁移修复 visibility 字段** - migrateCodexStateDB 动态检测 threads 列，自动回填 preview/has_user_event/thread_source 等隐藏线程可见性字段
+- **中转站错误码 failover 识别增强** - 增强中转站错误码识别与黑名单判定，提升故障转移覆盖
+- **渠道运行态冷却与上游账号池降级** - 调度器新增渠道运行态冷却与上游账号池不可用降级策略
+- **Compshare glm-5.2 预设与推理映射同步** - 桌面端 ChannelEditDialog 同步 Compshare glm-5.2 预设与 reasoning 映射
+- **火山方舟 Compshare 预设更新至 glm-5.2** - 更新桌面端火山方舟 Compshare 渠道预设模型
 
 ### 修复
 
 - **渠道日志按稳定渠道名过滤共享 metricsKey** - GetChannelLogs 对共享 metricsKey 优先按创建时渠道名筛选，旧日志回退 channelIndex，避免删除/重排后日志串台
 - **Codex SQLite visibility 回填来源保护** - 迁移 threads 时根据 source 列跳过 exec 等后台线程，避免误标记为用户会话
 - **trace 亲和性遵守 SupportedModels** - 新增测试验证亲和渠道不支持当前模型时正确跳过并回退优先级选择
+- **共享 metricsKey 渠道日志按渠道名归属** - 修复共享 metricsKey 场景下渠道日志归属到稳定渠道名
+- **共享 metricsKey 渠道日志按 channelIndex 过滤** - 修复渠道日志在共享 metricsKey 时按 channelIndex 过滤
+- **短流 EOF 重试策略** - 在 message_stop 前遇到短流 EOF 时进行重试
+- **新建渠道使用生成名称提交** - 修复桌面端新建渠道提交时未使用生成名称的问题
+
+### 文档
+
+- **CHANGELOG 维护更新** - 更新 CHANGELOG，补充讯飞星辰、Codex 迁移修复、日志过滤与调度测试记录
 
 ## [v2.9.2] - 2026-06-18
 
