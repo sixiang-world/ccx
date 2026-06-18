@@ -155,6 +155,8 @@ Windows SignPath 集成依赖以下 GitHub 配置：
 
 当前 workflow 固定使用 SignPath organization `4ffeb1d3-df31-4323-a3e9-15fecdcbaad2`、project `ccx`、signing policy `test-signing`。
 
+`test-signing` 策略可能使用 GitHub runner 不信任的测试证书链；CI 会打印 Authenticode 证书详情，并在存在 signer certificate 时接受 `UnknownError`/`NotTrusted`。切换到正式 signing policy 后，签名校验必须返回 `Valid`。
+
 SignPath artifact configuration 建议保持为单文件 Windows 可执行文件/安装器签名配置；如从样例自动生成配置，需要确认没有把第三方组件纳入本项目证书签名范围。
 
 ## Windows Store / MSIX

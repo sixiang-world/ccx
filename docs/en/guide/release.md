@@ -155,6 +155,8 @@ The Windows SignPath integration requires these GitHub settings:
 
 The workflow currently uses SignPath organization `4ffeb1d3-df31-4323-a3e9-15fecdcbaad2`, project `ccx`, and signing policy `test-signing`.
 
+The `test-signing` policy can use a test certificate chain that GitHub runners do not trust. CI prints Authenticode certificate details and accepts `UnknownError`/`NotTrusted` only when a signer certificate is present. After switching to the production signing policy, signature verification must return `Valid`.
+
 Keep the SignPath artifact configuration scoped to single Windows executable/installer signing. If it is generated from sample artifacts, review it so third-party components are not signed with the project certificate.
 
 See [Verifying Release Artifacts](./verification.md) for user verification instructions.

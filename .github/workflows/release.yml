@@ -299,10 +299,7 @@ jobs:
       - name: Verify Desktop amd64 executable signature
         shell: powershell
         run: |
-          $signature = Get-AuthenticodeSignature "desktop/bin/ccx-desktop.exe"
-          if ($signature.Status -ne "Valid") {
-            throw "Invalid Authenticode signature for desktop/bin/ccx-desktop.exe: $($signature.Status)"
-          }
+          ./.github/scripts/assert-authenticode-signature.ps1 "desktop/bin/ccx-desktop.exe"
 
       - name: Build Desktop amd64 NSIS
         env:
@@ -368,10 +365,7 @@ jobs:
       - name: Verify Desktop arm64 executable signature
         shell: powershell
         run: |
-          $signature = Get-AuthenticodeSignature "desktop/bin/ccx-desktop.exe"
-          if ($signature.Status -ne "Valid") {
-            throw "Invalid Authenticode signature for desktop/bin/ccx-desktop.exe: $($signature.Status)"
-          }
+          ./.github/scripts/assert-authenticode-signature.ps1 "desktop/bin/ccx-desktop.exe"
 
       - name: Build Desktop arm64 NSIS
         env:
@@ -422,12 +416,7 @@ jobs:
             "desktop/.release-staging/CCX-Desktop-$version-windows-amd64-setup.exe",
             "desktop/.release-staging/CCX-Desktop-$version-windows-arm64-setup.exe"
           )
-          foreach ($file in $files) {
-            $signature = Get-AuthenticodeSignature $file
-            if ($signature.Status -ne "Valid") {
-              throw "Invalid Authenticode signature for ${file}: $($signature.Status)"
-            }
-          }
+          ./.github/scripts/assert-authenticode-signature.ps1 $files
 
       - name: Build Desktop amd64 Store MSIX
         env:
