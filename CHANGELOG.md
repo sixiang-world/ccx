@@ -1,3 +1,15 @@
+## [Unreleased]
+
+### 新增
+
+- **讯飞星辰渠道预设** - 新增 ProviderXFyun 预设，Anthropic + OpenAI 双入口，支持 Messages/Chat/Responses 三目标，含快速输入 URL 识别与中英文 locale
+- **Codex SQLite 迁移修复 visibility 字段** - migrateCodexStateDB 动态检测 threads 列，自动回填 preview/has_user_event/thread_source 等隐藏线程可见性字段
+
+### 修复
+
+- **渠道日志按 channelIndex 过滤共享 metricsKey** - GetChannelLogs 对共享 metricsKey 按 channelIndex 筛选，避免多渠道同 base URL 时日志串台
+- **trace 亲和性遵守 SupportedModels** - 新增测试验证亲和渠道不支持当前模型时正确跳过并回退优先级选择
+
 ## [v2.9.2] - 2026-06-18
 
 ### 新增
