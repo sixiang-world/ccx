@@ -97,8 +97,8 @@
                   </v-col>
 
                   <v-col cols="12" md="5">
-                    <div class="d-flex flex-column ga-2">
-                      <div class="d-flex align-center ga-3">
+                    <div class="d-flex flex-column ga-3">
+                      <div class="d-flex align-center ga-3 pa-3 rounded-lg apikeys-card">
                         <v-icon :color="detectedApiKeys.length > 0 ? 'success' : 'error'" size="20">
                           {{ detectedApiKeys.length > 0 ? 'mdi-check-circle' : 'mdi-alert-circle' }}
                         </v-icon>
@@ -117,24 +117,25 @@
                         </v-chip>
                       </div>
 
-                      <v-tooltip :text="t('addChannel.newChannelPlacementHint')" location="top" max-width="240">
-                        <template #activator="{ props: tooltipProps }">
-                          <div v-bind="tooltipProps" class="d-flex align-center ga-2">
-                            <v-switch
-                              :model-value="preferencesStore.newChannelPlacement === 'bottom'"
-                              density="compact"
-                              hide-details
-                              color="primary"
-                              inset
-                              class="placement-switch ma-0 pa-0"
-                              @update:model-value="(v) => preferencesStore.setNewChannelPlacement(v ? 'bottom' : 'top')"
-                            />
-                            <span class="text-caption text-medium-emphasis">
-                              {{ t('addChannel.newChannelPlacementLabel') }}
-                            </span>
-                          </div>
-                        </template>
-                      </v-tooltip>
+                      <div
+                        class="d-flex align-center ga-3 pa-3 rounded-lg cursor-pointer placement-switch-card"
+                        @click="togglePlacement"
+                      >
+                        <v-icon color="primary" size="20">mdi-arrow-collapse-down</v-icon>
+                        <div class="flex-grow-1">
+                          <div class="text-body-2 font-weight-medium">{{ t('addChannel.newChannelPlacementLabel') }}</div>
+                        </div>
+                        <v-switch
+                          :model-value="preferencesStore.newChannelPlacement === 'bottom'"
+                          density="compact"
+                          hide-details
+                          readonly
+                          color="primary"
+                          inset
+                          class="placement-switch ma-0 pa-0"
+                          tabindex="-1"
+                        />
+                      </div>
                     </div>
                   </v-col>
                 </v-row>
@@ -364,6 +365,12 @@ function resetQuickState() {
   randomSuffix.value = generateRandomString(6)
 }
 
+function togglePlacement() {
+  preferencesStore.setNewChannelPlacement(
+    preferencesStore.newChannelPlacement === 'bottom' ? 'top' : 'bottom',
+  )
+}
+
 function handleQuickSubmit() {
   parseQuickInput()
   if (!isQuickFormValid.value) return
@@ -468,14 +475,23 @@ onUnmounted(() => {
   min-width: 160px;
 }
 
+.apikeys-card {
+  border: 1px solid rgba(var(--v-theme-outline), 0.32);
+}
+.placement-switch-card {
+  border: 1px solid rgba(var(--v-theme-outline), 0.32);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.placement-switch-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.45);
+  background: rgba(var(--v-theme-primary), 0.04);
+}
 .placement-switch {
   flex-shrink: 0;
+  pointer-events: none;
 }
 .placement-switch :deep(.v-selection-control) {
   min-height: auto;
-}
-.placement-switch :deep(.v-switch__track) {
-  opacity: 0.6;
 }
 
 .shortcut-hint {

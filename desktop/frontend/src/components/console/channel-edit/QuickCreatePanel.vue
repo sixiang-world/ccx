@@ -4,8 +4,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { AlertCircle, Bot, CheckCircle2, Gem, MessageSquare, Sparkles, Tag } from 'lucide-vue-next'
+import { AlertCircle, ArrowDownToLine, Bot, CheckCircle2, Gem, MessageSquare, Sparkles, Tag } from 'lucide-vue-next'
 import { useLanguage } from '@/composables/useLanguage'
 import { useChannelPlacementPreference } from '@/composables/useChannelPlacementPreference'
 
@@ -146,24 +145,20 @@ const serviceMeta = computed<ServiceMeta>(() => serviceMetaMap[props.serviceType
               </p>
             </div>
 
-            <TooltipProvider :delay-duration="200">
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <div class="flex items-center gap-2 px-1">
-                    <Switch
-                      :model-value="newChannelPlacement === 'bottom'"
-                      @update:model-value="(v) => setNewChannelPlacement(v ? 'bottom' : 'top')"
-                    />
-                    <span class="text-xs text-muted-foreground">
-                      {{ t('addChannel.newChannelPlacementLabel') }}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent class="max-w-[240px]">
-                  {{ t('addChannel.newChannelPlacementHint') }}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div
+              class="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
+              @click="setNewChannelPlacement(newChannelPlacement === 'bottom' ? 'top' : 'bottom')"
+            >
+              <ArrowDownToLine class="h-4 w-4 shrink-0 text-primary" />
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium">{{ t('addChannel.newChannelPlacementLabel') }}</div>
+              </div>
+              <Switch
+                :model-value="newChannelPlacement === 'bottom'"
+                readonly
+                class="pointer-events-none shrink-0"
+              />
+            </div>
           </div>
         </div>
       </div>
