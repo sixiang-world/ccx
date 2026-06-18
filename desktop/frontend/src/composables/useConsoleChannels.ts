@@ -108,7 +108,8 @@ async function doRefresh(tab: ChannelType) {
   }
 }
 
-async function refreshChannels() {
+async function refreshChannels(tab: ChannelType = activeTab.value) {
+  activeTab.value = tab
   refreshRequested = true
   if (refreshLoopPromise) return refreshLoopPromise
 
@@ -132,20 +133,22 @@ async function saveChannel(
   payload: Omit<Channel, 'index' | 'latency' | 'status'>,
   editingIndex: number | null,
   options?: { isQuickAdd?: boolean },
+  channelType: ChannelType = activeTab.value,
 ) {
-  const typeApi = getChannelTypeApi(activeTab.value)
+  activeTab.value = channelType
+  const typeApi = getChannelTypeApi(channelType)
   if (editingIndex !== null) {
     await typeApi.updateChannel(editingIndex, payload)
-    await refreshChannels()
+    await refreshChannels(channelType)
     return { success: true, messageKey: 'channelEditor.toast.updated' }
   }
   await typeApi.addChannel(payload)
-  await refreshChannels()
+  await refreshChannels(channelType)
 
   // 快速添加模式：根据用户偏好将新渠道放到队列顶部（含 5 分钟促销期）或末尾
   if (options?.isQuickAdd) {
     const { newChannelPlacement } = useChannelPlacementPreference()
-    const allChannels = channelsByType.value[activeTab.value].channels || []
+    const allChannels = channelsByType.value[channelType].channels || []
     // 后端 AddUpstream 把新渠道 prepend 到首位；通过 name 精确匹配定位
     const newChannel = allChannels.find(ch => ch.name === payload.name && ch.status !== 'disabled')
     if (newChannel) {
@@ -162,7 +165,7 @@ async function saveChannel(
         if (!placeAtBottom) {
           await typeApi.promote(newChannel.index, 300)
         }
-        await refreshChannels()
+        await refreshChannels(channelType)
       } catch (err) {
         console.warn('设置快速添加优先级失败:', err)
         // 不影响主流程
@@ -173,10 +176,11 @@ async function saveChannel(
   return { success: true, messageKey: 'channelEditor.toast.added' }
 }
 
-async function deleteChannel(channelId: number) {
-  const typeApi = getChannelTypeApi(activeTab.value)
+async function deleteChannel(channelId: number, channelType: ChannelType = activeTab.value) {
+  activeTab.value = channelType
+  const typeApi = getChannelTypeApi(channelType)
   await typeApi.deleteChannel(channelId)
-  await refreshChannels()
+  await refreshChannels(channelType)
 }
 
 async function pingChannel(channelId: number) {
@@ -210,30 +214,34 @@ async function pingAllChannels() {
   }
 }
 
-async function reorderChannels(order: number[]) {
-  const typeApi = getChannelTypeApi(activeTab.value)
+async function reorderChannels(order: number[], channelType: ChannelType = activeTab.value) {
+  activeTab.value = channelType
+  const typeApi = getChannelTypeApi(channelType)
   await typeApi.reorder(order)
-  await refreshChannels()
+  await refreshChannels(channelType)
 }
 
-async function setChannelStatus(channelId: number, status: 'active' | 'suspended' | 'disabled') {
-  const typeApi = getChannelTypeApi(activeTab.value)
+async function setChannelStatus(channelId: number, status: 'active' | 'suspended' | 'disabled', channelType: ChannelType = activeTab.value) {
+  activeTab.value = channelType
+  const typeApi = getChannelTypeApi(channelType)
   await typeApi.setStatus(channelId, status)
-  await refreshChannels()
+  await refreshChannels(channelType)
 }
 
-async function resumeChannel(channelId: number) {
-  const typeApi = getChannelTypeApi(activeTab.value)
+async function resumeChannel(channelId: number, channelType: ChannelType = activeTab.value) {
+  activeTab.value = channelType
+  const typeApi = getChannelTypeApi(channelType)
   const result = await typeApi.resume(channelId)
   await typeApi.setStatus(channelId, 'active')
-  await refreshChannels()
+  await refreshChannels(channelType)
   return result
 }
 
-async function promoteChannel(channelId: number, durationSeconds: number) {
-  const typeApi = getChannelTypeApi(activeTab.value)
+async function promoteChannel(channelId: number, durationSeconds: number, channelType: ChannelType = activeTab.value) {
+  activeTab.value = channelType
+  const typeApi = getChannelTypeApi(channelType)
   await typeApi.promote(channelId, durationSeconds)
-  await refreshChannels()
+  await refreshChannels(channelType)
 }
 
 // ===== Key 管理 =====
@@ -250,10 +258,11 @@ async function removeApiKey(channelId: number, key: string) {
   await refreshChannels()
 }
 
-async function restoreApiKey(channelId: number, key: string) {
-  const typeApi = getChannelTypeApi(activeTab.value)
+async function restoreApiKey(channelId: number, key: string, channelType: ChannelType = activeTab.value) {
+  activeTab.value = channelType
+  const typeApi = getChannelTypeApi(channelType)
   await typeApi.restoreApiKey(channelId, key)
-  await refreshChannels()
+  await refreshChannels(channelType)
 }
 
 async function moveApiKeyToTop(channelId: number, key: string) {

@@ -229,7 +229,7 @@ async function refreshCurrentChannels() {
   clearActionError()
   isRefreshing.value = true
   try {
-    await refreshChannels()
+    await refreshChannels(props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -253,7 +253,7 @@ async function handleDelete(channel: Channel) {
 
   actionLoading.value = true
   try {
-    await deleteChannel(channel.index)
+    await deleteChannel(channel.index, props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -265,7 +265,7 @@ async function handleStatusToggle(channelId: number, currentStatus: string) {
   clearActionError()
   const newStatus = currentStatus === 'active' || !currentStatus ? 'suspended' : 'active'
   try {
-    await setChannelStatus(channelId, newStatus as 'active' | 'suspended')
+    await setChannelStatus(channelId, newStatus as 'active' | 'suspended', props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   }
@@ -274,7 +274,7 @@ async function handleStatusToggle(channelId: number, currentStatus: string) {
 async function handleDisable(channelId: number) {
   clearActionError()
   try {
-    await setChannelStatus(channelId, 'disabled')
+    await setChannelStatus(channelId, 'disabled', props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   }
@@ -283,7 +283,7 @@ async function handleDisable(channelId: number) {
 async function handleEnable(channelId: number) {
   clearActionError()
   try {
-    await setChannelStatus(channelId, 'active')
+    await setChannelStatus(channelId, 'active', props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   }
@@ -292,7 +292,7 @@ async function handleEnable(channelId: number) {
 async function handleResume(channelId: number) {
   clearActionError()
   try {
-    await resumeChannel(channelId)
+    await resumeChannel(channelId, props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   }
@@ -307,9 +307,9 @@ async function handlePromote(channel: Channel, duration: number) {
   clearActionError()
   try {
     if (isBreakerManagedChannel(channel)) {
-      await resumeChannel(channel.index)
+      await resumeChannel(channel.index, props.type)
     }
-    await promoteChannel(channel.index, duration)
+    await promoteChannel(channel.index, duration, props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   }
@@ -372,7 +372,7 @@ function closeCapabilityDialog() {
 async function handleReorder(newOrder: number[]) {
   clearActionError()
   try {
-    await reorderChannels(newOrder)
+    await reorderChannels(newOrder, props.type)
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e)
   }

@@ -32,7 +32,7 @@ import StreamTimeoutPanel from './channel-edit/StreamTimeoutPanel.vue'
 
 interface Props {
   channel?: Channel | null
-  channelType: string
+  channelType: ManagedChannelType
 }
 
 const props = defineProps<Props>()
@@ -630,7 +630,7 @@ async function persistCurrentDraft(options: { notifyParent?: boolean; close?: bo
   try {
     await saveChannel(buildSubmitPayload(), props.channel?.index ?? null, {
       isQuickAdd: !isEditMode.value,
-    })
+    }, props.channelType)
     if (options.notifyParent) emit('saved')
     if (options.close) emit('close')
     return true
@@ -764,7 +764,7 @@ async function handleDisabledKeyRestore(key: string) {
   restoringKey.value = key
   error.value = ''
   try {
-    await restoreApiKey(props.channel.index, key)
+    await restoreApiKey(props.channel.index, key, props.channelType)
     localRestoredKeys.value.add(key)
     existingApiKeys.value.push(key)
   } catch (e) {
