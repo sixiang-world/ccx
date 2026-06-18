@@ -1228,23 +1228,8 @@ const sourceModelOptions = computed(() => {
   return ['fable', 'opus', 'sonnet', 'haiku']
 })
 
-// ── Target 模型预置列表（未拉取真实模型前的候选 fallback） ──
-const targetModelPresets = computed(() => {
-  if (props.channelType === 'images') {
-    return ['gpt-image-2', 'gpt-image-1', 'dall-e-3', 'dall-e-2']
-  }
-  if (props.channelType === 'gemini' || form.serviceType === 'gemini') {
-    return ['gemini-3-pro-preview', 'gemini-3-flash-preview', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
-  }
-  if (form.serviceType === 'claude') {
-    return ['claude-opus-4-1', 'claude-sonnet-4-5', 'claude-haiku-4-5', 'mimo-v2.5-pro', 'mimo-v2.5', 'deepseek-v4-pro', 'deepseek-v4-flash']
-  }
-  // openai / responses 等 OpenAI 兼容上游
-  return ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'deepseek-v4-pro', 'deepseek-v4-flash', 'mimo-v2.5-pro', 'mimo-v2.5']
-})
-
-// 拉取到真实模型则优先，否则用预置候选；datalist 始终有内容
-const targetModelDatalist = computed(() => targetModelOptions.value.length ? targetModelOptions.value : targetModelPresets.value)
+// Target 模型只展示 /models 接口返回结果；源模型才保留内置候选。
+const targetModelDatalist = computed(() => targetModelOptions.value)
 
 const commonSupportedModelFilters = ['claude-*', 'gpt-5*', 'gpt-image-2', 'grok-4*', 'gemini-3*', '!*image*']
 const normalizedSupportedModelState = computed(() => {
@@ -1329,7 +1314,10 @@ async function fetchTargetModels() {
 
   const keys = getSubmitApiKeys()
   const uncheckedKeys = keys.filter(key => !keyModelsStatus.value.has(key))
-  if (uncheckedKeys.length === 0) return
+  if (uncheckedKeys.length === 0) {
+    showTargetSuggestions.value = !!activeTargetInputId.value && targetModelOptions.value.length > 0
+    return
+  }
 
   fetchingModels.value = true
   fetchedModelsError.value = ''
@@ -1390,6 +1378,7 @@ async function fetchTargetModels() {
       .filter(Boolean)
       .forEach(model => allModels.add(model))
     targetModelOptions.value = Array.from(allModels).sort()
+    showTargetSuggestions.value = !!activeTargetInputId.value && targetModelOptions.value.length > 0
 
     const allFailed = keys.every(key => {
       const status = keyModelsStatus.value.get(key)
