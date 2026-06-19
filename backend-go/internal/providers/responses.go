@@ -627,7 +627,7 @@ func (p *ResponsesProvider) HandleStreamResponse(body io.ReadCloser) (<-chan str
 		defer body.Close()
 
 		scanner := bufio.NewScanner(body)
-		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+		scanner.Buffer(make([]byte, 0, 64*1024), utils.ResponsesSSEScannerMaxBufferSize)
 
 		pendingEventType := ""
 		messageStartSent := false
@@ -921,7 +921,7 @@ func (p *ResponsesProvider) HandleStreamResponse(body io.ReadCloser) (<-chan str
 				}
 				emitJSON("message_delta", map[string]interface{}{
 					"delta": map[string]interface{}{
-						"stop_reason":  stopReason,
+						"stop_reason":   stopReason,
 						"stop_sequence": nil,
 						"stop_details":  nil,
 					},

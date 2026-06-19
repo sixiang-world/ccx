@@ -701,9 +701,8 @@ func handleStreamSuccess(
 	var converterState any
 
 	scanner := bufio.NewScanner(resp.Body)
-	const maxCapacity = 1024 * 1024
 	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, maxCapacity)
+	scanner.Buffer(buf, utils.ResponsesSSEScannerMaxBufferSize)
 
 	// 预检测：在发送 HTTP Header 之前缓冲行并检查是否为空响应
 	// 使用 goroutine + channel 实现真正的超时控制（scanner.Scan 是阻塞调用）

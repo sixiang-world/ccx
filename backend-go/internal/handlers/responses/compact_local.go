@@ -432,7 +432,7 @@ func handleLocalCompactStream(
 	flusher, _ := c.Writer.(http.Flusher)
 
 	scanner := bufio.NewScanner(resp.Body)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	scanner.Buffer(make([]byte, 0, 64*1024), utils.ResponsesSSEScannerMaxBufferSize)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -517,7 +517,7 @@ func handleLocalCompactV2Stream(
 	var collectedUsage responsesStreamUsage
 
 	scanner := bufio.NewScanner(resp.Body)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	scanner.Buffer(make([]byte, 0, 64*1024), utils.ResponsesSSEScannerMaxBufferSize)
 
 	for scanner.Scan() {
 		line := scanner.Text()

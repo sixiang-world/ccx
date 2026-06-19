@@ -132,6 +132,41 @@ func TestResponsesProvider_HandleStreamResponse_TrulyEmptyStreamHasNoEvents(t *t
 	}
 }
 
+func TestResponsesProvider_HandleStreamResponse_AcceptsLargeSSEDataLine(t *testing.T) {
+	largeDelta := strings.Repeat("x", 1024*1024+1)
+	body := `event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"` + largeDelta + `"}
+
+event: response.completed
+data: {"type":"response.completed","response":{"status":"completed","usage":{"input_tokens":1,"output_tokens":1}}}
+
+`
+	events := runResponsesStream(t, body)
+
+	foundLargeTextDelta := false
+	for _, event := range events {
+		for _, line := range strings.Split(event, "\n") {
+			if !strings.HasPrefix(line, "data: ") {
+				continue
+			}
+			var data map[string]interface{}
+			if json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &data) != nil {
+				continue
+			}
+			delta, ok := data["delta"].(map[string]interface{})
+			if !ok || delta["type"] != "text_delta" {
+				continue
+			}
+			if text := toString(delta["text"]); len(text) == len(largeDelta) {
+				foundLargeTextDelta = true
+			}
+		}
+	}
+	if !foundLargeTextDelta {
+		t.Fatalf("expected large text_delta to be forwarded, events=%d", len(events))
+	}
+}
+
 // 仅含无法转换的良性事件（created/in_progress + 未知类型）但无内容：注入 upstream_unconvertible error 以提供诊断线索。
 func TestResponsesProvider_HandleStreamResponse_UnconvertibleOnlyStreamEmitsDiagnosticError(t *testing.T) {
 	body := `event: response.created

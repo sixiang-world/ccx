@@ -121,3 +121,44 @@ func TestHandleStreamSuccess_PostCommitActivityResetsIdleWatchdog(t *testing.T) 
 		t.Fatalf("expected forwarded progress event, got %s", w.Body.String())
 	}
 }
+
+func TestHandleStreamSuccess_AcceptsLargeSSEDataLine(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(`{"model":"gpt-5","stream":true}`))
+
+	largeDelta := strings.Repeat("x", 1024*1024+1)
+	body := `event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"` + largeDelta + `"}
+
+event: response.completed
+data: {"type":"response.completed","response":{"status":"completed","usage":{"input_tokens":1,"output_tokens":1}}}
+
+`
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": {"text/event-stream"}},
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+
+	_, err := handleStreamSuccess(
+		c,
+		resp,
+		"responses",
+		&config.EnvConfig{LogLevel: "info"},
+		time.Now(),
+		&types.ResponsesRequest{Model: "gpt-5"},
+		[]byte(`{"model":"gpt-5","stream":true}`),
+		common.StreamPreflightTimeouts{},
+	)
+	if err != nil {
+		t.Fatalf("handleStreamSuccess() err = %v", err)
+	}
+	if !strings.Contains(w.Body.String(), `"type":"response.completed"`) {
+		t.Fatalf("expected completed event, got body length %d", w.Body.Len())
+	}
+	if !strings.Contains(w.Body.String(), largeDelta) {
+		t.Fatalf("expected large delta to be forwarded, got body length %d", w.Body.Len())
+	}
+}
