@@ -1802,6 +1802,10 @@ const handleTestCapability = async () => {
   if (!valid) return
   if (modelCapabilitiesError.value) return
 
+  // 与 handleSubmit 保持一致：先把已添加的模型映射行同步到 form，
+  // 否则刚点“添加”进列表、尚未保存的重定向不会进入 payload，导致能力测试漏掉这些改动
+  syncModelMappingToForm()
+
   const channelData = buildSubmitPayload()
   const original = extractPayloadFields(props.channel)
   const hasChanges = JSON.stringify(channelData) !== JSON.stringify(original)
