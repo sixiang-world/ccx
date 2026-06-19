@@ -809,6 +809,71 @@ func TestCapabilityPreviousJobReuse_ByIdentityAcrossChannels(t *testing.T) {
 	}
 }
 
+func TestCapabilityPreviousJobReuse_IsolatedByModelMapping(t *testing.T) {
+	resetCapabilityTestState()
+	gin.SetMode(gin.TestMode)
+
+	tmpDir := t.TempDir()
+	configFile := filepath.Join(tmpDir, "config.json")
+	configJSON := `{"upstream":[{"name":"channel-a","serviceType":"claude","baseUrl":"https://example.com","apiKeys":["test"],"modelMapping":{"claude-sonnet-4-6":"old-target"}},{"name":"channel-b","serviceType":"claude","baseUrl":"https://example.com","apiKeys":["test"],"modelMapping":{"claude-sonnet-4-6":"new-target"}}]}`
+	if err := os.WriteFile(configFile, []byte(configJSON), 0644); err != nil {
+		t.Fatalf("write config failed: %v", err)
+	}
+	cfgManager, err := config.NewConfigManager(configFile, "")
+	if err != nil {
+		t.Fatalf("create config manager failed: %v", err)
+	}
+	defer cfgManager.Close()
+
+	cfg := cfgManager.GetConfig()
+	prevJob := newCapabilityTestJob(0, "channel-a", "messages", "claude", []string{"messages"}, 10*time.Second, 10)
+	prevJob.IdentityKey = resolveCapabilityIdentityKey(&cfg.Upstream[0])
+	prevJob.ChannelKind = "messages"
+	prevJob.Lifecycle = CapabilityLifecycleDone
+	prevJob.Outcome = CapabilityOutcomeSuccess
+	prevJob.Status = CapabilityJobStatusCompleted
+	prevJob.CompatibleProtocols = []string{"messages"}
+	prevJob.Tests[0].Success = true
+	prevJob.Tests[0].SuccessCount = 1
+	prevJob.Tests[0].AttemptedModels = 1
+	prevJob.Tests[0].ModelResults = []CapabilityModelJobResult{{
+		Model:     "claude-sonnet-4-6",
+		Status:    CapabilityModelStatusSuccess,
+		Lifecycle: CapabilityLifecycleDone,
+		Outcome:   CapabilityOutcomeSuccess,
+		Success:   true,
+		TestedAt:  time.Now().Format(time.RFC3339Nano),
+	}}
+	capabilityJobs.create(prevJob)
+
+	r := gin.New()
+	r.POST("/messages/channels/:id/capability-test", TestChannelCapability(cfgManager, nil, "messages"))
+
+	body := `{"targetProtocols":["messages"],"timeout":10000,"previousJobId":"` + prevJob.JobID + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/messages/channels/1/capability-test", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d, want=%d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp struct {
+		Job CapabilityTestJob `json:"job"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response failed: %v", err)
+	}
+
+	if resp.Job.HasReusedResults {
+		t.Fatal("expected previous results not to be reused across different modelMapping")
+	}
+	if resp.Job.RunMode == CapabilityRunModeReusedPreviousResult {
+		t.Fatalf("runMode=%s, want not reused_previous_results", resp.Job.RunMode)
+	}
+}
+
 func TestCapabilityRunningJobReuse_ByIdentityAcrossChannels(t *testing.T) {
 	resetCapabilityTestState()
 	gin.SetMode(gin.TestMode)

@@ -64,9 +64,8 @@ func buildRoundRobinQueue(protocolModels map[string][]string, protocols []string
 	return queue
 }
 
-func runCapabilityTestJob(jobID, channelKind string, channelID int, channel config.UpstreamConfig, protocols []string, timeout time.Duration, effectiveRPM int, cacheKey, lookupKey, dispatcherKey string, previousResults map[string]map[string]ModelTestResult, userModels []string, sourceTab string, cfgManager *config.ConfigManager, channelLogStore *metrics.ChannelLogStore) {
-	modelMappingHash := hashModelMapping(channel.ModelMapping)
-	executionKey := buildCapabilityExecutionLookupKey(dispatcherKey, channelKind, protocols, userModels, modelMappingHash)
+func runCapabilityTestJob(jobID, channelKind string, channelID int, channel config.UpstreamConfig, protocols []string, timeout time.Duration, effectiveRPM int, cacheKey, lookupKey, identityKey, dispatcherKey string, previousResults map[string]map[string]ModelTestResult, userModels []string, sourceTab string, cfgManager *config.ConfigManager, channelLogStore *metrics.ChannelLogStore) {
+	executionKey := buildCapabilityExecutionLookupKey(identityKey, channelKind, protocols, userModels, "")
 	// 创建可取消的 context，用于支持前端取消操作
 	ctx, cancel := context.WithCancel(context.Background())
 	capabilityJobs.setCancelFunc(jobID, cancel)
@@ -264,8 +263,8 @@ func runCapabilityTestJob(jobID, channelKind string, channelID int, channel conf
 		}
 		job.ChannelName = channel.Name
 		job.SourceType = channel.ServiceType
-		job.IdentityKey = dispatcherKey
-		job.ExecutionKey = buildCapabilityExecutionLookupKey(dispatcherKey, channelKind, protocols, userModels, modelMappingHash)
+		job.IdentityKey = identityKey
+		job.ExecutionKey = buildCapabilityExecutionLookupKey(identityKey, channelKind, protocols, userModels, "")
 		job.CompatibleProtocols = append([]string(nil), compatible...)
 		job.RedirectTests = append([]RedirectModelResult(nil), redirectResults...)
 		job.TotalDuration = totalDuration

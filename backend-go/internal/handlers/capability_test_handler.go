@@ -138,11 +138,12 @@ func TestChannelCapability(cfgManager *config.ConfigManager, channelLogStore *me
 			apiKey = channel.DisabledAPIKeys[0].Key
 		}
 
-		normalizedModels := normalizeCapabilityModels(req.Models)
-		identityKey := metrics.GenerateMetricsIdentityKey(baseURL, apiKey, channel.ServiceType)
 		modelMappingHash := hashModelMapping(channel.ModelMapping)
+		normalizedModels := normalizeCapabilityModels(req.Models)
+		dispatcherKey := metrics.GenerateMetricsIdentityKey(baseURL, apiKey, channel.ServiceType)
+		identityKey := buildCapabilityIdentityKey(channel, modelMappingHash)
 		cacheKey := buildCapabilityCacheKey(baseURL, apiKey, channel.ServiceType, protocols, normalizedModels, modelMappingHash)
-		executionLookupKey := buildCapabilityExecutionLookupKey(identityKey, channelKind, protocols, normalizedModels, modelMappingHash)
+		executionLookupKey := buildCapabilityExecutionLookupKey(identityKey, channelKind, protocols, normalizedModels, "")
 		lookupKey := buildCapabilityJobLookupKey(cacheKey, channelKind, id)
 
 		if cached, ok := getCapabilityCache(cacheKey); ok {
@@ -244,7 +245,7 @@ func TestChannelCapability(cfgManager *config.ConfigManager, channelLogStore *me
 				return
 			}
 
-			go runCapabilityTestJob(job.JobID, channelKind, id, *channel, protocols, timeout, effectiveRPM, cacheKey, lookupKey, identityKey, previousResults, normalizedModels, req.SourceTab, cfgManager, channelLogStore)
+			go runCapabilityTestJob(job.JobID, channelKind, id, *channel, protocols, timeout, effectiveRPM, cacheKey, lookupKey, identityKey, dispatcherKey, previousResults, normalizedModels, req.SourceTab, cfgManager, channelLogStore)
 
 			c.JSON(http.StatusOK, gin.H{"jobId": updatedJob.JobID, "resumed": true, "job": updatedJob})
 			return
@@ -298,7 +299,7 @@ func TestChannelCapability(cfgManager *config.ConfigManager, channelLogStore *me
 			}
 		}
 
-		go runCapabilityTestJob(job.JobID, channelKind, id, *channel, protocols, timeout, effectiveRPM, cacheKey, lookupKey, identityKey, previousResults, normalizedModels, req.SourceTab, cfgManager, channelLogStore)
+		go runCapabilityTestJob(job.JobID, channelKind, id, *channel, protocols, timeout, effectiveRPM, cacheKey, lookupKey, identityKey, dispatcherKey, previousResults, normalizedModels, req.SourceTab, cfgManager, channelLogStore)
 
 		c.JSON(http.StatusOK, gin.H{"jobId": job.JobID, "resumed": false, "job": job})
 		return

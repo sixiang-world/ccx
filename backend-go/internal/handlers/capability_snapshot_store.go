@@ -362,6 +362,13 @@ func resolveCapabilityIdentityKey(channel *config.UpstreamConfig) string {
 	if channel == nil {
 		return ""
 	}
+	return buildCapabilityIdentityKey(channel, hashModelMapping(channel.ModelMapping))
+}
+
+func buildCapabilityIdentityKey(channel *config.UpstreamConfig, modelMappingHash string) string {
+	if channel == nil {
+		return ""
+	}
 	baseURL := ""
 	if len(channel.GetAllBaseURLs()) > 0 {
 		baseURL = channel.GetAllBaseURLs()[0]
@@ -372,7 +379,11 @@ func resolveCapabilityIdentityKey(channel *config.UpstreamConfig) string {
 	} else if len(channel.DisabledAPIKeys) > 0 {
 		apiKey = channel.DisabledAPIKeys[0].Key
 	}
-	return metrics.GenerateMetricsIdentityKey(baseURL, apiKey, channel.ServiceType)
+	identityKey := metrics.GenerateMetricsIdentityKey(baseURL, apiKey, channel.ServiceType)
+	if modelMappingHash == "" {
+		return identityKey
+	}
+	return identityKey + ":mapping:" + modelMappingHash
 }
 
 func capabilityJobMatchesChannel(job *CapabilityTestJob, channel *config.UpstreamConfig, channelKind string, channelID int) bool {
