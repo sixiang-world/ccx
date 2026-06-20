@@ -341,7 +341,6 @@ func applyModelCapabilityUpdates(upstream *UpstreamConfig, updates UpstreamUpdat
 	}
 }
 
-
 // applyAPIKeyConfigUpdate 根据 UpstreamUpdate 同步 upstream.APIKeyConfigs：
 //   - updates.APIKeyConfigs != nil：以新值为准，按当前 APIKeys 归一化（保留 orphan）
 //   - updates.APIKeyConfigs == nil 但 updates.APIKeys != nil：仅按新 APIKeys 重新归一化原有 configs

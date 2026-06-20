@@ -39,8 +39,6 @@ func HasEffectiveConfig(upstream *config.UpstreamConfig) bool {
 	return false
 }
 
-
-
 // CandidatesForModel 返回可用 key 列表，过滤 enabled=false、failedKeys 和模型白名单。
 // model 为空时不按模型过滤。
 func CandidatesForModel(upstream *config.UpstreamConfig, failedKeys map[string]bool, model string) []Candidate {

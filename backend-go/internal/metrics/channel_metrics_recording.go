@@ -296,7 +296,6 @@ func (m *MetricsManager) RecordRequestEnd(baseURL, apiKey, serviceType string) {
 	}
 }
 
-
 // appendToWindowKey 向 Key 滑动窗口添加记录
 func (m *MetricsManager) appendToWindowKey(metrics *KeyMetrics, success bool) {
 	metrics.recentResults = append(metrics.recentResults, success)

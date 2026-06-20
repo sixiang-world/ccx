@@ -8,9 +8,9 @@ import (
 
 func TestStopDetailsInMessageDelta(t *testing.T) {
 	tests := []struct {
-		name         string
-		provider     Provider
-		streamBody   string
+		name           string
+		provider       Provider
+		streamBody     string
 		wantStopReason string
 	}{
 		{
