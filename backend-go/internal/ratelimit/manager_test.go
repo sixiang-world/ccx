@@ -188,3 +188,91 @@ func TestParseKey(t *testing.T) {
 		}
 	}
 }
+
+// TestManager_UpdateAllAppliesToScopedLimiters 验证 UpdateAll 也会更新 scoped limiter（key/quota 级），
+// 而不是只更新 channel 级 limiter。
+func TestManager_UpdateAllAppliesToScopedLimiters(t *testing.T) {
+	m := NewManager()
+	// 创建 channel 级
+	m.GetOrCreate("messages", 0, Config{RPM: 10})
+	// 创建 scoped 级
+	m.GetOrCreateScoped("messages", 0, "key:abc", Config{RPM: 20})
+	m.GetOrCreateScoped("messages", 0, "quota:groupA", Config{RPM: 30})
+
+	// fetch 返回新的 RPM
+	m.UpdateAll(func(apiType string, idx int) (Config, bool) {
+		if apiType == "messages" && idx == 0 {
+			return Config{RPM: 99}, true
+		}
+		return Config{}, false
+	})
+
+	now := time.Now()
+	// 检查 channel 级
+	if got := m.Get("messages", 0).Status(now).MaxRequests; got != 99 {
+		t.Errorf("channel-level MaxRequests = %d, want 99", got)
+	}
+	// 检查 scoped 级
+	if got := m.GetScoped("messages", 0, "key:abc").Status(now).MaxRequests; got != 99 {
+		t.Errorf("scoped key MaxRequests = %d, want 99", got)
+	}
+	if got := m.GetScoped("messages", 0, "quota:groupA").Status(now).MaxRequests; got != 99 {
+		t.Errorf("scoped quota MaxRequests = %d, want 99", got)
+	}
+}
+
+// TestManager_RemoveCleansUpScopedLimiters 验证 Remove 同时清理同 channel 下所有 scoped limiter。
+func TestManager_RemoveCleansUpScopedLimiters(t *testing.T) {
+	m := NewManager()
+	m.GetOrCreate("messages", 0, Config{RPM: 10})
+	m.GetOrCreateScoped("messages", 0, "key:abc", Config{RPM: 20})
+	m.GetOrCreateScoped("messages", 0, "quota:groupA", Config{RPM: 30})
+	// 同 type 但不同 idx 应保留
+	m.GetOrCreate("messages", 1, Config{RPM: 40})
+	m.GetOrCreateScoped("messages", 1, "key:def", Config{RPM: 50})
+
+	m.Remove("messages", 0)
+
+	// channel 0 的 channel 级和 scoped 级应全部删除
+	if m.Get("messages", 0) != nil {
+		t.Error("channel-level limiter not removed")
+	}
+	if m.GetScoped("messages", 0, "key:abc") != nil {
+		t.Error("scoped key limiter not removed")
+	}
+	if m.GetScoped("messages", 0, "quota:groupA") != nil {
+		t.Error("scoped quota limiter not removed")
+	}
+	// channel 1 不应受影响
+	if m.Get("messages", 1) == nil {
+		t.Error("messages:1 channel-level limiter unexpectedly removed")
+	}
+	if m.GetScoped("messages", 1, "key:def") == nil {
+		t.Error("messages:1 scoped limiter unexpectedly removed")
+	}
+}
+
+// TestChannelLimiter_UpdateConfigSkipsWhenUnchanged 验证 UpdateConfig 在配置不变时跳过 applyConfig，
+// 通过观察 sem 通道是否被重建判断。
+func TestChannelLimiter_UpdateConfigSkipsWhenUnchanged(t *testing.T) {
+	cfg := Config{RPM: 60, WindowSeconds: 60, MaxConcurrent: 5}
+	l := NewChannelLimiter(cfg, time.Now())
+	originalSem := l.sem
+
+	// 相同配置 → 不应重建 sem
+	l.UpdateConfig(cfg)
+	if l.sem != originalSem {
+		t.Error("sem channel rebuilt when config unchanged")
+	}
+
+	// 改变 MaxConcurrent → 应重建 sem
+	newCfg := cfg
+	newCfg.MaxConcurrent = 10
+	l.UpdateConfig(newCfg)
+	if l.sem == originalSem {
+		t.Error("sem channel not rebuilt when MaxConcurrent changed")
+	}
+	if cap(l.sem) != 10 {
+		t.Errorf("new sem cap = %d, want 10", cap(l.sem))
+	}
+}

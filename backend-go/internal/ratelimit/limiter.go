@@ -84,10 +84,47 @@ func (l *ChannelLimiter) applyConfig(cfg Config) {
 }
 
 // UpdateConfig 热更新配置，不丢失运行态 cooldown 和当前令牌。
+// UpdateConfig 热更新配置，不丢失运行态 cooldown 和当前令牌。
+// 若 cfg 与当前实际状态一致，直接返回，避免高并发 hot path 上无意义重建 sem 通道。
 func (l *ChannelLimiter) UpdateConfig(cfg Config) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.configMatchesLocked(cfg) {
+		return
+	}
 	l.applyConfig(cfg)
+}
+
+// configMatchesLocked 在持有 l.mu 时判断 cfg 是否已与 limiter 当前生效配置一致。
+func (l *ChannelLimiter) configMatchesLocked(cfg Config) bool {
+	// RPM / window
+	if cfg.RPM > 0 {
+		if l.maxRequests != cfg.RPM {
+			return false
+		}
+		wantWindow := time.Duration(cfg.WindowSeconds) * time.Second
+		if cfg.WindowSeconds <= 0 {
+			wantWindow = 60 * time.Second
+		}
+		if l.window != wantWindow {
+			return false
+		}
+	} else {
+		if l.maxRequests != 0 || l.window != 0 {
+			return false
+		}
+	}
+	// 并发信号量
+	if cfg.MaxConcurrent > 0 {
+		if l.sem == nil || cap(l.sem) != cfg.MaxConcurrent {
+			return false
+		}
+	} else {
+		if l.sem != nil {
+			return false
+		}
+	}
+	return true
 }
 
 // InCooldown 返回当前是否处于动态 cooldown 期。

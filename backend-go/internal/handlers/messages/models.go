@@ -148,11 +148,6 @@ type modelsChannelCandidate struct {
 	selection *scheduler.SelectionResult
 }
 
-type modelsChannelResult struct {
-	index  int
-	models []ModelEntry
-}
-
 func collectModelsFromAllKinds(req modelsCollectionRequest) map[scheduler.ChannelKind][]ModelEntry {
 	kinds := []scheduler.ChannelKind{
 		scheduler.ChannelKindMessages,
@@ -250,7 +245,7 @@ func collectModelsFromChannels(req modelsCollectionRequest, kind scheduler.Chann
 		return nil
 	}
 
-	modelLists := make([][]ModelEntry, 0, minInt(maxSuccess, len(resultsByIndex)))
+	modelLists := make([][]ModelEntry, 0, min(maxSuccess, len(resultsByIndex)))
 	for idx := 0; idx < len(candidates) && len(modelLists) < maxSuccess; idx++ {
 		if models := resultsByIndex[idx]; len(models) > 0 {
 			modelLists = append(modelLists, models)
@@ -694,13 +689,6 @@ func requestModelsFromSelection(ctx context.Context, cfgManager *config.ConfigMa
 	}
 
 	return nil, upstream, false
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func channelKindLabel(kind scheduler.ChannelKind) string {

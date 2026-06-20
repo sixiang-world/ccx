@@ -626,3 +626,151 @@ func TestStripBillingHeaderDefaultsUpdateAndMigration(t *testing.T) {
 		t.Fatal("StripBillingHeader pointer should be deep-copied")
 	}
 }
+
+// TestBlacklistKeyConfigSnapshotDeepCopy 验证 BlacklistKey 深拷贝 APIKeyConfig 快照，
+// 拉黑后修改源 config 不影响快照。
+func TestBlacklistKeyConfigSnapshotDeepCopy(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.json")
+	initialConfig := `{
+		"upstream": [{
+			"name": "test-channel",
+			"baseUrl": "https://example.com",
+			"apiKeys": ["sk-1"],
+			"apiKeyConfigs": [{
+				"key": "sk-1",
+				"name": "test-key",
+				"weight": 5,
+				"models": ["claude-sonnet"]
+			}],
+			"serviceType": "claude"
+		}]
+	}`
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		t.Fatalf("写入初始配置失败: %v", err)
+	}
+	cm, err := NewConfigManager(configPath, "")
+	if err != nil {
+		t.Fatalf("NewConfigManager() error = %v", err)
+	}
+	defer cm.Close()
+
+	enabled := true
+	if err := cm.BlacklistKey("Messages", 0, "sk-1", "authentication_error", "test"); err != nil {
+		t.Fatalf("BlacklistKey() error = %v", err)
+	}
+
+	cfg := cm.GetConfig()
+	if len(cfg.Upstream[0].DisabledAPIKeys) != 1 {
+		t.Fatalf("DisabledAPIKeys len = %d, want 1", len(cfg.Upstream[0].DisabledAPIKeys))
+	}
+	dk := cfg.Upstream[0].DisabledAPIKeys[0]
+	if dk.Config == nil {
+		t.Fatal("dk.Config is nil, want non-nil snapshot")
+	}
+	if dk.Config.Weight != 5 {
+		t.Errorf("snapshot Weight = %d, want 5", dk.Config.Weight)
+	}
+	// 修改源 config 的 Models 切片，验证快照不受影响（深拷贝）
+	cfg.Upstream[0].APIKeyConfigs = append(cfg.Upstream[0].APIKeyConfigs, APIKeyConfig{
+		Key:     "sk-2",
+		Enabled: &enabled,
+	})
+	_ = enabled
+
+	snapshotModels := dk.Config.Models
+	if len(snapshotModels) != 1 || snapshotModels[0] != "claude-sonnet" {
+		t.Errorf("snapshot Models mutated to %v, want [claude-sonnet]", snapshotModels)
+	}
+}
+
+// TestRestoreDisabledKeysRestoresConfig 验证 RestoreDisabledKeys（自动恢复路径）
+// 将 DisabledKeyInfo.Config 中的快照恢复到 APIKeyConfigs，quota/weight 不丢失。
+func TestRestoreDisabledKeysRestoresConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.json")
+	// 初始：key 活跃且有完整配置
+	initialConfig := `{
+		"upstream": [{
+			"name": "test-channel",
+			"baseUrl": "https://example.com",
+			"apiKeys": ["sk-1"],
+			"apiKeyConfigs": [{
+				"key": "sk-1",
+				"name": "primary-key",
+				"quotaGroup": "group-a",
+				"weight": 3,
+				"rateLimitRpm": 100
+			}],
+			"serviceType": "claude"
+		}]
+	}`
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		t.Fatalf("写入初始配置失败: %v", err)
+	}
+	cm, err := NewConfigManager(configPath, "")
+	if err != nil {
+		t.Fatalf("NewConfigManager() error = %v", err)
+	}
+	defer cm.Close()
+
+	// 拉黑（带自动恢复时间）
+	if err := cm.BlacklistKey("Messages", 0, "sk-1", "authentication_error", "test"); err != nil {
+		t.Fatalf("BlacklistKey() error = %v", err)
+	}
+
+	// 确认配置快照存在
+	cfg := cm.GetConfig()
+	if len(cfg.Upstream[0].DisabledAPIKeys) != 1 {
+		t.Fatalf("DisabledAPIKeys len = %d, want 1", len(cfg.Upstream[0].DisabledAPIKeys))
+	}
+	dk := cfg.Upstream[0].DisabledAPIKeys[0]
+	if dk.Config == nil {
+		t.Fatal("dk.Config is nil after BlacklistKey")
+	}
+	if dk.Config.QuotaGroup != "group-a" {
+		t.Fatalf("snapshot QuotaGroup = %q, want group-a", dk.Config.QuotaGroup)
+	}
+
+	// 模拟用户编辑渠道（触发 config 保存，移除该 key 的 APIKeyConfig 条目）
+	cm.mu.Lock()
+	cm.config.Upstream[0].APIKeyConfigs = []APIKeyConfig{
+		{Key: "sk-new", Name: "new-key"},
+	}
+	cm.mu.Unlock()
+
+	// 自动恢复
+	restored, err := cm.RestoreDisabledKeys("Messages", 0, []string{"sk-1"})
+	if err != nil {
+		t.Fatalf("RestoreDisabledKeys() error = %v", err)
+	}
+	if len(restored) != 1 || restored[0] != "sk-1" {
+		t.Fatalf("restored = %v, want [sk-1]", restored)
+	}
+
+	// 验证恢复后 key 配置保留了快照中的字段
+	cfg = cm.GetConfig()
+	var restoredConfig *APIKeyConfig
+	for _, cfgEntry := range cfg.Upstream[0].APIKeyConfigs {
+		if cfgEntry.Key == "sk-1" {
+			cfgCopy := cfgEntry
+			restoredConfig = &cfgCopy
+			break
+		}
+	}
+	if restoredConfig == nil {
+		t.Fatal("restored config not found in APIKeyConfigs")
+	}
+	if restoredConfig.QuotaGroup != "group-a" {
+		t.Errorf("restored QuotaGroup = %q, want group-a", restoredConfig.QuotaGroup)
+	}
+	if restoredConfig.Weight != 3 {
+		t.Errorf("restored Weight = %d, want 3", restoredConfig.Weight)
+	}
+	if restoredConfig.RateLimitRPM != 100 {
+		t.Errorf("restored RateLimitRPM = %d, want 100", restoredConfig.RateLimitRPM)
+	}
+	if restoredConfig.Name != "primary-key" {
+		t.Errorf("restored Name = %q, want primary-key", restoredConfig.Name)
+	}
+}

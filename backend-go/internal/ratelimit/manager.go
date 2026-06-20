@@ -3,6 +3,7 @@ package ratelimit
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 )
@@ -132,15 +133,27 @@ func (m *Manager) SetCooldown(apiType string, channelIndex int, duration time.Du
 }
 
 // Remove 移除指定渠道的 limiter。
+// Remove 移除指定渠道的 limiter，包括 channel 级和该 channel 下所有 scoped limiter（key/quota 级）。
+// 渠道删除或 key 全部轮换时调用，避免 limiter map 累积无效条目。
 func (m *Manager) Remove(apiType string, channelIndex int) {
-	key := limiterKey(apiType, channelIndex)
+	channelKey := limiterKey(apiType, channelIndex)
+	scopedPrefix := channelKey + ":"
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	delete(m.limiters, key)
+	delete(m.limiters, channelKey)
+	for k := range m.limiters {
+		if strings.HasPrefix(k, scopedPrefix) {
+			delete(m.limiters, k)
+		}
+	}
 }
 
 // UpdateAll 通过回调函数批量更新所有 limiter 配置。
 // fetcher 返回 (apiType, channelIndex) 对应的新配置，ok=false 表示该渠道不需要限速。
+// UpdateAll 通过回调函数批量更新所有 limiter 配置。
+// fetcher 返回 (apiType, channelIndex) 对应的新配置，ok=false 表示该渠道不需要限速。
+// 注意：scoped limiter（key/quota 级）和 channel 级共享同一 (apiType, channelIndex) 配置；
+// 解析 key 时丢弃 scope 部分，但用原始 key 从 map 中取 limiter，确保 scoped limiter 也被更新。
 func (m *Manager) UpdateAll(fetcher func(apiType string, channelIndex int) (cfg Config, ok bool)) {
 	m.mu.RLock()
 	keys := make([]string, 0, len(m.limiters))
@@ -152,7 +165,10 @@ func (m *Manager) UpdateAll(fetcher func(apiType string, channelIndex int) (cfg 
 	for _, key := range keys {
 		apiType, idx := parseKey(key)
 		if cfg, ok := fetcher(apiType, idx); ok {
-			if l := m.Get(apiType, idx); l != nil {
+			m.mu.RLock()
+			l := m.limiters[key]
+			m.mu.RUnlock()
+			if l != nil {
 				l.UpdateConfig(cfg)
 			}
 		}

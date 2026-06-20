@@ -32,18 +32,14 @@ func HasEffectiveConfig(upstream *config.UpstreamConfig) bool {
 		return false
 	}
 	for _, cfg := range upstream.APIKeyConfigs {
-		if strings.TrimSpace(cfg.Name) != "" || cfg.Enabled != nil || strings.TrimSpace(cfg.QuotaGroup) != "" ||
-			cfg.RateLimitRPM > 0 || cfg.RateLimitWindowMinutes > 0 || cfg.RateLimitMaxConcurrent > 0 ||
-			cfg.RateLimitAutoFromHeaders != nil || cfg.Weight > 0 || len(cfg.Models) > 0 {
+		if config.IsAPIKeyConfigEffective(cfg) {
 			return true
 		}
 	}
 	return false
 }
 
-func Candidates(upstream *config.UpstreamConfig, failedKeys map[string]bool) []Candidate {
-	return CandidatesForModel(upstream, failedKeys, "")
-}
+
 
 // CandidatesForModel 返回可用 key 列表，过滤 enabled=false、failedKeys 和模型白名单。
 // model 为空时不按模型过滤。
@@ -107,29 +103,77 @@ func CandidatesForModel(upstream *config.UpstreamConfig, failedKeys map[string]b
 }
 
 // matchesModel 检查 model 是否在允许列表中（支持通配符 *）。
+// matchesModel 检查 model 是否符合 models 列表中的允许/否定规则。
+// 规则：
+//   - 空列表 → 默认允许所有
+//   - "!prefix" 表示否定模式：匹配则立即排除
+//   - "*"/"**" 表示通配所有
+//   - "*xxx"/"xxx*"/"*xxx*" 分别为后缀/前缀/包含匹配
+//   - 精确匹配优先
+//
+// 若有任意 include 规则匹配则返回 true；否定优先级最高（任意 !xx 匹配则返回 false）。
+// 全部规则均为 include 时，仅当至少一条匹配时返回 true。
 func matchesModel(model string, models []string) bool {
 	model = strings.ToLower(strings.TrimSpace(model))
-	for _, pattern := range models {
-		pattern = strings.ToLower(strings.TrimSpace(pattern))
+	matched := false
+	hasInclude := false
+	for _, raw := range models {
+		pattern := strings.ToLower(strings.TrimSpace(raw))
 		if pattern == "" {
 			continue
 		}
-		if pattern == model {
+		negated := false
+		if strings.HasPrefix(pattern, "!") {
+			negated = true
+			pattern = pattern[1:]
+			if pattern == "" {
+				continue
+			}
+		}
+
+		doesMatch := matchSinglePattern(model, pattern)
+
+		if negated {
+			if doesMatch {
+				return false
+			}
+			continue
+		}
+
+		hasInclude = true
+		if doesMatch {
+			matched = true
+		}
+	}
+	if !hasInclude {
+		// 全部都是否定规则（或为空），无任何排除命中则视为允许
+		return true
+	}
+	return matched
+}
+
+// matchSinglePattern 计算单个 pattern 是否匹配 model（pattern 已 trim+lower、已剥离否定前缀）。
+func matchSinglePattern(model, pattern string) bool {
+	// 通配所有：* 或 **
+	if pattern == "*" || pattern == "**" {
+		return true
+	}
+	if pattern == model {
+		return true
+	}
+	if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") {
+		inner := pattern[1 : len(pattern)-1]
+		if inner == "" {
+			// 兜底：理论上已被 "*"/"**" 分支吞掉
 			return true
 		}
-		if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") {
-			if strings.Contains(model, pattern[1:len(pattern)-1]) {
-				return true
-			}
-		} else if strings.HasPrefix(pattern, "*") {
-			if strings.HasSuffix(model, pattern[1:]) {
-				return true
-			}
-		} else if strings.HasSuffix(pattern, "*") {
-			if strings.HasPrefix(model, pattern[:len(pattern)-1]) {
-				return true
-			}
-		}
+		return strings.Contains(model, inner)
+	}
+	if strings.HasPrefix(pattern, "*") {
+		return strings.HasSuffix(model, pattern[1:])
+	}
+	if strings.HasSuffix(pattern, "*") {
+		return strings.HasPrefix(model, pattern[:len(pattern)-1])
 	}
 	return false
 }

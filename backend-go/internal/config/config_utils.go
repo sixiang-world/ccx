@@ -290,7 +290,13 @@ func (u *UpstreamConfig) Clone() *UpstreamConfig {
 	}
 	if u.DisabledAPIKeys != nil {
 		cloned.DisabledAPIKeys = make([]DisabledKeyInfo, len(u.DisabledAPIKeys))
-		copy(cloned.DisabledAPIKeys, u.DisabledAPIKeys)
+		for i, dk := range u.DisabledAPIKeys {
+			cloned.DisabledAPIKeys[i] = dk
+			if dk.Config != nil {
+				c := cloneAPIKeyConfig(*dk.Config)
+				cloned.DisabledAPIKeys[i].Config = &c
+			}
+		}
 	}
 	if u.AutoBlacklistBalance != nil {
 		v := *u.AutoBlacklistBalance

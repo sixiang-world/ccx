@@ -48,6 +48,8 @@ export interface DisabledKeyInfo {
   reason: string      // "authentication_error" / "permission_error" / "insufficient_balance"
   message: string
   disabledAt: string  // ISO8601 时间戳
+  recoverAt?: string  // 自动恢复时间（可选，ISO8601）
+  config?: APIKeyConfig // 拉黑前的 key 配置快照，restore 时恢复
 }
 
 export interface APIKeyConfig {

@@ -1293,7 +1293,12 @@ const loadChannelData = (channel: Channel) => {
 
   // 直接存储原始密钥，不需要映射关系
   form.apiKeys = [...channel.apiKeys]
-  form.apiKeyConfigs = channel.apiKeyConfigs ? channel.apiKeyConfigs.map(cfg => ({ ...cfg })) : undefined
+  form.apiKeyConfigs = channel.apiKeyConfigs
+    ? channel.apiKeyConfigs.map(cfg => ({
+        ...cfg,
+        models: cfg.models ? [...cfg.models] : undefined,
+      }))
+    : undefined
 
   form.modelMapping = { ...(channel.modelMapping || {}) }
   form.modelCapabilitiesText = Object.keys(channel.modelCapabilities || {}).length > 0

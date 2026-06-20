@@ -97,22 +97,32 @@ func TestCandidatesForModel_FailedKeysFiltered(t *testing.T) {
 
 func TestMatchesModel(t *testing.T) {
 	tests := []struct {
-		model   string
-		models  []string
-		want    bool
+		name   string
+		model  string
+		models []string
+		want   bool
 	}{
-		{"claude-sonnet-4-5", []string{"claude-sonnet-4-5"}, true},
-		{"gpt-4o", []string{"gpt-4*"}, true},
-		{"gpt-4o-mini", []string{"gpt-4*"}, true},
-		{"claude-opus-4-8", []string{"gpt-4*"}, false},
-		{"hello-world", []string{"*world"}, true},
-		{"hello-world", []string{"hello-*"}, true},
-		{"hello-world", []string{"*lo-wo*"}, true},
+		{"exact match", "claude-sonnet-4-5", []string{"claude-sonnet-4-5"}, true},
+		{"prefix suffix wildcard", "gpt-4o", []string{"gpt-4*"}, true},
+		{"prefix suffix wildcard long", "gpt-4o-mini", []string{"gpt-4*"}, true},
+		{"prefix wildcard miss", "claude-opus-4-8", []string{"gpt-4*"}, false},
+		{"leading wildcard", "hello-world", []string{"*world"}, true},
+		{"trailing wildcard", "hello-world", []string{"hello-*"}, true},
+		{"both ends wildcard", "hello-world", []string{"*lo-wo*"}, true},
+		{"single star matches all", "anything", []string{"*"}, true},
+		{"double star matches all", "anything", []string{"**"}, true},
+		{"empty pattern list allows all", "anything", []string{}, true},
+		{"negation excludes", "gpt-4o", []string{"!gpt-*"}, false},
+		{"negation does not match keeps allowed", "claude-opus", []string{"!gpt-*", "claude-*"}, true},
+		{"negation with exact match", "gpt-4o", []string{"!gpt-4o", "*"}, false},
+		{"pure negation when not hit allows", "claude-opus", []string{"!gpt-*"}, true},
+		{"empty bang ignored", "claude-opus", []string{"!"}, true},
+		{"case insensitive", "Claude-Sonnet", []string{"claude-sonnet"}, true},
 	}
 	for _, tt := range tests {
 		got := matchesModel(tt.model, tt.models)
 		if got != tt.want {
-			t.Errorf("matchesModel(%q, %v) = %v, want %v", tt.model, tt.models, got, tt.want)
+			t.Errorf("matchesModel(%q, %v) = %v, want %v (case: %s)", tt.model, tt.models, got, tt.want, tt.name)
 		}
 	}
 }

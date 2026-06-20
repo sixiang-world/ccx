@@ -52,6 +52,8 @@ export interface DisabledKeyInfo {
   reason: string
   message: string
   disabledAt: string
+  recoverAt?: string
+  config?: APIKeyConfig
 }
 
 export interface APIKeyConfig {

@@ -214,19 +214,19 @@ func NormalizeAPIKeyConfigsForView(upstream UpstreamConfig) []APIKeyConfig {
 	full := normalizeAPIKeyConfigs(upstream.APIKeys, upstream.APIKeyConfigs)
 	out := make([]APIKeyConfig, 0, len(full))
 	for _, cfg := range full {
-		if isAPIKeyConfigEffective(cfg) {
+		if IsAPIKeyConfigEffective(cfg) {
 			out = append(out, cfg)
 		}
 	}
 	return out
 }
 
-// isAPIKeyConfigEffective 判断 key 配置是否包含有效运行时语义，避免 view 层把默认空白配置一并返回。
-func isAPIKeyConfigEffective(cfg APIKeyConfig) bool {
+// IsAPIKeyConfigEffective 判断 key 配置是否包含有效运行时语义，避免 view 层把默认空白配置一并返回。
+func IsAPIKeyConfigEffective(cfg APIKeyConfig) bool {
 	if cfg.Enabled != nil {
 		return true
 	}
-	if cfg.Name != "" || cfg.QuotaGroup != "" {
+	if strings.TrimSpace(cfg.Name) != "" || strings.TrimSpace(cfg.QuotaGroup) != "" {
 		return true
 	}
 	if cfg.RateLimitRPM > 0 || cfg.RateLimitWindowMinutes > 0 || cfg.RateLimitMaxConcurrent > 0 {
@@ -1183,6 +1183,7 @@ func (cm *ConfigManager) RestoreDisabledKeys(apiType string, channelIndex int, k
 	upstream := &(*upstreams)[channelIndex]
 	restored := make([]string, 0, len(keySet))
 	newDisabled := make([]DisabledKeyInfo, 0, len(upstream.DisabledAPIKeys))
+	savedConfigs := make(map[string]*APIKeyConfig)
 	for _, dk := range upstream.DisabledAPIKeys {
 		if _, ok := keySet[dk.Key]; !ok {
 			newDisabled = append(newDisabled, dk)
@@ -1195,6 +1196,10 @@ func (cm *ConfigManager) RestoreDisabledKeys(apiType string, channelIndex int, k
 			return k == dk.Key
 		})
 		delete(cm.failedKeysCache, failedKeyCacheKey(apiType, dk.Key))
+		if dk.Config != nil {
+			copyCfg := *dk.Config
+			savedConfigs[dk.Key] = &copyCfg
+		}
 		restored = append(restored, dk.Key)
 	}
 
@@ -1204,6 +1209,9 @@ func (cm *ConfigManager) RestoreDisabledKeys(apiType string, channelIndex int, k
 
 	upstream.DisabledAPIKeys = newDisabled
 	upstream.APIKeyConfigs = normalizeAPIKeyConfigs(upstream.APIKeys, upstream.APIKeyConfigs)
+	for key, cfg := range savedConfigs {
+		upstream.APIKeyConfigs = restoreAPIKeyConfig(upstream.APIKeyConfigs, key, cfg)
+	}
 	log.Printf("[%s-Blacklist] 渠道 [%d] %s 自动恢复了 %d 个 Key", apiType, channelIndex, upstream.Name, len(restored))
 	if err := cm.saveConfigLocked(cm.config); err != nil {
 		return nil, err
