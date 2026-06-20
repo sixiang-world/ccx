@@ -549,7 +549,7 @@ watch(() => props.type, () => {
         <div class="divide-y divide-border">
           <div
             v-for="(channel, index) in activeChannels"
-            :key="channel.index"
+            :key="`${type}-${channel.index}`"
             :draggable="!normalizedSearch"
             :class="{ 'opacity-50': draggedIndex === channel.index }"
             @dragstart="onDragStart($event, channel.index)"
@@ -604,7 +604,7 @@ watch(() => props.type, () => {
         <div class="divide-y divide-border">
           <ChannelCard
             v-for="(channel, index) in inactiveChannels"
-            :key="channel.index"
+            :key="`${type}-${channel.index}`"
             :channel="channel"
             :metrics="metricsMap.get(channel.index)"
             :activity="activityMap.get(channel.index)"
@@ -628,6 +628,7 @@ watch(() => props.type, () => {
 
     <ChannelEditDialog
       v-if="showChannelEditor"
+      :key="`${type}-${editingChannel?.index ?? 'new'}`"
       :channel="editingChannel"
       :channel-type="type"
       @close="showChannelEditor = false"

@@ -668,6 +668,7 @@
   "channelEditor.actions.cancel": "取消",
   "channelEditor.actions.create": "创建",
   "channelEditor.actions.save": "保存",
+  "channelEditor.error.channelNotFound": "未找到渠道配置",
   "channelEditor.basic.website.label": "网站",
   "channelEditor.basic.baseUrl.placeholder": "每行一个，第一行为主地址，其余作为故障转移\nhttps://api.example.com\nhttps://backup.example.com",
   "channelEditor.mapping.redirect.title": "模型重定向",

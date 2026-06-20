@@ -668,6 +668,7 @@
   "channelEditor.actions.cancel": "Cancel",
   "channelEditor.actions.create": "Create",
   "channelEditor.actions.save": "Save",
+  "channelEditor.error.channelNotFound": "Channel config not found",
   "channelEditor.basic.website.label": "Website",
   "channelEditor.basic.baseUrl.placeholder": "One per line, first is primary, the rest are failover\nhttps://api.example.com\nhttps://backup.example.com",
   "channelEditor.mapping.redirect.title": "Model redirect",

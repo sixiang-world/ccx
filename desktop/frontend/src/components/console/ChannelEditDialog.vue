@@ -161,6 +161,9 @@ const newHeader = reactive<HeaderRow>({ id: 0, key: '', value: '' })
 const showTargetSuggestions = ref(false)
 const activeTargetInputId = ref<string | null>(null)
 const targetInputFilter = ref('')
+const targetModelOptions = ref<string[]>([])
+const fetchedModelsError = ref('')
+const hasTriedFetchModels = ref(false)
 
 function getFilteredTargetModels(filter: string): string[] {
   const models = targetModelDatalist.value
@@ -1239,9 +1242,6 @@ function applyCodexResponsesPreset(name: string) {
 // ── 模型列表拉取 ──
 
 const fetchingModels = ref(false)
-const targetModelOptions = ref<string[]>([])
-const fetchedModelsError = ref('')
-const hasTriedFetchModels = ref(false)
 
 // 切换渠道时重置拉取状态（独立于 resetForm，避免与早于本 ref 定义的 props.channel watch 产生 TDZ）
 watch(() => props.channel?.index, () => {

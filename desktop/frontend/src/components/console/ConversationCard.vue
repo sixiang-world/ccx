@@ -28,6 +28,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggleExpand: []
+  editChannel: [channelIndex: number]
   setOverride: [conversationId: string, sequence: ChannelSequenceEntry[]]
   removeOverride: [conversationId: string]
   success: [message: string]
@@ -207,7 +208,7 @@ function buildSequence(channels: ChannelInfo[]): ChannelSequenceEntry[] {
 }
 
 function getChannelTooltip(channel: ChannelInfo): string {
-  if (channel.index === props.conversation.currentChannel && !hasOverride.value) return 'Current channel'
+  if (channel.index === props.conversation.currentChannel && !hasOverride.value) return 'Click to edit channel'
   if (channel.index === nextChannel.value) return 'Next override target'
   return 'Click to set as next'
 }
@@ -235,17 +236,12 @@ function fusedBadgeClass(channel: ChannelInfo): string {
 }
 
 function handleQuickOverride(channel: ChannelInfo) {
-  if (!hasOverride.value && channel.index === props.conversation.currentChannel) return
+  if (!hasOverride.value && channel.index === props.conversation.currentChannel) {
+    emit('editChannel', channel.index)
+    return
+  }
   const rest = channelSequence.value.filter(item => item.index !== channel.index)
   emit('setOverride', props.conversation.id, buildSequence([channel, ...rest]))
-}
-
-function handleMoveToTop(channel: ChannelInfo, currentIndex: number) {
-  if (currentIndex === 0) return
-  const current = [...channelSequence.value]
-  const [item] = current.splice(currentIndex, 1)
-  current.unshift(item)
-  emit('setOverride', props.conversation.id, buildSequence(current))
 }
 
 function handleDemote(index: number) {
@@ -353,7 +349,7 @@ async function copyRawUserId() {
           <button
             type="button"
             class="channel-name min-w-0 flex-1 truncate text-left text-xs"
-            @click.stop="handleMoveToTop(channel, index)"
+            @click.stop="emit('editChannel', channel.index)"
           >
             {{ channel.name }}
           </button>
