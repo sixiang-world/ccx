@@ -121,6 +121,81 @@ func TestConvertResponsesToOpenAIChatRequest(t *testing.T) {
 			},
 		},
 		{
+			name: "Codex 兼容开启时保留懒加载子代理函数",
+			input: `{
+				"model": "gpt-4",
+				"input": "Try a sub-agent",
+				"transformer_metadata": {"codex_tool_compat_enabled": true},
+				"tools": [
+					{
+						"type": "tool_search",
+						"execution": "client",
+						"description": "Search deferred tools",
+						"parameters": {
+							"type": "object",
+							"properties": {
+								"query": {"type": "string"}
+							},
+							"required": ["query"]
+						}
+					},
+					{
+						"type": "function",
+						"name": "spawn_agent",
+						"description": "Spawn and manage sub-agents.",
+						"parameters": {
+							"type": "object",
+							"properties": {
+								"agent_type": {"type": "string"},
+								"message": {"type": "string"}
+							},
+							"required": ["agent_type", "message"]
+						}
+					},
+					{
+						"type": "function",
+						"name": "wait_agent",
+						"description": "Wait for sub-agent completion.",
+						"parameters": {
+							"type": "object",
+							"properties": {
+								"targets": {"type": "array", "items": {"type": "string"}},
+								"timeout_ms": {"type": "integer"}
+							},
+							"required": ["targets"]
+						}
+					}
+				]
+			}`,
+			model:  "gpt-4o",
+			stream: true,
+			validate: func(t *testing.T, result []byte) {
+				root := gjson.ParseBytes(result)
+				tools := root.Get("tools").Array()
+				if len(tools) != 3 {
+					t.Fatalf("should have 3 tools, got %d: %s", len(tools), root.Get("tools").Raw)
+				}
+				names := map[string]bool{}
+				for _, tool := range tools {
+					if tool.Get("type").String() != "function" {
+						t.Fatalf("chat tool should be function, got %s", tool.Raw)
+					}
+					names[tool.Get("function.name").String()] = true
+				}
+				for _, name := range []string{"tool_search", "spawn_agent", "wait_agent"} {
+					if !names[name] {
+						t.Fatalf("missing chat tool %q in %s", name, root.Get("tools").Raw)
+					}
+				}
+				if !tools[1].Get("function.parameters.properties.agent_type").Exists() {
+					t.Fatalf("spawn_agent schema should be preserved, got %s", tools[1].Raw)
+				}
+				if !tools[2].Get("function.parameters.properties.targets").Exists() {
+					t.Fatalf("wait_agent schema should be preserved, got %s", tools[2].Raw)
+				}
+			},
+		},
+		{
 			name: "function_call 和 function_call_output",
 			input: `{
 				"model": "gpt-4",
