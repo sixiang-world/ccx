@@ -437,7 +437,7 @@ function handleCardClick(event: MouseEvent) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-52">
-          <DropdownMenuLabel>{{ t('orchestration.edit') }}</DropdownMenuLabel>
+          <DropdownMenuLabel>{{ t('channelCard.actions') }}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem @click="emit('edit')">
@@ -446,7 +446,7 @@ function handleCardClick(event: MouseEvent) {
             </DropdownMenuItem>
             <DropdownMenuItem v-if="supportsCapability" @click="emit('capability')">
               <Zap class="h-4 w-4" />
-              {{ t('capability.startTest') }}
+              {{ t('addChannel.testCapability') }}
             </DropdownMenuItem>
             <DropdownMenuItem @click="copyChannelInfo">
               <Copy class="h-4 w-4" />
