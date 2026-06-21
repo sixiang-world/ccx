@@ -53,10 +53,12 @@ const stats = computed(() => dashboardCache.value[props.type]?.stats)
 const searchQuery = ref('')
 const normalizedSearch = computed(() => searchQuery.value.trim().toLowerCase())
 
-const activeChannels = computed(() => {
+const orderedActiveChannels = computed(() => {
   const list = channels.value.filter(ch => ch.status !== 'disabled')
-  return sortChannels(list).filter(matchesSearch)
+  return sortChannels(list)
 })
+
+const activeChannels = computed(() => orderedActiveChannels.value.filter(matchesSearch))
 
 const inactiveChannels = computed(() => {
   const list = channels.value.filter(ch => ch.status === 'disabled')
@@ -236,6 +238,14 @@ function matchesSearch(channel: Channel) {
   )
 }
 
+function isFirstOrderedActiveChannel(channel: Channel) {
+  return orderedActiveChannels.value[0]?.index === channel.index
+}
+
+function isLastOrderedActiveChannel(channel: Channel) {
+  return orderedActiveChannels.value[orderedActiveChannels.value.length - 1]?.index === channel.index
+}
+
 async function refreshCurrentChannels() {
   clearActionError()
   isRefreshing.value = true
@@ -327,7 +337,7 @@ async function handlePromote(channel: Channel, duration: number) {
 }
 
 async function handleMoveTop(channelId: number) {
-  const ordered = activeChannels.value.map(channel => channel.index)
+  const ordered = orderedActiveChannels.value.map(channel => channel.index)
   const index = ordered.indexOf(channelId)
   if (index <= 0) return
   ordered.splice(index, 1)
@@ -336,7 +346,7 @@ async function handleMoveTop(channelId: number) {
 }
 
 async function handleMoveBottom(channelId: number) {
-  const ordered = activeChannels.value.map(channel => channel.index)
+  const ordered = orderedActiveChannels.value.map(channel => channel.index)
   const index = ordered.indexOf(channelId)
   if (index < 0 || index >= ordered.length - 1) return
   ordered.splice(index, 1)
@@ -575,8 +585,8 @@ watch(() => props.type, () => {
               :priority="index + 1"
               :supports-capability="type !== 'images'"
               :can-delete="canDeleteChannel(channel)"
-              :can-move-top="index > 0 && !normalizedSearch"
-              :can-move-bottom="index < activeChannels.length - 1 && !normalizedSearch"
+              :can-move-top="!isFirstOrderedActiveChannel(channel)"
+              :can-move-bottom="!isLastOrderedActiveChannel(channel)"
               :expanded="expandedChannelId === channel.index"
               @edit="handleEdit(channel)"
               @delete="handleDelete(channel)"
