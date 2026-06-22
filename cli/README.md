@@ -5,6 +5,11 @@
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> **位置**：本工具现位于 `sixiang-world/ccx` fork 仓库的 [`cli/`](https://github.com/sixiang-world/ccx/tree/main/cli) 子目录下。
+> 通过 `git subtree` 保持与独立仓库 `sixiang-world/ccx-cli` 同步。
+>
+> **跟踪上游**：运行 `./scripts/check-upstream.sh` 检查 `BenedictKing/ccx` 上游是否有 API 变更需要 ccx-cli 适配。
+
 `ccx-cli` 是 [CCX](https://github.com/BenedictKing/ccx) API 代理网关的命令行管理工具，为运维人员提供**无需 Web UI** 的完整配置管理能力。
 
 支持渠道（Channel）的 CRUD、API 密钥管理、模型映射、熔断器配置、健康检查、连通性检测等功能，输出支持 `table` / `json` / `yaml` 三种格式。
