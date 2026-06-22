@@ -658,6 +658,14 @@ func (st *chatToResponsesState) closeFuncBlocks(nextSeq func() int) []string {
 			ctcDelta, _ = sjson.Set(ctcDelta, "delta", customInput)
 			out = append(out, emitResponsesEvent("response.custom_tool_call_input.delta", ctcDelta))
 
+			ctcDone := `{"type":"response.custom_tool_call_input.done","sequence_number":0,"item_id":"","call_id":"","output_index":0,"input":""}`
+			ctcDone, _ = sjson.Set(ctcDone, "sequence_number", nextSeq())
+			ctcDone, _ = sjson.Set(ctcDone, "item_id", itemID)
+			ctcDone, _ = sjson.Set(ctcDone, "call_id", callID)
+			ctcDone, _ = sjson.Set(ctcDone, "output_index", outputIndex)
+			ctcDone, _ = sjson.Set(ctcDone, "input", customInput)
+			out = append(out, emitResponsesEvent("response.custom_tool_call_input.done", ctcDone))
+
 			itemDone := `{"type":"response.output_item.done","sequence_number":0,"output_index":0,"item":{"id":"","type":"custom_tool_call","status":"completed","call_id":"","name":"","input":""}}`
 			itemDone, _ = sjson.Set(itemDone, "sequence_number", nextSeq())
 			itemDone, _ = sjson.Set(itemDone, "output_index", outputIndex)

@@ -174,6 +174,9 @@ func TestConvertOpenAIChatToResponses_CustomToolCall(t *testing.T) {
 	if !strings.Contains(joined, "response.custom_tool_call_input.delta") {
 		t.Fatalf("missing custom tool input delta: %s", joined)
 	}
+	if !strings.Contains(joined, "response.custom_tool_call_input.done") {
+		t.Fatalf("missing custom tool input done: %s", joined)
+	}
 	if !strings.Contains(joined, `*** Add File: docs/test.md`) || strings.Contains(joined, `\n+\n*** End Patch`) {
 		t.Fatalf("unexpected patch input: %s", joined)
 	}
@@ -203,6 +206,9 @@ func TestConvertOpenAIChatToResponses_ToolSearchRestoresCustomToolCall(t *testin
 	}
 	if !strings.Contains(joined, "response.custom_tool_call_input.delta") {
 		t.Fatalf("missing custom tool input delta event: %s", joined)
+	}
+	if !strings.Contains(joined, "response.custom_tool_call_input.done") {
+		t.Fatalf("missing custom tool input done event: %s", joined)
 	}
 	if !strings.Contains(joined, `{\"query\":\"sub-agent\"}`) {
 		t.Fatalf("tool_search input should preserve query arguments: %s", joined)

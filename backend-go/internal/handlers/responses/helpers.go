@@ -195,6 +195,7 @@ func isResponsesUsageOnlyEvent(event string) bool {
 func firstUnknownResponsesEventType(event string) (string, bool) {
 	knownTypes := map[string]struct{}{
 		"response.output_text.delta": {}, "response.function_call_arguments.delta": {}, "response.function_call_arguments.done": {},
+		"response.custom_tool_call_input.delta": {}, "response.custom_tool_call_input.done": {},
 		"response.reasoning_summary_text.delta": {}, "response.reasoning_summary_text.done": {}, "response.reasoning_summary_part.added": {}, "response.reasoning_summary_part.done": {},
 		"response.output_json.delta": {}, "response.content_part.delta": {}, "response.audio.delta": {}, "response.audio_transcript.delta": {},
 		"response.output_item.added": {}, "response.output_item.done": {}, "response.completed": {},

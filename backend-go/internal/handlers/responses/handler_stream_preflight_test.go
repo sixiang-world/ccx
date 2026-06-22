@@ -15,6 +15,13 @@ func TestHasResponsesSemanticContent(t *testing.T) {
 		}
 	})
 
+	t.Run("custom tool call input done", func(t *testing.T) {
+		event := "event: response.custom_tool_call_input.done\ndata: {\"type\":\"response.custom_tool_call_input.done\",\"call_id\":\"call_1\",\"input\":\"{\\\"query\\\":\\\"sub-agent\\\"}\"}\n\n"
+		if !common.HasResponsesSemanticContent(event) {
+			t.Fatal("expected custom_tool_call_input.done to be treated as non-text content")
+		}
+	})
+
 	t.Run("output item added function call", func(t *testing.T) {
 		event := "event: response.output_item.added\ndata: {\"type\":\"response.output_item.added\",\"item\":{\"type\":\"function_call\",\"name\":\"Read\",\"call_id\":\"call_1\"}}\n\n"
 		if !common.HasResponsesSemanticContent(event) {
