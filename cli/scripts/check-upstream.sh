@@ -15,12 +15,22 @@
 
 set -e
 
+# 自动检测上游 remote：优先用已有的 upstream/upstream-ccx/up
+for candidate in upstream upstream-ccx up; do
+  if git -C "$GIT_ROOT" remote get-url "$candidate" &>/dev/null; then
+    REMOTE_NAME="$candidate"
+    break
+  fi
+done
+REMOTE_NAME="${REMOTE_NAME:-upstream-ccx}"
 UPSTREAM_REPO="https://github.com/BenedictKing/ccx.git"
-REMOTE_NAME="upstream-ccx"
 VERBOSE=false
 NEWEST=20
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Git 仓库根目录（确保路径解析从 repo 根开始，不受子目录影响）
+GIT_ROOT=$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")
 
 # 颜色
 RED='\033[0;31m'
@@ -51,15 +61,15 @@ WATCH_PATHS=(
 # ============================================================
 
 setup_remote() {
-  if git -C "$PROJECT_DIR" remote get-url "$REMOTE_NAME" &>/dev/null; then
+  if git -C "$GIT_ROOT" remote get-url "$REMOTE_NAME" &>/dev/null; then
     echo "✓ remote '$REMOTE_NAME' 已存在"
   else
     echo "→ 添加 remote '$REMOTE_NAME' → $UPSTREAM_REPO"
-    git -C "$PROJECT_DIR" remote add "$REMOTE_NAME" "$UPSTREAM_REPO"
+    git -C "$GIT_ROOT" remote add "$REMOTE_NAME" "$UPSTREAM_REPO"
   fi
   echo "→ 拉取 $REMOTE_NAME 分支信息..."
-  git -C "$PROJECT_DIR" fetch "$REMOTE_NAME"
-  echo "✓ 设置完成，当前上游 HEAD：$(git -C "$PROJECT_DIR" rev-parse --short "$REMOTE_NAME/main" 2>/dev/null || echo '（无法获取）')"
+  git -C "$GIT_ROOT" fetch "$REMOTE_NAME"
+  echo "✓ 设置完成，当前上游 HEAD：$(git -C "$GIT_ROOT" rev-parse --short "$REMOTE_NAME/main" 2>/dev/null || echo '（无法获取）')"
 }
 
 # ============================================================
@@ -81,7 +91,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 检查 remote 是否存在
-if ! git -C "$PROJECT_DIR" remote get-url "$REMOTE_NAME" &>/dev/null; then
+if ! git -C "$GIT_ROOT" remote get-url "$REMOTE_NAME" &>/dev/null; then
   echo -e "${YELLOW}⚠ 尚未配置 upstream-ccx remote${NC}"
   echo "首次运行请执行："
   echo "  $0 --setup"
@@ -92,11 +102,11 @@ fi
 
 # 拉取最新
 echo -e "${CYAN}→ 拉取上游最新分支信息...${NC}"
-git -C "$PROJECT_DIR" fetch "$REMOTE_NAME" 2>&1
+git -C "$GIT_ROOT" fetch "$REMOTE_NAME" 2>&1
 echo ""
 
 # 获取远程 HEAD
-UPSTREAM_HEAD=$(git -C "$PROJECT_DIR" rev-parse --short "$REMOTE_NAME/main" 2>/dev/null || true)
+UPSTREAM_HEAD=$(git -C "$GIT_ROOT" rev-parse --short "$REMOTE_NAME/main" 2>/dev/null || true)
 if [ -z "$UPSTREAM_HEAD" ]; then
   echo -e "${RED}✗ 无法获取 upstream-ccx 的主分支，请检查 remote 配置${NC}"
   exit 1
@@ -107,7 +117,7 @@ echo ""
 
 # ==================== 步骤 1：最新提交列表 ====================
 echo -e "${CYAN}─── 最近 $NEWEST 条上游提交 ───${NC}"
-git -C "$PROJECT_DIR" log "$REMOTE_NAME/main" --oneline -"$NEWEST" \
+git -C "$GIT_ROOT" log "$REMOTE_NAME/main" --oneline -"$NEWEST" \
   --pretty=format:"%C(yellow)%h%Creset %s %Cgreen(%ar)%Creset" 2>/dev/null \
   | head -"$NEWEST"
 echo ""
@@ -117,7 +127,7 @@ echo -e "${CYAN}─── 关键路径变更分析 ───${NC}"
 HAS_CRITICAL=false
 
 # 本地已记录的 last-checked 基线
-BASELINE_FILE="$PROJECT_DIR/.upstream-baseline"
+BASELINE_FILE="$GIT_ROOT/.upstream-baseline"
 if [ -f "$BASELINE_FILE" ]; then
   BASELINE=$(cat "$BASELINE_FILE")
   echo -e "上次检查的基线: ${CYAN}$BASELINE${NC}"
@@ -130,14 +140,14 @@ echo ""
 MERGE_BASE=""
 if [ -n "$BASELINE" ]; then
   # 尝试用基线 hash 做 merge-base，如果它还在历史中
-  if git -C "$PROJECT_DIR" cat-file -e "$BASELINE" 2>/dev/null; then
+  if git -C "$GIT_ROOT" cat-file -e "$BASELINE" 2>/dev/null; then
     MERGE_BASE="$BASELINE"
   fi
 fi
 
 for path in "${WATCH_PATHS[@]}"; do
   # 获取该路径在上游的最新变更
-  LAST_CHANGE=$(git -C "$PROJECT_DIR" log "$REMOTE_NAME/main" --oneline -1 -- "$path" 2>/dev/null || echo "")
+  LAST_CHANGE=$(git -C "$GIT_ROOT" log "$REMOTE_NAME/main" --oneline -1 -- "$path" 2>/dev/null || echo "")
   if [ -z "$LAST_CHANGE" ]; then
     echo -e "  ${YELLOW}?${NC} $path（上游无此路径，或暂无变更历史）"
     continue
@@ -149,7 +159,7 @@ for path in "${WATCH_PATHS[@]}"; do
   # 看这个路径是否有新变更（相对于基线）
   HAS_NEW=false
   if [ -n "$MERGE_BASE" ]; then
-    NEW_COMMITS=$(git -C "$PROJECT_DIR" rev-list "$MERGE_BASE..$REMOTE_NAME/main" -- "$path" 2>/dev/null | wc -l)
+    NEW_COMMITS=$(git -C "$GIT_ROOT" rev-list "$MERGE_BASE..$REMOTE_NAME/main" -- "$path" 2>/dev/null | wc -l)
     if [ "$NEW_COMMITS" -gt 0 ]; then
       HAS_NEW=true
     fi
@@ -175,9 +185,9 @@ if [ "$HAS_CRITICAL" = true ]; then
 
   for path in "${WATCH_PATHS[@]}"; do
     if [ -n "$MERGE_BASE" ]; then
-      COMMITS=$(git -C "$PROJECT_DIR" rev-list "$MERGE_BASE..$REMOTE_NAME/main" -- "$path" 2>/dev/null)
+      COMMITS=$(git -C "$GIT_ROOT" rev-list "$MERGE_BASE..$REMOTE_NAME/main" -- "$path" 2>/dev/null)
     else
-      COMMITS=$(git -C "$PROJECT_DIR" rev-list "$REMOTE_NAME/main" --oneline -5 -- "$path" | awk '{print $1}' 2>/dev/null)
+      COMMITS=$(git -C "$GIT_ROOT" rev-list "$REMOTE_NAME/main" --oneline -5 -- "$path" | awk '{print $1}' 2>/dev/null)
     fi
 
     if [ -n "$COMMITS" ]; then
@@ -191,7 +201,7 @@ if [ "$HAS_CRITICAL" = true ]; then
       if [ "$VERBOSE" = true ]; then
         # 显示这个路径的 diff 摘要
         RANGE="${MERGE_BASE:-$(git rev-list --max-parents=0 "$REMOTE_NAME/main" 2>/dev/null)}..$REMOTE_NAME/main"
-        DIFF_STAT=$(git -C "$PROJECT_DIR" diff "$RANGE" -- "$path" --stat 2>/dev/null | tail -1)
+        DIFF_STAT=$(git -C "$GIT_ROOT" diff "$RANGE" -- "$path" --stat 2>/dev/null | tail -1)
         if [ -n "$DIFF_STAT" ]; then
           echo "    差异统计: $DIFF_STAT"
         fi
@@ -216,13 +226,13 @@ if [ "$HAS_CRITICAL" = true ]; then
   # 更新基线
   echo ""
   echo -e "看完后运行："
-  echo -e "  ${CYAN}echo $(git -C "$PROJECT_DIR" rev-parse "$REMOTE_NAME/main") > .upstream-baseline${NC}"
+  echo -e "  ${CYAN}echo $(git -C "$GIT_ROOT" rev-parse "$REMOTE_NAME/main") > .upstream-baseline${NC}"
 else
   echo -e "${GREEN}═══ 结论：ccx-cli 无需适配 ═══${NC}"
   echo "上游最近 $NEWEST 条 commit 没有涉及 ccx-cli 关注的关键路径。"
 
   # 自动更新基线
-  git -C "$PROJECT_DIR" rev-parse "$REMOTE_NAME/main" > "$BASELINE_FILE"
+  git -C "$GIT_ROOT" rev-parse "$REMOTE_NAME/main" > "$BASELINE_FILE"
   echo "✓ 基线已更新"
 fi
 
