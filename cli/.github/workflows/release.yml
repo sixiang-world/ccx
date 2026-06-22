@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          BINARY="ccx-cli-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY="${BINARY}.exe"
+          fi
+          go build -ldflags="-s -w -X ccx-cli/internal/version.Version=${GITHUB_REF_NAME} -X ccx-cli/internal/version.GitCommit=${GITHUB_SHA}" -o "dist/$BINARY" .
+          echo "binary=$BINARY" >> $GITHUB_ENV
+
+      - name: Archive
+        run: |
+          cd dist
+          BINARY="ccx-cli-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY="${BINARY}.exe"
+          fi
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            zip "${BINARY}.zip" "$BINARY"
+            echo "archive=${BINARY}.zip" >> $GITHUB_ENV
+          else
+            tar czf "${BINARY}.tar.gz" "$BINARY"
+            echo "archive=${BINARY}.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccx-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/${{ env.archive }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate Checksums
+        run: |
+          cd artifacts
+          find . -type f -name '*.tar.gz' -o -name '*.zip' | while read f; do
+            sha256sum "$f" > "$f.sha256"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "prompt": "帮我创建一个 OpenAI Chat 类型的渠道，名叫 deepseek-chat，指向 https://api.deepseek.com/v1，密钥 sk-deepseek-xxx",
+    "expected": "agent 能正确组装 ccx channel create 命令，包含 --type chat、--base-url、--api-key 参数"
+  },
+  {
+    "id": 2,
+    "prompt": "ccx-cli 连接不上服务器，报 Connection refused，怎么办？",
+    "expected": "agent 能使用故障模式表给出具体排查步骤：检查 docker ps、检查 --server 端口、启动 CCX"
+  },
+  {
+    "id": 3,
+    "prompt": "用 ccx-cli 的 channel mapping set 后，之前的映射丢了，怎么恢复？",
+    "expected": "agent 能指出 mapping set 是全量替换的特性，并给出先用 mapping list 查看再合并的正确做法"
+  }
+]
