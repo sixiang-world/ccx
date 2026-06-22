@@ -8,7 +8,7 @@ BINDIR="${1:-/usr/local/bin}"
 BINARY="ccx-cli"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-VERSION_TAG="$(git -C "$PROJECT_DIR" describe --tags --always 2>/dev/null || echo "dev")"
+VERSION_TAG="$(git -C "$PROJECT_DIR" describe --tags --match 'cli-v*' --always 2>/dev/null || echo "dev")"
 BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 GIT_COMMIT="$(git -C "$PROJECT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
 

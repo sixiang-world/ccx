@@ -1,7 +1,7 @@
 #!/bin/bash
 # ccx-cli 全面验收测试脚本
 set -e
-BIN="/root/ccx-cli/ccx-cli"
+BIN="$(cd "$(dirname "$0")/.." && pwd)/ccx-cli"
 SERVER="http://localhost:3002"
 KEY="temp-ccx-key-001"
 PASS=0
@@ -96,8 +96,8 @@ test_contains "channel list -o yaml" "opencode" $BIN channel list --server "$SER
 
 echo ""
 echo "--- 10. 错误处理 ---"
-echo "  ✅ 错误：无效 server → $(cd /root/ccx-cli && $BIN health --server "http://localhost:1" --key "$KEY" 2>&1 | head -1)" && PASS=$((PASS+1))
-echo "  ✅ 错误：缺 --channel → $(cd /root/ccx-cli && $BIN model list --server "$SERVER" --key "$KEY" 2>&1 | head -1)" && PASS=$((PASS+1))
+echo "  ✅ 错误：无效 server → $(cd "$(dirname "$0")/.." && $BIN health --server "http://localhost:1" --key "$KEY" 2>&1 | head -1)" && PASS=$((PASS+1))
+echo "  ✅ 错误：缺 --channel → $(cd "$(dirname "$0")/.." && $BIN model list --server "$SERVER" --key "$KEY" 2>&1 | head -1)" && PASS=$((PASS+1))
 
 echo ""
 echo "========== 测试完成 =========="

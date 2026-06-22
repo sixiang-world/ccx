@@ -253,3 +253,6 @@ __pycache__/
 
 .mcp.json
 .serena/
+.claude-env
+launch-claude.sh
+run-claude.sh

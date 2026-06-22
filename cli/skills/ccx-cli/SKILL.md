@@ -10,7 +10,7 @@ trigger: 当用户说 ccx-cli、ccx 命令行、管理 CCX、渠道管理、ccx 
 
 # ccx-cli — CCX API 代理网关命令行管理工具
 
-> 源码：`github.com/sixiang-world/ccx-cli` | 技术栈：Go 1.23 + Cobra + Viper
+> 源码：`github.com/sixiang-world/ccx/tree/main/cli` | 技术栈：Go 1.23 + Cobra + Viper
 
 `ccx-cli` 是 CCX API 代理网关的命令行管理工具，让运维人员通过终端管理上游渠道、API 密钥、模型映射和运行时设置，无需 Web UI。
 
@@ -33,8 +33,9 @@ ccx channel list
 ### 方式 A：安装脚本（推荐）
 
 ```bash
-git clone https://github.com/sixiang-world/ccx-cli.git
-cd ccx-cli
+# 从 sixiang-world/ccx fork 克隆（含 cli 子目录）
+git clone https://github.com/sixiang-world/ccx.git
+cd ccx/cli
 sudo ./scripts/install.sh
 # 自定义路径：./scripts/install.sh /opt/bin
 ```

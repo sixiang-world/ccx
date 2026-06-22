@@ -1,0 +1,42 @@
+# CI for ccx-cli (in cli/ subdirectory)
+# Note: Must be in root .github/workflows/ — GitHub ignores workflows in subdirectories.
+# Triggers only on changes to cli/ files.
+
+name: CLI CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['cli/**']
+  pull_request:
+    branches: [main]
+    paths: ['cli/**']
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: cli
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Build
+        run: go build -o /dev/null .
