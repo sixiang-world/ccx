@@ -148,28 +148,58 @@ var providerConsoleURLs = map[string]string{
 	ProviderOpenCodeGo:   "https://opencode.ai/",
 }
 
+// defaultTargets 返回标准的三目标配置（Messages、Responses、Chat），Messages 默认推荐。
+func defaultTargets() []ChannelTarget {
+	return []ChannelTarget{
+		{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
+		{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
+		{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
+	}
+}
+
+// newFullCapabilityPreset 创建一个具有完整能力的 Preset 模板（全协议支持、全目标、默认 Messages）。
+// 调用者只需设置 ID、Order、Label、Description 和 Plans。
+func newFullCapabilityPreset(id, label, description string, order int, plans []ProviderPlan) ProviderPreset {
+	return ProviderPreset{
+		ID:                  id,
+		Order:               order,
+		Label:               label,
+		Description:         description,
+		DirectAgent:         true,
+		NativeMessages:      true,
+		ChatCompatible:      true,
+		ResponsesCompatible: true,
+		Plans:               plans,
+		Targets:             defaultTargets(),
+		DefaultTarget:       TargetMessages,
+	}
+}
+
+// dualProtocolPlans 生成标准的双协议 Plans（Anthropic + OpenAI）。
+// anthropicURL 是 Anthropic 协议的完整 URL。
+// openaiURL 是 OpenAI 协议的完整 URL。
+func dualProtocolPlans(anthropicURL, openaiURL string) []ProviderPlan {
+	return []ProviderPlan{
+		{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: anthropicURL, Description: "Claude Messages 原生入口", Recommended: true},
+		{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: openaiURL, Description: "Chat / Responses 通用入口"},
+	}
+}
+
+// dualProtocolPlansSimple 生成标准的双协议 Plans，anthropic 和 openai 使用相同的 baseURL。
+// 适用于 RunAPI、Unity2 等统一入口的服务商。
+func dualProtocolPlansSimple(baseURL string) []ProviderPlan {
+	return dualProtocolPlans(baseURL, baseURL)
+}
+
 func Presets() []ProviderPreset {
 	return []ProviderPreset{
-		{
-			ID:                  ProviderDeepSeek,
-			Order:               10,
-			Label:               "DeepSeek",
-			Description:         "国产高性能推理模型，V4-Pro / V4-Flash 双旗舰，以极低成本实现顶级推理能力，完全开源（MIT），性价比极高。",
-			DirectAgent:         true,
-			NativeMessages:      true,
-			ChatCompatible:      true,
-			ResponsesCompatible: true,
-			Plans: []ProviderPlan{
-				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.deepseek.com/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
-				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.deepseek.com/v1", Description: "Chat / Responses 通用入口"},
-			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
-			DefaultTarget: TargetMessages,
-		},
+		newFullCapabilityPreset(
+			ProviderDeepSeek,
+			"DeepSeek",
+			"国产高性能推理模型，V4-Pro / V4-Flash 双旗舰，以极低成本实现顶级推理能力，完全开源（MIT），性价比极高。",
+			10,
+			dualProtocolPlans("https://api.deepseek.com/anthropic", "https://api.deepseek.com/v1"),
+		),
 		{
 			ID:                  ProviderMiMo,
 			Order:               20,
@@ -189,73 +219,30 @@ func Presets() []ProviderPreset {
 				{ID: "token-sgp-anthropic", Label: "Token Plan - 新加坡 (Anthropic)", BaseURL: "https://token-plan-sgp.xiaomimimo.com/anthropic", Description: "新加坡区 Token Plan Claude Messages 原生入口"},
 				{ID: "token-ams-anthropic", Label: "Token Plan - 欧洲 (Anthropic)", BaseURL: "https://token-plan-ams.xiaomimimo.com/anthropic", Description: "欧洲区 Token Plan Claude Messages 原生入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
-		{
-			ID:                  ProviderCompshare,
-			Order:               30,
-			Label:               "优云智算套餐",
-			Description:         "优云智算是 UCloud 旗下 AI 云平台，提供高性价比国内 AI 模型 Agent Plan 套餐，支持包月订阅或按量付费（49 元/月起），同时提供官方海外模型稳定接入，支持 Claude Code、Codex 与 API 集成，具备企业级高并发、7×24 技术支持和自助开票能力；通过推广链接注册可领取 5 元平台试用金。",
-			DirectAgent:         true,
-			NativeMessages:      true,
-			ChatCompatible:      true,
-			ResponsesCompatible: true,
-			Plans: []ProviderPlan{
-				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://cp.compshare.cn", Description: "Claude Messages 原生入口", Recommended: true},
-				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://cp.compshare.cn/v1", Description: "Chat / Responses 通用入口"},
-			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
-			DefaultTarget: TargetMessages,
-		},
-		{
-			ID:                  ProviderRunAPI,
-			Order:               40,
-			Label:               "RunAPI",
-			Description:         "RunAPI 是高效稳定的API OpenRouter平替平台，一个 API Key 即可访问 OpenAI、Claude、Gemini、DeepSeek、Grok 等 150+ 主流模型，低至 1 折，极其稳定，可以无缝兼容 Claude Code、OpenClaw 等工具。RunAPI 为 CCX用户提供专属福利：注册联系管理员即可领取￥7的免费额度",
-			DirectAgent:         true,
-			NativeMessages:      true,
-			ChatCompatible:      true,
-			ResponsesCompatible: true,
-			Plans: []ProviderPlan{
-				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://runapi.co/v1", Description: "Claude Messages 原生入口", Recommended: true},
-				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://runapi.co/v1", Description: "OpenAI Chat 兼容入口"},
-			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
-			DefaultTarget: TargetMessages,
-		},
-		{
-			ID:                  ProviderUnity2,
-			Order:               45,
-			Label:               "Unity2.ai",
-			Description:         "Unity2.ai 是面向个人开发者、团队、企业的高性能 AI 模型 API 中转平台，长期服务国内头部企业，日均承载超 300 亿 token 调用，支持 5000 RPM 级高并发。一个 API Key 即可适配 Claude Code、Codex、OpenAI 模型、IDE 插件和 Agent 工作流等场景。具备企业级稳定供应能力，在高并发、持续调用和团队集中采购场景下依然保持低延迟、高可用。现在注册 Unity2.ai 可领取 $2 余额，加入官方群再送 $10 余额，合计最高可领 $12 免费额度。",
-			DirectAgent:         true,
-			NativeMessages:      true,
-			ChatCompatible:      true,
-			ResponsesCompatible: true,
-			Plans: []ProviderPlan{
-				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://unity2.ai/v1", Description: "Claude Messages 原生入口", Recommended: true},
-				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://unity2.ai/v1", Description: "OpenAI Chat / Responses 兼容入口"},
-			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
-			DefaultTarget: TargetMessages,
-		},
+		newFullCapabilityPreset(
+			ProviderCompshare,
+			"优云智算套餐",
+			"优云智算是 UCloud 旗下 AI 云平台，提供高性价比国内 AI 模型 Agent Plan 套餐，支持包月订阅或按量付费（49 元/月起），同时提供官方海外模型稳定接入，支持 Claude Code、Codex 与 API 集成，具备企业级高并发、7×24 技术支持和自助开票能力；通过推广链接注册可领取 5 元平台试用金。",
+			30,
+			dualProtocolPlans("https://cp.compshare.cn", "https://cp.compshare.cn/v1"),
+		),
+		newFullCapabilityPreset(
+			ProviderRunAPI,
+			"RunAPI",
+			"RunAPI 是高效稳定的API OpenRouter平替平台，一个 API Key 即可访问 OpenAI、Claude、Gemini、DeepSeek、Grok 等 150+ 主流模型，低至 1 折，极其稳定，可以无缝兼容 Claude Code、OpenClaw 等工具。RunAPI 为 CCX用户提供专属福利：注册联系管理员即可领取￥7的免费额度",
+			40,
+			dualProtocolPlansSimple("https://runapi.co/v1"),
+		),
+		newFullCapabilityPreset(
+			ProviderUnity2,
+			"Unity2.ai",
+			"Unity2.ai 是面向个人开发者、团队、企业的高性能 AI 模型 API 中转平台，长期服务国内头部企业，日均承载超 300 亿 token 调用，支持 5000 RPM 级高并发。一个 API Key 即可适配 Claude Code、Codex、OpenAI 模型、IDE 插件和 Agent 工作流等场景。具备企业级稳定供应能力，在高并发、持续调用和团队集中采购场景下依然保持低延迟、高可用。现在注册 Unity2.ai 可领取 $2 余额，加入官方群再送 $10 余额，合计最高可领 $12 免费额度。",
+			45,
+			dualProtocolPlansSimple("https://unity2.ai/v1"),
+		),
 		{
 			ID:                  ProviderKimi,
 			Order:               50,
@@ -271,11 +258,7 @@ func Presets() []ProviderPreset {
 				{ID: "coding-anthropic", Label: "Coding Plan (Anthropic)", BaseURL: "https://api.kimi.com/coding", Description: "Coding Plan Claude Messages 原生入口"},
 				{ID: "coding-openai-chat", Label: "Coding Plan (OpenAI)", BaseURL: "https://api.kimi.com/coding/v1", Description: "Coding Plan Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -292,11 +275,7 @@ func Presets() []ProviderPreset {
 				{ID: "coding", Label: "Coding Plan (OpenAI)", BaseURL: "https://open.bigmodel.cn/api/coding/paas/v4#", Description: "Coding Plan Chat / Responses 通用入口"},
 				{ID: "openai-chat", Label: "通用 (OpenAI)", BaseURL: "https://open.bigmodel.cn/api/paas/v4#", Description: "通用 Chat / Responses 入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -312,11 +291,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.minimaxi.com/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.minimax.chat/v1", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -336,11 +311,7 @@ func Presets() []ProviderPreset {
 				{ID: "token-plan-anthropic", Label: "Token Plan (Anthropic)", BaseURL: "https://token-plan.cn-beijing.maas.aliyuncs.com/apps/anthropic", Description: "Token Plan Claude Messages 原生入口"},
 				{ID: "token-plan-openai-chat", Label: "Token Plan (OpenAI)", BaseURL: "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1", Description: "Token Plan Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -356,11 +327,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://opencode.ai/zen/v1/messages", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://opencode.ai/zen/v1", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -376,11 +343,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://opencode.ai/zen/go/v1/messages", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://opencode.ai/zen/go/v1", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -396,11 +359,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.lkeap.cloud.tencent.com/plan/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.lkeap.cloud.tencent.com/plan/v3", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -416,11 +375,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://ark.cn-beijing.volces.com/api/coding#", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://ark.cn-beijing.volces.com/api/coding/v3", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -436,11 +391,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://qianfan.baidubce.com/anthropic/coding", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://qianfan.baidubce.com/v2/coding#", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -456,11 +407,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://maas-api.cn-huabei-1.xf-yun.com/anthropic", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://maas-api.cn-huabei-1.xf-yun.com/v2", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -476,11 +423,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://openrouter.ai/api", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://openrouter.ai/api/v1", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -496,11 +439,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api-inference.modelscope.cn", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api-inference.modelscope.cn/v1", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 		{
@@ -518,11 +457,7 @@ func Presets() []ProviderPreset {
 				{ID: "anthropic", Label: "Anthropic-compatible", BaseURL: "https://api.easytransnote.com/coding", Description: "Claude Messages 原生入口", Recommended: true},
 				{ID: "openai-chat", Label: "OpenAI-compatible", BaseURL: "https://api.easytransnote.com/coding/v1", Description: "Chat / Responses 通用入口"},
 			},
-			Targets: []ChannelTarget{
-				{Type: TargetMessages, Label: "Messages 原生透传", Description: "Claude Code 直连或 CCX messages 渠道", Recommended: true},
-				{Type: TargetResponses, Label: "Codex Responses", Description: "OpenAI Responses 协议，供 Codex 使用"},
-				{Type: TargetChat, Label: "Chat 渠道透传", Description: "OpenAI Chat 协议，供 Chat 客户端使用"},
-			},
+			Targets: defaultTargets(),
 			DefaultTarget: TargetMessages,
 		},
 	}
@@ -697,6 +632,7 @@ type channelTargetConfig struct {
 	CodexNativeToolPassthrough    bool
 	CodexToolCompat               *bool
 	StripCodexClientTools         *bool
+	StripImageGenerationTool      bool
 	NormalizeNonstandardChatRoles bool
 	RateLimitRPM                  int // 主动限速默认 RPM（0=不设默认）
 }
@@ -1092,6 +1028,7 @@ func applyChannelTargetConfig(payload *ChannelPayload, config channelTargetConfi
 	payload.VisionFallbackModel = config.VisionFallbackModel
 	payload.StripEmptyTextBlocks = payload.StripEmptyTextBlocks || config.StripEmptyTextBlocks
 	payload.CodexNativeToolPassthrough = payload.CodexNativeToolPassthrough || config.CodexNativeToolPassthrough
+	payload.StripImageGenerationTool = payload.StripImageGenerationTool || config.StripImageGenerationTool
 	payload.NormalizeNonstandardChatRoles = payload.NormalizeNonstandardChatRoles || config.NormalizeNonstandardChatRoles
 	if config.CodexToolCompat != nil {
 		payload.CodexToolCompat = *config.CodexToolCompat
